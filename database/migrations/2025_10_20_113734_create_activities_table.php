@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void {
         Schema::create('activities', function (Blueprint $table) {
-            $table->uuid('activity_id')->primary();
+           $table->uuid('activity_id')->primary();
             $table->string('external_id')->unique(); // 👈 custom external id
 
             $table->string('activity_title');

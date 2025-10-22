@@ -7,9 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void {
         Schema::create('project_employees', function (Blueprint $table) {
-            $table->id('project_employee_id');
-            // $table->foreignId('program_id')->constrained('programs')->cascadeOnDelete();
-            // $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
+            $table->uuid('project_employee_id')->primary();
             $table->text('description')->nullable();
             $table->timestamps();
         });

@@ -20,33 +20,48 @@ class Activity extends Model
         'content_network',
         'start_date',
         'end_date',
+        'parent_activity',
+        'target_cop',
+        'external_id',
     ];
 
+    protected $dates = ['start_date', 'end_date'];
+
     protected static function boot()
-{
-    parent::boot();
+    {
+        parent::boot();
 
-    static::creating(function ($activity) {
-        // Generate UUID for primary key
-        if (empty($activity->activity_id)) {
-            $activity->activity_id = (string) Str::uuid();
-        }
+        static::creating(function ($activity) {
+            // Assign a UUID for the primary key if not set
+            if (empty($activity->activity_id)) {
+                $activity->activity_id = (string) Str::uuid();
+            }
 
-        // Ensure start_date is a Carbon instance
-        $startDate = $activity->start_date
-            ? \Carbon\Carbon::parse($activity->start_date)
-            : now(); // fallback if null
+            // Assign a unique UUID for external_id if not set
+            if (empty($activity->external_id)) {
+                $activity->external_id = (string) Str::uuid();
+            }
+        });
+    }
 
-        // Get year and month from start_date
-        $year = $startDate->format('Y');
-        $month = $startDate->format('m');
+    /**
+     * Self-relation for parent/child activities
+     */
+    public function parent()
+    {
+        return $this->belongsTo(Activity::class, 'parent_activity', 'activity_id');
+    }
 
-        // Sanitize type (e.g. "Training Session" → "training_session")
-        $type = Str::slug($activity->activity_type ?? 'unknown', '_');
+    public function children()
+    {
+        return $this->hasMany(Activity::class, 'parent_activity', 'activity_id');
+    }
 
-        // Generate external ID
-        $activity->external_id = "act_{$year}_{$month}_{$type}";
-    });
-}
-
+    /**
+     * Optional relation for target_cop if needed
+     */
+    // public function targetGroup()
+    // {
+    //     return $this->belongsTo(TargetGroup::class, 'target_cop', 'id');
+    // }
 }

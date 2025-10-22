@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void {
         Schema::create('cops', function (Blueprint $table) {
-            $table->id('cop_id');
+            $table->uuid('cop_id')->primary();
             // $table->foreignId('program_id')->constrained('programs')->cascadeOnDelete();
             $table->string('cop_name');
             $table->text('description')->nullable();

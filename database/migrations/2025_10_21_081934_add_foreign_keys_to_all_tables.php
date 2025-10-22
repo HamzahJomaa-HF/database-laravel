@@ -10,7 +10,7 @@ return new class extends Migration {
         // 1. COP → Program (COP belongs to a Program)
         Schema::table('cops', function (Blueprint $table) {
             if (!Schema::hasColumn('cops', 'program_id')) {
-                $table->unsignedBigInteger('program_id');
+                $table->uuid('program_id');
             }
             $table->foreign('program_id', 'FK_COPS_PROGRAM_ID')
                   ->references('program_id')->on('programs')
@@ -20,7 +20,7 @@ return new class extends Migration {
         // 2. ProjectCenter → Program (ProjectCenter belongs to a Program)
         Schema::table('project_centers', function (Blueprint $table) {
             if (!Schema::hasColumn('project_centers', 'program_id')) {
-                $table->unsignedBigInteger('program_id');
+                $table->uuid('program_id');
             }
             $table->foreign('program_id', 'FK_PROJECT_CENTERS_PROGRAM_ID')
                   ->references('program_id')->on('programs')
@@ -30,7 +30,7 @@ return new class extends Migration {
         // 3. ProjectActivity → ProjectCenter, Activities (Junction table)
         Schema::table('project_activities', function (Blueprint $table) {
             if (!Schema::hasColumn('project_activities', 'project_center_id')) {
-                $table->unsignedBigInteger('project_center_id');
+                $table->uuid('project_center_id');
             }
             if (!Schema::hasColumn('project_activities', 'activity_id')) {
                 $table->uuid('activity_id');
@@ -49,7 +49,7 @@ return new class extends Migration {
                 $table->uuid('parent_activity')->nullable();
             }
             if (!Schema::hasColumn('activities', 'target_cop')) {
-                $table->unsignedBigInteger('target_cop')->nullable();
+                $table->uuid('target_cop')->nullable();
             }
             $table->foreign('parent_activity', 'FK_ACTIVITIES_PARENT_ACTIVITY')
                   ->references('activity_id')->on('activities')
@@ -62,17 +62,20 @@ return new class extends Migration {
         // 5. activity_users → user, activity, cop (Junction table)
         Schema::table('activity_users', function (Blueprint $table) {
             if (!Schema::hasColumn('activity_users', 'user_id')) {
-                $table->unsignedBigInteger('user_id');
+                $table->uuid('user_id');
             }
             if (!Schema::hasColumn('activity_users', 'activity_id')) {
                 $table->uuid('activity_id');
             }
             if (!Schema::hasColumn('activity_users', 'cop_id')) {
-                $table->unsignedBigInteger('cop_id')->nullable();
+                $table->uuid
+                
+                
+                ('cop_id')->nullable();
             }
             
             $table->foreign('user_id', 'FK_ACTIVITY_USERS_USER_ID')
-                  ->references('id')->on('users')
+                  ->references('user_id')->on('users')
                   ->onDelete('cascade');
             $table->foreign('activity_id', 'FK_ACTIVITY_USERS_ACTIVITY_ID')
                   ->references('activity_id')->on('activities')
@@ -110,10 +113,10 @@ return new class extends Migration {
         // 8. SurveyQuestions → Survey, Question (Junction table)
         Schema::table('survey_questions', function (Blueprint $table) {
             if (!Schema::hasColumn('survey_questions', 'survey_id')) {
-                $table->unsignedBigInteger('survey_id');
+                $table->uuid('survey_id');
             }
             if (!Schema::hasColumn('survey_questions', 'question_id')) {
-                $table->unsignedBigInteger('question_id');
+                $table->uuid('question_id');
             }
             $table->foreign('survey_id', 'FK_SURVEY_QUESTIONS_SURVEY_ID')
                   ->references('survey_id')->on('surveys')
@@ -126,7 +129,7 @@ return new class extends Migration {
         // 9. Questions → Survey
         Schema::table('questions', function (Blueprint $table) {
             if (!Schema::hasColumn('questions', 'survey_id')) {
-                $table->unsignedBigInteger('survey_id')->nullable();
+                $table->uuid('survey_id')->nullable();
             }
             $table->foreign('survey_id', 'FK_QUESTIONS_SURVEY_ID')
                   ->references('survey_id')->on('surveys')
@@ -136,13 +139,13 @@ return new class extends Migration {
         // 10. Responses → user, survey
         Schema::table('responses', function (Blueprint $table) {
             if (!Schema::hasColumn('responses', 'user_id')) {
-                $table->unsignedBigInteger('user_id');
+                $table->uuid('user_id');
             }
             if (!Schema::hasColumn('responses', 'survey_id')) {
-                $table->unsignedBigInteger('survey_id');
+                $table->uuid('survey_id');
             }
             $table->foreign('user_id', 'FK_RESPONSES_USER_ID')
-                  ->references('id')->on('users')
+                  ->references('user_id')->on('users')
                   ->onDelete('cascade');
             $table->foreign('survey_id', 'FK_RESPONSES_SURVEY_ID')
                   ->references('survey_id')->on('surveys')
@@ -152,13 +155,13 @@ return new class extends Migration {
         // 11. Answers → response, question, survey_question
         Schema::table('answers', function (Blueprint $table) {
             if (!Schema::hasColumn('answers', 'response_id')) {
-                $table->unsignedBigInteger('response_id');
+                $table->uuid('response_id');
             }
             if (!Schema::hasColumn('answers', 'question_id')) {
-                $table->unsignedBigInteger('question_id');
+                $table->uuid('question_id');
             }
             if (!Schema::hasColumn('answers', 'survey_question_id')) {
-                $table->unsignedBigInteger('survey_question_id');
+                $table->uuid('survey_question_id');
             }
             $table->foreign('response_id', 'FK_ANSWERS_RESPONSE_ID')
                   ->references('response_id')->on('responses')
@@ -174,10 +177,10 @@ return new class extends Migration {
         // 12. ProjectEmployee → Program, Employee (Junction table)
         Schema::table('project_employees', function (Blueprint $table) {
             if (!Schema::hasColumn('project_employees', 'program_id')) {
-                $table->unsignedBigInteger('program_id');
+                $table->uuid('program_id');
             }
             if (!Schema::hasColumn('project_employees', 'employee_id')) {
-                $table->unsignedBigInteger('employee_id');
+                $table->uuid('employee_id');
             }
             $table->foreign('program_id', 'FK_PROJECT_EMPLOYEES_PROGRAM_ID')
                   ->references('program_id')->on('programs')
@@ -190,10 +193,10 @@ return new class extends Migration {
         // 13. Employee → Role, ProjectCenter
         Schema::table('employees', function (Blueprint $table) {
             if (!Schema::hasColumn('employees', 'role_id')) {
-                $table->unsignedBigInteger('role_id')->nullable();
+                $table->uuid('role_id')->nullable();
             }
             if (!Schema::hasColumn('employees', 'project_id')) {
-                $table->unsignedBigInteger('project_id')->nullable();
+                $table->uuid('project_id')->nullable();
             }
             $table->foreign('role_id', 'FK_EMPLOYEES_ROLE_ID')
                   ->references('role_id')->on('roles')

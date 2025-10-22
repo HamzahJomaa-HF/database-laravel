@@ -7,13 +7,10 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void {
         Schema::create('activity_users', function (Blueprint $table) {
-            $table->id('activity_user_id');
-            // $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            // $table->foreignId('activity_id')->constrained('activities')->cascadeOnDelete();
+            $table->uuid('activity_user_id')->primary();
             $table->boolean('is_lead')->default(false);
             $table->boolean('invited')->default(false);
             $table->boolean('attended')->default(false);
-            // $table->foreignId('cop_id')->nullable()->constrained('cops')->nullOnDelete();
             $table->timestamps();
         });
     }

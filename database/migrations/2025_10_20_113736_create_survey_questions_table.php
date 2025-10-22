@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void {
         Schema::create('survey_questions', function (Blueprint $table) {
-            $table->id('survey_question_id');
+               $table->uuid('survey_question_id')->primary();
             // $table->foreignId('survey_id')->constrained('surveys')->cascadeOnDelete();
             // $table->foreignId('question_id')->constrained('questions')->cascadeOnDelete();
             $table->integer('question_order')->default(1);

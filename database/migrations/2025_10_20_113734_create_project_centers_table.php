@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void {
         Schema::create('project_centers', function (Blueprint $table) {
-            $table->id('project_center_id');
+        $table->uuid('project_center_id')->primary();
             // $table->foreignId('program_id')->constrained('programs')->cascadeOnDelete();
             $table->date('start_date')->nullable();
             $table->date('end_date')->nullable();
