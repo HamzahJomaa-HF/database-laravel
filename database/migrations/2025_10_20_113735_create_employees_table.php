@@ -1,0 +1,27 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration {
+    public function up(): void {
+        Schema::create('employees', function (Blueprint $table) {
+            $table->id('employee_id');
+            // $table->foreignId('project_id')->constrained('project_centers')->cascadeOnDelete();
+            // $table->foreignId('role_id')->constrained('roles')->cascadeOnDelete();
+            $table->string('first_name');
+            $table->string('last_name');
+            $table->string('phone_number')->nullable();
+            $table->string('email')->unique();
+            $table->enum('employee_type', ['full_time', 'part_time', 'contract'])->nullable();
+            $table->date('start_date')->nullable();
+            $table->date('end_date')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void {
+        Schema::dropIfExists('employees');
+    }
+};

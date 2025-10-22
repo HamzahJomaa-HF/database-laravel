@@ -1,0 +1,239 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Hariri Foundation API",
+        "description": "API documentation for Hariri Foundation project",
+        "contact": {
+            "email": "support@haririfoundation.com"
+        },
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/api/activities": {
+            "get": {
+                "tags": [
+                    "Activities"
+                ],
+                "summary": "Get all activities or a specific activity by ID",
+                "operationId": "e815b8334ff4c8bc726dccf564588ddb",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "Optional activity ID to fetch a specific activity",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Activities retrieved successfully"
+                    },
+                    "404": {
+                        "description": "Activity not found"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Activities"
+                ],
+                "summary": "Create a new activity",
+                "operationId": "1a0d5dd3289135ab54e34094bb034672",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "activity_title",
+                                    "activity_type",
+                                    "content_network",
+                                    "start_date",
+                                    "end_date"
+                                ],
+                                "properties": {
+                                    "activity_title": {
+                                        "type": "string",
+                                        "example": "Workshop on AI"
+                                    },
+                                    "activity_type": {
+                                        "type": "string",
+                                        "example": "Training"
+                                    },
+                                    "content_network": {
+                                        "type": "string",
+                                        "example": "Online"
+                                    },
+                                    "start_date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2025-10-20"
+                                    },
+                                    "end_date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2025-10-22"
+                                    },
+                                    "parent_activity": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "target_cop": {
+                                        "type": "string",
+                                        "example": "Youth Group"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Activity created successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input data"
+                    }
+                }
+            }
+        },
+        "/api/activities/{id}": {
+            "put": {
+                "tags": [
+                    "Activities"
+                ],
+                "summary": "Update an existing activity",
+                "operationId": "53eac6ca48ccb274a098d625e4a81564",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Activity ID to update",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "activity_title": {
+                                        "type": "string",
+                                        "example": "Updated Workshop Title"
+                                    },
+                                    "activity_type": {
+                                        "type": "string",
+                                        "example": "Seminar"
+                                    },
+                                    "content_network": {
+                                        "type": "string",
+                                        "example": "Offline"
+                                    },
+                                    "start_date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2025-10-21"
+                                    },
+                                    "end_date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2025-10-25"
+                                    },
+                                    "parent_activity": {
+                                        "type": "integer",
+                                        "example": 2
+                                    },
+                                    "target_cop": {
+                                        "type": "string",
+                                        "example": "Teachers"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Activity updated successfully"
+                    },
+                    "404": {
+                        "description": "Activity not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Activities"
+                ],
+                "summary": "Delete an activity by ID",
+                "operationId": "eaece5f3b5a275eb5238bdace3ea008c",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Activity ID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Activity deleted successfully"
+                    },
+                    "404": {
+                        "description": "Activity not found"
+                    }
+                }
+            }
+        },
+        "/api/users": {
+            "get": {
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Get all users or by ID",
+                "operationId": "d7a57f4d7de18fb0f92501172472c9b6",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "Optional user ID to fetch a specific user",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Users retrieved successfully"
+                    },
+                    "404": {
+                        "description": "User not found"
+                    }
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Activities",
+            "description": "Activities"
+        },
+        {
+            "name": "Users",
+            "description": "Users"
+        }
+    ]
+}
