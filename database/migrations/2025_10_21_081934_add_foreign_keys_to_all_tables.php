@@ -33,7 +33,7 @@ return new class extends Migration {
                 $table->unsignedBigInteger('project_center_id');
             }
             if (!Schema::hasColumn('project_activities', 'activity_id')) {
-                $table->unsignedBigInteger('activity_id');
+                $table->uuid('activity_id');
             }
             $table->foreign('project_center_id', 'FK_PROJECT_ACTIVITIES_PROJECT_CENTER_ID')
                   ->references('project_center_id')->on('project_centers')
@@ -46,7 +46,7 @@ return new class extends Migration {
         // 4. Activities → Parent Activity (self), Target COP
         Schema::table('activities', function (Blueprint $table) {
             if (!Schema::hasColumn('activities', 'parent_activity')) {
-                $table->unsignedBigInteger('parent_activity')->nullable();
+                $table->uuid('parent_activity')->nullable();
             }
             if (!Schema::hasColumn('activities', 'target_cop')) {
                 $table->unsignedBigInteger('target_cop')->nullable();
@@ -65,7 +65,7 @@ return new class extends Migration {
                 $table->unsignedBigInteger('user_id');
             }
             if (!Schema::hasColumn('activity_users', 'activity_id')) {
-                $table->unsignedBigInteger('activity_id');
+                $table->uuid('activity_id');
             }
             if (!Schema::hasColumn('activity_users', 'cop_id')) {
                 $table->unsignedBigInteger('cop_id')->nullable();
@@ -100,7 +100,7 @@ return new class extends Migration {
         // 7. Survey → Activity
         Schema::table('surveys', function (Blueprint $table) {
             if (!Schema::hasColumn('surveys', 'activity_id')) {
-                $table->unsignedBigInteger('activity_id');
+                $table->uuid('activity_id');
             }
             $table->foreign('activity_id', 'FK_SURVEYS_ACTIVITY_ID')
                   ->references('activity_id')->on('activities')

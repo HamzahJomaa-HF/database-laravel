@@ -75,7 +75,9 @@ class ActivityController extends Controller
      * )
      */
     public function store(Request $request)
-    {
+{
+    try {
+        // Validate input
         $validated = $request->validate([
             'activity_title' => 'required|string|max:255',
             'activity_type' => 'required|string|max:255',
@@ -86,13 +88,31 @@ class ActivityController extends Controller
             'target_cop' => 'nullable|string|max:255',
         ]);
 
+        // Create the activity
         $activity = Activity::create($validated);
 
+        // Return success response
         return response()->json([
             'data' => $activity,
             'message' => 'Activity created successfully'
         ], 201);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        // Handle validation errors
+        return response()->json([
+            'message' => 'Validation failed',
+            'errors' => $e->errors()
+        ], 422);
+
+    } catch (\Exception $e) {
+        // Handle unexpected errors
+        return response()->json([
+            'message' => 'An unexpected error occurred',
+            'error' => $e->getMessage()
+        ], 500);
     }
+}
+
 
     /**
      * @OA\Put(
