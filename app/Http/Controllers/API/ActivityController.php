@@ -10,6 +10,15 @@ use Illuminate\Support\Str;
 class ActivityController extends Controller
 {
     /**
+     * @OA\Info(
+     *      version="1.0.0",
+     *      title="Hariri Foundation API",
+     *      description="API documentation for Hariri Foundation project - Activities Management",
+     *      @OA\Contact(email="support@haririfoundation.com")
+     * )
+     */
+
+    /**
      * @OA\Get(
      *     path="/api/activities",
      *     summary="Get all activities or a specific activity by ID",
@@ -46,7 +55,22 @@ class ActivityController extends Controller
      * @OA\Post(
      *     path="/api/activities",
      *     summary="Create a new activity",
-     *     tags={"Activities"}
+     *     tags={"Activities"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"activity_title", "activity_type", "content_network", "start_date", "end_date"},
+     *             @OA\Property(property="activity_title", type="string", example="Workshop on AI"),
+     *             @OA\Property(property="activity_type", type="string", example="Training"),
+     *             @OA\Property(property="content_network", type="string", example="Online"),
+     *             @OA\Property(property="start_date", type="string", format="date", example="2025-10-20"),
+     *             @OA\Property(property="end_date", type="string", format="date", example="2025-10-22"),
+     *             @OA\Property(property="parent_activity", type="integer", example=1),
+     *             @OA\Property(property="target_cop", type="string", example="Youth Group")
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="Activity created successfully"),
+     *     @OA\Response(response=400, description="Invalid input data")
      * )
      */
     public function store(Request $request)
@@ -89,7 +113,28 @@ class ActivityController extends Controller
      * @OA\Put(
      *     path="/api/activities/{id}",
      *     summary="Update an existing activity",
-     *     tags={"Activities"}
+     *     tags={"Activities"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="Activity ID to update",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             @OA\Property(property="activity_title", type="string", example="Updated Workshop Title"),
+     *             @OA\Property(property="activity_type", type="string", example="Seminar"),
+     *             @OA\Property(property="content_network", type="string", example="Offline"),
+     *             @OA\Property(property="start_date", type="string", format="date", example="2025-10-21"),
+     *             @OA\Property(property="end_date", type="string", format="date", example="2025-10-25"),
+     *             @OA\Property(property="parent_activity", type="integer", example=2),
+     *             @OA\Property(property="target_cop", type="string", example="Teachers")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Activity updated successfully"),
+     *     @OA\Response(response=404, description="Activity not found")
      * )
      */
     public function update(Request $request, $id)
@@ -116,12 +161,20 @@ class ActivityController extends Controller
             'message' => 'Activity updated successfully'
         ]);
     }
-
-    /**
+/**
      * @OA\Delete(
      *     path="/api/activities/{id}",
      *     summary="Delete an activity by ID",
-     *     tags={"Activities"}
+     *     tags={"Activities"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="Activity ID to delete",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(response=200, description="Activity deleted successfully"),
+     *     @OA\Response(response=404, description="Activity not found")
      * )
      */
     public function destroy($id)

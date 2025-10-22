@@ -32,15 +32,17 @@ class Activity extends Model
         parent::boot();
 
         static::creating(function ($activity) {
-            // Assign a UUID for the primary key if not set
+            // Generate UUID for primary key
             if (empty($activity->activity_id)) {
                 $activity->activity_id = (string) Str::uuid();
             }
 
-            // Assign a unique UUID for external_id if not set
-            if (empty($activity->external_id)) {
-                $activity->external_id = (string) Str::uuid();
-            }
+            // Generate external ID: act_{YYYY}_{MM}_{type}
+            $year = now()->format('Y');
+            $month = now()->format('m');
+            $type = Str::slug($activity->activity_type ?? 'unknown', '_'); // sanitize type
+
+            $activity->external_id = "act_{$year}_{$month}_{$type}";
         });
     }
 

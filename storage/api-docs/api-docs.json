@@ -23,7 +23,8 @@
                         "description": "Optional activity ID to fetch a specific activity",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -211,7 +212,7 @@
                         "description": "Optional user ID to fetch a specific user",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "string"
                         }
                     }
                 ],

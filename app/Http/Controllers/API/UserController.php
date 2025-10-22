@@ -23,7 +23,7 @@ class UserController extends Controller
      *         in="query",
      *         description="Optional user ID to fetch a specific user",
      *         required=false,
-     *         @OA\Schema(type="integer")
+     *         @OA\Schema(type="string")
      *     ),
      *     @OA\Response(response=200, description="Users retrieved successfully"),
      *     @OA\Response(response=404, description="User not found")
