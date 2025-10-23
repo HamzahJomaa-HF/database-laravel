@@ -20,7 +20,7 @@
                     {
                         "name": "id",
                         "in": "query",
-                        "description": "Optional activity ID to fetch a specific activity",
+                        "description": "Optional activity UUID to fetch a specific activity",
                         "required": false,
                         "schema": {
                             "type": "string",
@@ -79,12 +79,14 @@
                                         "example": "2025-10-22"
                                     },
                                     "parent_activity": {
-                                        "type": "integer",
-                                        "example": 1
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "a1b2c3d4-5678-90ab-cdef-1234567890ab"
                                     },
                                     "target_cop": {
                                         "type": "string",
-                                        "example": "Youth Group"
+                                        "format": "uuid",
+                                        "example": "b2c3d4e5-6789-0abc-def1-234567890bcd"
                                     }
                                 },
                                 "type": "object"
@@ -113,10 +115,11 @@
                     {
                         "name": "id",
                         "in": "path",
-                        "description": "Activity ID to update",
+                        "description": "Activity UUID to update",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -149,12 +152,14 @@
                                         "example": "2025-10-25"
                                     },
                                     "parent_activity": {
-                                        "type": "integer",
-                                        "example": 2
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "123e4567-e89b-12d3-a456-426614174000"
                                     },
                                     "target_cop": {
                                         "type": "string",
-                                        "example": "Teachers"
+                                        "format": "uuid",
+                                        "example": "987e6543-b21d-43c1-a654-123456789abc"
                                     }
                                 },
                                 "type": "object"
@@ -175,16 +180,17 @@
                 "tags": [
                     "Activities"
                 ],
-                "summary": "Delete an activity by ID",
+                "summary": "Delete an activity by UUID",
                 "operationId": "eaece5f3b5a275eb5238bdace3ea008c",
                 "parameters": [
                     {
                         "name": "id",
                         "in": "path",
-                        "description": "Activity ID to delete",
+                        "description": "Activity UUID to delete",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
