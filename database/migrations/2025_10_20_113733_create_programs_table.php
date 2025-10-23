@@ -10,7 +10,9 @@ return new class extends Migration {
             $table->uuid('program_id')->primary();
             $table->string('name');
             $table->text('description')->nullable();
+            $table->string('external_id')->nullable()->unique()->after('description');
             $table->timestamps();
+
         });
     }
 

@@ -11,31 +11,41 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Roles table should exist before users if using FK
+        // Users table
         Schema::create('users', function (Blueprint $table) {
             $table->uuid('user_id')->primary();
             $table->string('first_name');
             $table->string('last_name');
             $table->date('dob')->nullable();
             $table->string('phone_number')->nullable();
-            $table->unsignedBigInteger('user_role'); // foreign key to roles
-            $table->timestamps(); // created_at and updated_at
+            $table->uuid('user_role'); // FK to roles
+            $table->timestamps();
 
-            // $table->foreign('user_role')->references('role_id')->on('roles')->onDelete('cascade');
+        
         });
 
+        // Password reset tokens table
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
             $table->string('token');
             $table->timestamp('created_at')->nullable();
         });
 
+        // Sessions table
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
-            $table->foreignId('user_id')->nullable()->index();
+            $table->uuid('user_id')->nullable()->index(); // FK to users
             $table->string('ip_address', 45)->nullable();
             $table->text('user_agent')->nullable();
             $table->longText('payload');
             $table->integer('last_activity')->index();
+
+            $table->foreign('user_id')
+                  ->references('user_id')
+                  ->on('users')
+                  ->onUpdate('cascade')
+                  ->onDelete('set null');
         });
     }
 
@@ -44,8 +54,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('users');
-        Schema::dropIfExists('password_reset_tokens');
+        // Drop sessions first because it references users
         Schema::dropIfExists('sessions');
+        Schema::dropIfExists('password_reset_tokens');
+        Schema::dropIfExists('users');
     }
 };

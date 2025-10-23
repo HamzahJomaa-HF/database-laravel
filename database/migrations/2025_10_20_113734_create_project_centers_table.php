@@ -14,6 +14,8 @@ return new class extends Migration {
             // $table->foreignId('created_by')->constrained('users')->cascadeOnDelete();
             $table->string('project_type')->nullable();
             $table->string('project_group')->nullable();
+            $table->string('external_id')->unique()->nullable();
+
             $table->timestamps();
         });
     }

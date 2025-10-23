@@ -25,6 +25,15 @@ return new class extends Migration {
             $table->foreign('program_id', 'FK_PROJECT_CENTERS_PROGRAM_ID')
                   ->references('program_id')->on('programs')
                   ->onDelete('cascade');
+
+            if (!Schema::hasColumn('project_centers', 'parent_project_center_id')) {
+                $table->uuid('parent_project_center_id')->nullable()->after('project_center_id');
+
+                $table->foreign('parent_project_center_id', 'FK_PROJECT_CENTERS_PARENT')
+                      ->references('project_center_id')
+                      ->on('project_centers')
+                      ->onDelete('set null');
+            }
         });
 
         // 3. ProjectActivity → ProjectCenter, Activities (Junction table)
@@ -68,12 +77,9 @@ return new class extends Migration {
                 $table->uuid('activity_id');
             }
             if (!Schema::hasColumn('activity_users', 'cop_id')) {
-                $table->uuid
-                
-                
-                ('cop_id')->nullable();
+                $table->uuid('cop_id')->nullable();
             }
-            
+
             $table->foreign('user_id', 'FK_ACTIVITY_USERS_USER_ID')
                   ->references('user_id')->on('users')
                   ->onDelete('cascade');
@@ -87,12 +93,9 @@ return new class extends Migration {
 
         // 6. users → role (FIXED - Only add foreign key, don't create column)
         Schema::table('users', function (Blueprint $table) {
-            // Check if user_role exists and rename it to role_id
             if (Schema::hasColumn('users', 'user_role') && !Schema::hasColumn('users', 'role_id')) {
                 $table->renameColumn('user_role', 'role_id');
             }
-            
-            // Only add foreign key constraint if role_id column exists
             if (Schema::hasColumn('users', 'role_id')) {
                 $table->foreign('role_id', 'FK_USERS_ROLE_ID')
                       ->references('role_id')->on('roles')
@@ -247,7 +250,11 @@ return new class extends Migration {
             $t->dropForeign('FK_PROJECT_ACTIVITIES_PROJECT_CENTER_ID');
             $t->dropForeign('FK_PROJECT_ACTIVITIES_ACTIVITY_ID');
         });
-        Schema::table('project_centers', fn(Blueprint $t) => $t->dropForeign('FK_PROJECT_CENTERS_PROGRAM_ID'));
+        Schema::table('project_centers', function (Blueprint $t) {
+            $t->dropForeign('FK_PROJECT_CENTERS_PARENT');
+            $t->dropForeign('FK_PROJECT_CENTERS_PROGRAM_ID');
+            $t->dropColumn('parent_project_center_id');
+        });
         Schema::table('cops', fn(Blueprint $t) => $t->dropForeign('FK_COPS_PROGRAM_ID'));
     }
 };
