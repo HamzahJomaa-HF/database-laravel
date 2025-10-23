@@ -7,6 +7,18 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
+        // 0. Programs → Parent Program (self-referencing for hierarchy) - ADD THIS FIRST
+        Schema::table('programs', function (Blueprint $table) {
+            if (!Schema::hasColumn('programs', 'parent_program_id')) {
+                $table->uuid('parent_program_id')->nullable()->after('program_id');
+                
+                $table->foreign('parent_program_id', 'FK_PROGRAMS_PARENT_PROGRAM')
+                      ->references('program_id')
+                      ->on('programs')
+                      ->onDelete('cascade');
+            }
+        });
+
         // 1. COP → Program (COP belongs to a Program)
         Schema::table('cops', function (Blueprint $table) {
             if (!Schema::hasColumn('cops', 'program_id')) {
