@@ -44,10 +44,10 @@ Route::prefix('programs')->group(function () {
 });
 
 // Project Centers
-Route::get('/project-centers', [ProjectCenterController::class, 'index']);
-Route::post('/project-centers', [ProjectCenterController::class, 'store']);
-Route::put('/project-centers/{id}', [ProjectCenterController::class, 'update']);
-Route::delete('/project-centers/{id}', [ProjectCenterController::class, 'destroy']);
+Route::get('/project', [ProjectCenterController::class, 'index']);
+Route::post('/project', [ProjectCenterController::class, 'store']);
+Route::put('/project/{id}', [ProjectCenterController::class, 'update']);
+Route::delete('/project/{id}', [ProjectCenterController::class, 'destroy']);
 
 // Surveys
 Route::get('/surveys', [SurveyController::class, 'index']);
