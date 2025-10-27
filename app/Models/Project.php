@@ -6,11 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
-class ProjectCenter extends Model
+class Project extends Model
 {
     use HasFactory;
 
-    protected $primaryKey = 'project_center_id';
+    protected $primaryKey = 'project_id';
     public $incrementing = false;
     protected $keyType = 'string';
 
@@ -18,7 +18,7 @@ class ProjectCenter extends Model
         'start_date',
         'end_date',
         'program_id',
-        'parent_project_center_id',
+        'parent_project_id',
         'project_type',
         'project_group',
         'external_id',
@@ -28,19 +28,19 @@ class ProjectCenter extends Model
     {
         parent::boot();
 
-        static::creating(function ($projectCenter) {
+        static::creating(function ($project) {
             // Generate UUID for primary key
-            if (empty($projectCenter->project_center_id)) {
-                $projectCenter->project_center_id = (string) Str::uuid();
+            if (empty($project->project_id)) {
+                $project->project_id = (string) Str::uuid();
             }
 
-            // Generate external ID: pc_{YYYY}_{MM}_{project_type or general}_{random4}
+            // Generate external ID: proj_{YYYY}_{MM}_{project_type or general}_{random4}
             $year = now()->format('Y');
             $month = now()->format('m');
-            $type = strtolower($projectCenter->project_type ?? 'general');
+            $type = strtolower($project->project_type ?? 'general');
             $random = substr(Str::uuid(), 0, 4);
 
-            $projectCenter->external_id = "pc_{$year}_{$month}_{$type}_{$random}";
+            $project->external_id = "proj_{$year}_{$month}_{$type}_{$random}";
         });
     }
 
@@ -53,18 +53,18 @@ class ProjectCenter extends Model
     }
 
     /**
-     * Relation to parent ProjectCenter
+     * Relation to parent Project
      */
     public function parent()
     {
-        return $this->belongsTo(ProjectCenter::class, 'parent_project_center_id', 'project_center_id');
+        return $this->belongsTo(Project::class, 'parent_project_id', 'project_id');
     }
 
     /**
-     * Relation to child ProjectCenters
+     * Relation to child Projects
      */
     public function children()
     {
-        return $this->hasMany(ProjectCenter::class, 'parent_project_center_id', 'project_center_id');
+        return $this->hasMany(Project::class, 'parent_project_id', 'project_id');
     }
 }

@@ -58,7 +58,6 @@ class ProgramController extends Controller
         }
     }
 
-
     /**
      * @OA\Post(
      *     path="/api/programs",
@@ -67,8 +66,10 @@ class ProgramController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"name"},
+     *             required={"name", "type", "program_type"},
      *             @OA\Property(property="name", type="string", example="Youth Development"),
+     *             @OA\Property(property="type", type="string", example="Youth"),
+     *             @OA\Property(property="program_type", type="string", example="Youth"),
      *             @OA\Property(property="description", type="string", example="Program description here")
      *         )
      *     ),
@@ -76,18 +77,22 @@ class ProgramController extends Controller
      *     @OA\Response(response=400, description="Invalid input data")
      * )
      */
-   public function store(Request $request)
+    public function store(Request $request)
     {
         try {
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
+                'type' => 'required|string|max:100',
                 'description' => 'nullable|string',
+                'program_type' => 'required|string|max:100',
             ]);
 
             $program = Program::create([
                 'program_id' => Str::uuid(),
                 'name' => $validated['name'],
+                'type' => $validated['type'],
                 'description' => $validated['description'] ?? null,
+                'program_type' => $validated['program_type'],
             ]);
 
             return response()->json([
@@ -108,7 +113,6 @@ class ProgramController extends Controller
         }
     }
 
-
     /**
      * @OA\Put(
      *     path="/api/programs/{id}",
@@ -125,7 +129,9 @@ class ProgramController extends Controller
      *         required=true,
      *         @OA\JsonContent(
      *             @OA\Property(property="name", type="string", example="Updated Program Name"),
-     *             @OA\Property(property="description", type="string", example="Updated description")
+     *             @OA\Property(property="description", type="string", example="Updated description"),
+     *             @OA\Property(property="type", type="string", example="Updated Type"),
+     *             @OA\Property(property="program_type", type="string", example="Updated Type")
      *         )
      *     ),
      *     @OA\Response(response=200, description="Program updated successfully"),
@@ -143,6 +149,8 @@ class ProgramController extends Controller
             $validated = $request->validate([
                 'name' => 'sometimes|string|max:255',
                 'description' => 'nullable|string',
+                'type' => 'sometimes|string|max:100',
+                'program_type' => 'sometimes|string|max:100',
             ]);
 
             $program->update($validated);
@@ -165,7 +173,6 @@ class ProgramController extends Controller
         }
     }
 
-
     /**
      * @OA\Delete(
      *     path="/api/programs/{id}",
@@ -183,22 +190,28 @@ class ProgramController extends Controller
      * )
      */
     public function destroy($id)
-    {
-        try {
-            $program = Program::where('program_id', $id)->first();
-            if (!$program) {
-                return response()->json(['message' => 'Program not found'], 404);
-            }
+{
+    try {
+        // Debug: check if the ID exists in DB
+        $program = Program::where('program_id', $id)->first();
 
-            $program->delete();
-
-            return response()->json(['message' => 'Program deleted successfully']);
-
-        } catch (\Exception $e) {
+        if (!$program) {
             return response()->json([
-                'message' => 'An unexpected error occurred',
-                'error' => $e->getMessage()
-            ], 500);
+                'message' => 'Program not found',
+                'id_sent' => $id,
+                'all_ids' => Program::pluck('program_id')
+            ], 404);
         }
+
+        // Delete the program
+        $program->delete();
+
+        return response()->json(['message' => 'Program deleted successfully']);
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'An unexpected error occurred',
+            'error' => $e->getMessage()
+        ], 500);
     }
+}
 }

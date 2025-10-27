@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
     public function up(): void {
-        Schema::create('project', function (Blueprint $table) {
+        Schema::create('projects', function (Blueprint $table) {
             $table->uuid('project_id')->primary();
             // $table->foreignId('program_id')->constrained('programs')->cascadeOnDelete();
             $table->date('start_date')->nullable();
@@ -21,6 +21,6 @@ return new class extends Migration {
     }
 
     public function down(): void {
-        Schema::dropIfExists('project');
+        Schema::dropIfExists('projects');
     }
 };

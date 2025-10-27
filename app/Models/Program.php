@@ -16,8 +16,10 @@ class Program extends Model
 
     protected $fillable = [
         'name',
+        'type',
+        'program_type',
         'description',
-        'external_id', // optional, like in Activity
+        'external_id'
     ];
 
     protected static function boot()
@@ -25,17 +27,18 @@ class Program extends Model
         parent::boot();
 
         static::creating(function ($program) {
-            // Generate UUID for primary key
+            // Generate UUID if not provided
             if (empty($program->program_id)) {
                 $program->program_id = (string) Str::uuid();
             }
 
-            // Optional: Generate external ID: prog_{YYYY}_{MM}_{slug(name)}
-            $year = now()->format('Y');
-            $month = now()->format('m');
-            $slugName = Str::slug($program->name ?? 'unknown', '_');
-
-            $program->external_id = "prog_{$year}_{$month}_{$slugName}";
+            // Generate external ID: prog_{YYYY}_{MM}_{slug(name)}
+            if (empty($program->external_id)) {
+                $year = now()->format('Y');
+                $month = now()->format('m');
+                $slugName = Str::slug($program->name ?? 'unknown', '_');
+                $program->external_id = "prog_{$year}_{$month}_{$slugName}";
+            }
         });
     }
 
