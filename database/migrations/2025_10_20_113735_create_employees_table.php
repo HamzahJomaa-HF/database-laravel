@@ -15,7 +15,7 @@ return new class extends Migration {
             $table->enum('employee_type', ['full_time', 'part_time', 'contract'])->nullable();
             $table->date('start_date')->nullable();
             $table->date('end_date')->nullable();
-            $table->string('external_id')->nullable()->unique();
+            $table->string('external_id')->unique();
 
             $table->timestamps();
         });
