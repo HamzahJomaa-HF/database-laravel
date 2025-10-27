@@ -13,6 +13,8 @@ return new class extends Migration {
             // $table->foreignId('question_id')->constrained('questions')->cascadeOnDelete();
             // $table->foreignId('survey_question_id')->constrained('survey_questions')->cascadeOnDelete();
             $table->text('answer_value')->nullable();
+            $table->string('external_id')->nullable()->unique()->after('description');
+
             $table->timestamps();
         });
     }

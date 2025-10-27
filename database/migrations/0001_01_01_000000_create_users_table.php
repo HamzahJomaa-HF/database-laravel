@@ -11,15 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Roles table should exist before users if using FK
+       
         // Users table
         Schema::create('users', function (Blueprint $table) {
             $table->uuid('user_id')->primary();
             $table->string('first_name');
             $table->string('last_name');
-            $table->date('dob')->nullable();
-            $table->string('phone_number')->nullable();
-            $table->uuid('user_role'); // FK to roles
+           $table->date('dob');
+            $table->string('phone_number');
             $table->timestamps();
 
         

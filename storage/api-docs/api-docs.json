@@ -2,7 +2,7 @@
     "openapi": "3.0.0",
     "info": {
         "title": "Hariri Foundation API",
-        "description": "API documentation for Hariri Foundation project",
+        "description": "API documentation for Users Management",
         "contact": {
             "email": "support@haririfoundation.com"
         },
@@ -204,6 +204,690 @@
                 }
             }
         },
+        "/api/activity-users": {
+            "get": {
+                "tags": [
+                    "ActivityUsers"
+                ],
+                "summary": "Get all activity users or a specific activity user by ID",
+                "operationId": "24755962742f8d3af50256bb0f1f31d9",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "Optional activity_user UUID to fetch a specific record",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Activity users retrieved successfully"
+                    },
+                    "404": {
+                        "description": "Activity user not found"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "ActivityUsers"
+                ],
+                "summary": "Create a new activity user",
+                "operationId": "fa2ed24839762c075d626fa51a132304",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "user_id",
+                                    "activity_id"
+                                ],
+                                "properties": {
+                                    "user_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "activity_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "cop_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "nullable": true
+                                    },
+                                    "is_lead": {
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "invited": {
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "attended": {
+                                        "type": "boolean",
+                                        "example": false
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Activity user created successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input data"
+                    }
+                }
+            }
+        },
+        "/api/activity-users/{id}": {
+            "put": {
+                "tags": [
+                    "ActivityUsers"
+                ],
+                "summary": "Update an existing activity user",
+                "operationId": "8d26669011a3467b82927ecfcbb93d3f",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Activity user UUID to update",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "user_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "activity_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "cop_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "nullable": true
+                                    },
+                                    "is_lead": {
+                                        "type": "boolean"
+                                    },
+                                    "invited": {
+                                        "type": "boolean"
+                                    },
+                                    "attended": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Activity user updated successfully"
+                    },
+                    "404": {
+                        "description": "Activity user not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "ActivityUsers"
+                ],
+                "summary": "Delete an activity user by UUID",
+                "operationId": "a921825f803bb04767c035e5df783808",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Activity user UUID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Activity user deleted successfully"
+                    },
+                    "404": {
+                        "description": "Activity user not found"
+                    }
+                }
+            }
+        },
+        "/api/answers": {
+            "get": {
+                "tags": [
+                    "Answers"
+                ],
+                "summary": "Get all answers or a specific answer by ID",
+                "operationId": "fc3659c5e9b0f04bfd0bfc415bbf6feb",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "Optional answer UUID to fetch a specific answer",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Answers retrieved successfully"
+                    },
+                    "404": {
+                        "description": "Answer not found"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Answers"
+                ],
+                "summary": "Create a new answer",
+                "operationId": "91232c826effe89ddf0284b4ab753242",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "survey_question_id",
+                                    "question_id",
+                                    "response_id"
+                                ],
+                                "properties": {
+                                    "survey_question_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "question_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "response_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "answer_value": {
+                                        "type": "string",
+                                        "example": "Sample answer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Answer created successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input data"
+                    }
+                }
+            }
+        },
+        "/api/answers/{id}": {
+            "put": {
+                "tags": [
+                    "Answers"
+                ],
+                "summary": "Update an existing answer",
+                "operationId": "f871d115d0f11cd1a91b2d4d614aae45",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Answer UUID to update",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "answer_value": {
+                                        "type": "string",
+                                        "example": "Updated answer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Answer updated successfully"
+                    },
+                    "404": {
+                        "description": "Answer not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Answers"
+                ],
+                "summary": "Delete an answer by UUID",
+                "operationId": "2dcf7003cb5addf231c7766855a1e06c",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Answer UUID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Answer deleted successfully"
+                    },
+                    "404": {
+                        "description": "Answer not found"
+                    }
+                }
+            }
+        },
+        "/api/cops": {
+            "get": {
+                "tags": [
+                    "COPs"
+                ],
+                "summary": "Get all COPs or a specific COP by ID",
+                "operationId": "e57202b095a53e00fad9c5abd2a2f14d",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "Optional COP UUID to fetch a specific COP",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "COPs retrieved successfully"
+                    },
+                    "404": {
+                        "description": "COP not found"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "COPs"
+                ],
+                "summary": "Create a new COP",
+                "operationId": "967dec9c151e843640f9c22dc50c4e80",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "program_id",
+                                    "cop_name"
+                                ],
+                                "properties": {
+                                    "program_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "uuid-of-program"
+                                    },
+                                    "cop_name": {
+                                        "type": "string",
+                                        "example": "Youth COP"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "COP description here"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "COP created successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input data"
+                    }
+                }
+            }
+        },
+        "/api/cops/{id}": {
+            "put": {
+                "tags": [
+                    "COPs"
+                ],
+                "summary": "Update an existing COP",
+                "operationId": "9d31a765ca8a7a0bc183720517b02c4e",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "COP UUID to update",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "program_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "cop_name": {
+                                        "type": "string",
+                                        "example": "Updated COP Name"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Updated description"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "COP updated successfully"
+                    },
+                    "404": {
+                        "description": "COP not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "COPs"
+                ],
+                "summary": "Delete a COP by UUID",
+                "operationId": "895351fb80ab96c3c92adeda45fb8c75",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "COP UUID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "COP deleted successfully"
+                    },
+                    "404": {
+                        "description": "COP not found"
+                    }
+                }
+            }
+        },
+        "/api/employees": {
+            "get": {
+                "tags": [
+                    "Employees"
+                ],
+                "summary": "Get all employees or a specific employee by ID",
+                "operationId": "2058499f556b4bb9477e07e7a0912c43",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "Optional employee UUID to fetch a specific record",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Employees retrieved successfully"
+                    },
+                    "404": {
+                        "description": "Employee not found"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Employees"
+                ],
+                "summary": "Create a new employee",
+                "operationId": "7683a7b1aec5103190be815e1e30f7da",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "first_name",
+                                    "last_name",
+                                    "email"
+                                ],
+                                "properties": {
+                                    "project_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "nullable": true
+                                    },
+                                    "role_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "nullable": true
+                                    },
+                                    "employee_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "nullable": true
+                                    },
+                                    "first_name": {
+                                        "type": "string",
+                                        "example": "John"
+                                    },
+                                    "last_name": {
+                                        "type": "string",
+                                        "example": "Doe"
+                                    },
+                                    "phone_number": {
+                                        "type": "string",
+                                        "example": "+96170000000"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "example": "john.doe@example.com"
+                                    },
+                                    "employee_type": {
+                                        "type": "string",
+                                        "example": "Full-time"
+                                    },
+                                    "start_date": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "end_date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Employee created successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input data"
+                    }
+                }
+            }
+        },
+        "/api/employees/{id}": {
+            "put": {
+                "tags": [
+                    "Employees"
+                ],
+                "summary": "Update an existing employee",
+                "operationId": "5cc6df4bd0c5be4084900d70ecc36a25",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Employee UUID to update",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "project_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "nullable": true
+                                    },
+                                    "role_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "nullable": true
+                                    },
+                                    "first_name": {
+                                        "type": "string"
+                                    },
+                                    "last_name": {
+                                        "type": "string"
+                                    },
+                                    "phone_number": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "employee_type": {
+                                        "type": "string"
+                                    },
+                                    "start_date": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "end_date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Employee updated successfully"
+                    },
+                    "404": {
+                        "description": "Employee not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Employees"
+                ],
+                "summary": "Delete an employee by UUID",
+                "operationId": "bd97927cf2dedf50b48ebf1a3bfc487e",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Employee UUID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Employee deleted successfully"
+                    },
+                    "404": {
+                        "description": "Employee not found"
+                    }
+                }
+            }
+        },
         "/api/programs": {
             "get": {
                 "tags": [
@@ -343,6 +1027,162 @@
                     },
                     "404": {
                         "description": "Program not found"
+                    }
+                }
+            }
+        },
+        "/api/project-activities": {
+            "get": {
+                "tags": [
+                    "Project Activities"
+                ],
+                "summary": "Get all project activities or a specific one by ID",
+                "operationId": "f6198524779b58340d976625b0db6704",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "Optional Project Activity UUID to fetch a specific record",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Project Activities retrieved successfully"
+                    },
+                    "404": {
+                        "description": "Project Activity not found"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Project Activities"
+                ],
+                "summary": "Create a new Project Activity",
+                "operationId": "9190251e7175e0e94e4efd29b621a4fd",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "project_center_id",
+                                    "activity_id"
+                                ],
+                                "properties": {
+                                    "project_center_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "a2f4d8c7-8b5f-4d88-9d7c-12e456789abc"
+                                    },
+                                    "activity_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "b3f4a3d9-91c6-4899-bc2e-7a6b7b9b91e4"
+                                    },
+                                    "external_id": {
+                                        "type": "string",
+                                        "example": "proj_act_2025_10_center1_activityA"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Project Activity created successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input data"
+                    }
+                }
+            }
+        },
+        "/api/project-activities/{id}": {
+            "put": {
+                "tags": [
+                    "Project Activities"
+                ],
+                "summary": "Update a Project Activity",
+                "operationId": "fce78e28b11543572e5de259253b5422",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Project Activity UUID to update",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "project_center_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "a2f4d8c7-8b5f-4d88-9d7c-12e456789abc"
+                                    },
+                                    "activity_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "b3f4a3d9-91c6-4899-bc2e-7a6b7b9b91e4"
+                                    },
+                                    "external_id": {
+                                        "type": "string",
+                                        "example": "proj_act_updated"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Project Activity updated successfully"
+                    },
+                    "404": {
+                        "description": "Project Activity not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Project Activities"
+                ],
+                "summary": "Delete a Project Activity by UUID",
+                "operationId": "e918216171614dc4a0324954df961200",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Project Activity UUID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Project Activity deleted successfully"
+                    },
+                    "404": {
+                        "description": "Project Activity not found"
                     }
                 }
             }
@@ -530,21 +1370,942 @@
                 }
             }
         },
+        "/api/project-employees": {
+            "get": {
+                "tags": [
+                    "Project Employees"
+                ],
+                "summary": "Get all project employees or a specific one by ID",
+                "operationId": "c20792834fafb1b5ca989c649b2d0fbe",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "Optional UUID to fetch a specific project employee",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Project Employees retrieved successfully"
+                    },
+                    "404": {
+                        "description": "Project Employee not found"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Project Employees"
+                ],
+                "summary": "Create a new project employee",
+                "operationId": "6e7925fac973413a6b4a203a924d6acb",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "program_id",
+                                    "employee_id"
+                                ],
+                                "properties": {
+                                    "program_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "123e4567-e89b-12d3-a456-426614174000"
+                                    },
+                                    "employee_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "321e6547-e89b-12d3-a456-426614174000"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Project coordination duties"
+                                    },
+                                    "external_id": {
+                                        "type": "string",
+                                        "example": "EXT-10023"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Project Employee created successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input data"
+                    }
+                }
+            }
+        },
+        "/api/project-employees/{id}": {
+            "put": {
+                "tags": [
+                    "Project Employees"
+                ],
+                "summary": "Update a project employee",
+                "operationId": "1d76f3222108ca8e25113a81e4e6739b",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Project Employee UUID to update",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "program_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "employee_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Updated description"
+                                    },
+                                    "external_id": {
+                                        "type": "string",
+                                        "example": "EXT-9999"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Project Employee updated successfully"
+                    },
+                    "404": {
+                        "description": "Project Employee not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Project Employees"
+                ],
+                "summary": "Delete a project employee",
+                "operationId": "538a820321af365d7c6ebe8eea16405e",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "UUID of project employee to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Project Employee deleted successfully"
+                    },
+                    "404": {
+                        "description": "Project Employee not found"
+                    }
+                }
+            }
+        },
+        "/api/questions": {
+            "get": {
+                "tags": [
+                    "Questions"
+                ],
+                "summary": "Get all questions or a specific question by ID",
+                "operationId": "234bc0e4477e18cba50a84486d4c92b6",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "Optional question UUID to fetch a specific question",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Questions retrieved successfully"
+                    },
+                    "404": {
+                        "description": "Question not found"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Questions"
+                ],
+                "summary": "Create a new question",
+                "operationId": "807d8f1053c28fc41ce29e0e95ec6edd",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "question_type",
+                                    "question_name"
+                                ],
+                                "properties": {
+                                    "survey_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "c53fbb2e-8b7c-4a2e-bbb0-fd1234abcd56"
+                                    },
+                                    "question_type": {
+                                        "type": "string",
+                                        "example": "multiple_choice"
+                                    },
+                                    "question_name": {
+                                        "type": "string",
+                                        "example": "What is your favorite color?"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Question created successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input data"
+                    }
+                }
+            }
+        },
+        "/api/questions/{id}": {
+            "put": {
+                "tags": [
+                    "Questions"
+                ],
+                "summary": "Update an existing question",
+                "operationId": "9a1c8bbaeae40383a82344e8da3f0335",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Question UUID to update",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "survey_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "c53fbb2e-8b7c-4a2e-bbb0-fd1234abcd56"
+                                    },
+                                    "question_type": {
+                                        "type": "string",
+                                        "example": "single_choice"
+                                    },
+                                    "question_name": {
+                                        "type": "string",
+                                        "example": "Updated question name"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Question updated successfully"
+                    },
+                    "404": {
+                        "description": "Question not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Questions"
+                ],
+                "summary": "Delete a question by UUID",
+                "operationId": "179d309693f3fffeb18bc85daa5fdc04",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Question UUID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Question deleted successfully"
+                    },
+                    "404": {
+                        "description": "Question not found"
+                    }
+                }
+            }
+        },
+        "/api/responses": {
+            "get": {
+                "tags": [
+                    "Responses"
+                ],
+                "summary": "Get all responses or a specific response by ID",
+                "operationId": "d8ddb7326e4cb824e09fa87e2e2b6d10",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "Optional response UUID to fetch a specific record",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Responses retrieved successfully"
+                    },
+                    "404": {
+                        "description": "Response not found"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Responses"
+                ],
+                "summary": "Create a new response record",
+                "operationId": "b30acd802a2f15906cac094ae4fc39d2",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "survey_id",
+                                    "user_id"
+                                ],
+                                "properties": {
+                                    "survey_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "user_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "external_id": {
+                                        "type": "string",
+                                        "example": "ext_12345"
+                                    },
+                                    "submitted_at": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Response created successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input data"
+                    }
+                }
+            }
+        },
+        "/api/responses/{id}": {
+            "put": {
+                "tags": [
+                    "Responses"
+                ],
+                "summary": "Update an existing response",
+                "operationId": "d85a2400881b700ca9c7d4e367c38b42",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Response UUID to update",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "survey_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "user_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "external_id": {
+                                        "type": "string",
+                                        "example": "ext_12345"
+                                    },
+                                    "submitted_at": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Response updated successfully"
+                    },
+                    "404": {
+                        "description": "Response not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Responses"
+                ],
+                "summary": "Delete a response by UUID",
+                "operationId": "412d98d4f02839192a33ee19ef05c345",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Response UUID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Response deleted successfully"
+                    },
+                    "404": {
+                        "description": "Response not found"
+                    }
+                }
+            }
+        },
+        "/api/roles": {
+            "get": {
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Get all roles or a specific role by ID",
+                "operationId": "6cd48af64dafcf1c85923dba47e841a4",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "Optional role UUID to fetch a specific role",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Roles retrieved successfully"
+                    },
+                    "404": {
+                        "description": "Role not found"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Create a new role",
+                "operationId": "4eb1ce389f63b4dbfcc5b002014636e1",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "role_name"
+                                ],
+                                "properties": {
+                                    "role_name": {
+                                        "type": "string",
+                                        "example": "Administrator"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Role description here"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Role created successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input data"
+                    }
+                }
+            }
+        },
+        "/api/roles/{id}": {
+            "put": {
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Update an existing role",
+                "operationId": "e0fa8b9f9f9cfb6c7e51a7609dd35dcd",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Role UUID to update",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "role_name": {
+                                        "type": "string",
+                                        "example": "Updated Role Name"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Updated description"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Role updated successfully"
+                    },
+                    "404": {
+                        "description": "Role not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Delete a role by UUID",
+                "operationId": "a0c87b804be9d37055fc6f936cbacb1b",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Role UUID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Role deleted successfully"
+                    },
+                    "404": {
+                        "description": "Role not found"
+                    }
+                }
+            }
+        },
+        "/api/surveys": {
+            "get": {
+                "tags": [
+                    "Surveys"
+                ],
+                "summary": "Get all surveys or a specific survey by ID",
+                "operationId": "ee59325f71cde867ed089dba29975752",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "Optional survey UUID to fetch a specific survey",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Surveys retrieved successfully"
+                    },
+                    "404": {
+                        "description": "Survey not found"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Surveys"
+                ],
+                "summary": "Create a new survey",
+                "operationId": "e56eadc7ab1db57890075dc84c9ff369",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "description": {
+                                        "type": "string",
+                                        "example": "End of Year Evaluation"
+                                    },
+                                    "link": {
+                                        "type": "string",
+                                        "example": "https://example.com/survey-link"
+                                    },
+                                    "is_active": {
+                                        "type": "boolean",
+                                        "example": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Survey created successfully"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/surveys/{id}": {
+            "put": {
+                "tags": [
+                    "Surveys"
+                ],
+                "summary": "Update an existing survey",
+                "operationId": "eea04041ecc6b9bfaa996a9e84f05ae6",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Survey UUID to update",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Updated survey description"
+                                    },
+                                    "link": {
+                                        "type": "string",
+                                        "example": "https://new-link.com"
+                                    },
+                                    "is_active": {
+                                        "type": "boolean",
+                                        "example": false
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Survey updated successfully"
+                    },
+                    "404": {
+                        "description": "Survey not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Surveys"
+                ],
+                "summary": "Delete a survey by UUID",
+                "operationId": "ef02b30c17f8357878d30403e82aca1a",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Survey UUID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Survey deleted successfully"
+                    },
+                    "404": {
+                        "description": "Survey not found"
+                    }
+                }
+            }
+        },
+        "/api/survey-questions": {
+            "get": {
+                "tags": [
+                    "SurveyQuestions"
+                ],
+                "summary": "Get all survey questions or a specific survey question by ID",
+                "operationId": "ab2b3a4b55f2b4ca35c0be1d48904eb2",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "Optional survey_question UUID to fetch a specific record",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Survey questions retrieved successfully"
+                    },
+                    "404": {
+                        "description": "Survey question not found"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "SurveyQuestions"
+                ],
+                "summary": "Create a new survey question record",
+                "operationId": "0ac3d1ff1c0568e72c2fb09c823ed9b3",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "survey_id",
+                                    "question_id",
+                                    "question_order"
+                                ],
+                                "properties": {
+                                    "survey_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "question_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "question_order": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Survey question created successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input data"
+                    }
+                }
+            }
+        },
+        "/api/survey-questions/{id}": {
+            "put": {
+                "tags": [
+                    "SurveyQuestions"
+                ],
+                "summary": "Update an existing survey question record",
+                "operationId": "c73482387b0aa4c091995384c06437ea",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Survey question UUID to update",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "survey_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "question_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "question_order": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Survey question updated successfully"
+                    },
+                    "404": {
+                        "description": "Survey question not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "SurveyQuestions"
+                ],
+                "summary": "Delete a survey question record by UUID",
+                "operationId": "387f9b2799ce9c23eb3906621f9fa499",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Survey question UUID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Survey question deleted successfully"
+                    },
+                    "404": {
+                        "description": "Survey question not found"
+                    }
+                }
+            }
+        },
         "/api/users": {
             "get": {
                 "tags": [
                     "Users"
                 ],
-                "summary": "Get all users or by ID",
+                "summary": "Get all users or a specific user by UUID",
                 "operationId": "d7a57f4d7de18fb0f92501172472c9b6",
                 "parameters": [
                     {
                         "name": "id",
                         "in": "query",
-                        "description": "Optional user ID to fetch a specific user",
+                        "description": "Optional user UUID to fetch a specific user",
                         "required": false,
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -556,25 +2317,212 @@
                         "description": "User not found"
                     }
                 }
+            },
+            "post": {
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Create a new user",
+                "operationId": "9fea6f2adcb69614c521a7733358382d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "first_name",
+                                    "last_name",
+                                    "dob",
+                                    "phone_number"
+                                ],
+                                "properties": {
+                                    "first_name": {
+                                        "type": "string",
+                                        "example": "John"
+                                    },
+                                    "last_name": {
+                                        "type": "string",
+                                        "example": "Doe"
+                                    },
+                                    "dob": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "1990-01-01"
+                                    },
+                                    "phone_number": {
+                                        "type": "string",
+                                        "example": "+96170000000"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "User created successfully"
+                    },
+                    "422": {
+                        "description": "Validation failed"
+                    },
+                    "500": {
+                        "description": "Unexpected error"
+                    }
+                }
+            }
+        },
+        "/api/users/{id}": {
+            "put": {
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Update an existing user",
+                "operationId": "b166772cec9714067040e77cf14beeba",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "User UUID to update",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "first_name": {
+                                        "type": "string"
+                                    },
+                                    "last_name": {
+                                        "type": "string"
+                                    },
+                                    "dob": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "phone_number": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "User updated successfully"
+                    },
+                    "404": {
+                        "description": "User not found"
+                    },
+                    "422": {
+                        "description": "Validation failed"
+                    },
+                    "500": {
+                        "description": "Unexpected error"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Delete a user by UUID",
+                "operationId": "ce06860a51ab016ef66e753544fe4563",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "User UUID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User deleted successfully"
+                    },
+                    "404": {
+                        "description": "User not found"
+                    },
+                    "500": {
+                        "description": "Unexpected error"
+                    }
+                }
             }
         }
     },
     "tags": [
         {
+            "name": "Users",
+            "description": "API Endpoints of Users"
+        },
+        {
             "name": "Activities",
             "description": "Activities"
+        },
+        {
+            "name": "ActivityUsers",
+            "description": "ActivityUsers"
+        },
+        {
+            "name": "Answers",
+            "description": "Answers"
+        },
+        {
+            "name": "COPs",
+            "description": "COPs"
+        },
+        {
+            "name": "Employees",
+            "description": "Employees"
         },
         {
             "name": "Programs",
             "description": "Programs"
         },
         {
+            "name": "Project Activities",
+            "description": "Project Activities"
+        },
+        {
             "name": "ProjectCenters",
             "description": "ProjectCenters"
         },
         {
-            "name": "Users",
-            "description": "Users"
+            "name": "Project Employees",
+            "description": "Project Employees"
+        },
+        {
+            "name": "Questions",
+            "description": "Questions"
+        },
+        {
+            "name": "Responses",
+            "description": "Responses"
+        },
+        {
+            "name": "Roles",
+            "description": "Roles"
+        },
+        {
+            "name": "Surveys",
+            "description": "Surveys"
+        },
+        {
+            "name": "SurveyQuestions",
+            "description": "SurveyQuestions"
         }
     ]
 }

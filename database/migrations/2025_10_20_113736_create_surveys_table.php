@@ -11,8 +11,7 @@ return new class extends Migration {
             $table->text('description')->nullable();
             $table->string('link')->nullable();
             $table->boolean('is_active')->default(true);
-            // $table->foreignId('created_by')->constrained('users')->cascadeOnDelete();
-            // $table->foreignId('activity_id')->constrained('activities')->cascadeOnDelete();
+             $table->string('external_id')->unique()->nullable(false);
             $table->timestamps();
         });
     }

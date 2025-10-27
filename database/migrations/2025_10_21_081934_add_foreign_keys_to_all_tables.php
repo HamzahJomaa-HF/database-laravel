@@ -103,18 +103,8 @@ return new class extends Migration {
                   ->onDelete('set null');
         });
 
-        // 6. users → role (FIXED - Only add foreign key, don't create column)
-        Schema::table('users', function (Blueprint $table) {
-            if (Schema::hasColumn('users', 'user_role') && !Schema::hasColumn('users', 'role_id')) {
-                $table->renameColumn('user_role', 'role_id');
-            }
-            if (Schema::hasColumn('users', 'role_id')) {
-                $table->foreign('role_id', 'FK_USERS_ROLE_ID')
-                      ->references('role_id')->on('roles')
-                      ->onDelete('set null');
-            }
-        });
-
+        // 6. no fks for Users
+        
         // 7. Survey → Activity
         Schema::table('surveys', function (Blueprint $table) {
             if (!Schema::hasColumn('surveys', 'activity_id')) {

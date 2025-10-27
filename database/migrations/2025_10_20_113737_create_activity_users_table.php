@@ -11,6 +11,7 @@ return new class extends Migration {
             $table->boolean('is_lead')->default(false);
             $table->boolean('invited')->default(false);
             $table->boolean('attended')->default(false);
+             $table->string('external_id')->nullable()->unique();
             $table->timestamps();
         });
     }

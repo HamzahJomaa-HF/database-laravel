@@ -10,6 +10,7 @@ return new class extends Migration {
             // $table->foreignId('program_id')->constrained('programs')->cascadeOnDelete();
             $table->string('cop_name');
             $table->text('description')->nullable();
+            $table->string('external_id')->nullable()->unique();
             $table->timestamps();
         });
     }

@@ -3,36 +3,51 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
-class User extends Authenticatable
+class User extends Model
 {
-    use HasFactory, Notifiable;
+    use HasFactory;
 
-    protected $table = 'users';
+    protected $primaryKey = 'user_id';  // UUID primary key
+    public $incrementing = false;       // Not auto-incrementing
+    protected $keyType = 'string';      // UUID is a string
 
     protected $fillable = [
         'first_name',
         'last_name',
         'dob',
         'phone_number',
-        'user_role',
     ];
 
-    protected $casts = [
-        'dob' => 'date',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-    ];
+    /**
+     * Boot method to automatically generate UUID
+     */
+    protected static function boot()
+    {
+        parent::boot();
 
-    // Relation with roles (if you have a Role model)
-    // public function role() {
-    //     return $this->belongsTo(Role::class, 'user_role', 'role_id');
-    // }
+        static::creating(function ($user) {
+            if (empty($user->user_id)) {
+                $user->user_id = (string) Str::uuid();
+            }
+        });
+    }
 
-    // Example relation with sessions
-    public function sessions() {
-        return $this->hasMany(Session::class);
+    /**
+     * Example relation: a user can have multiple sessions
+     */
+    public function sessions()
+    {
+        return $this->hasMany(Session::class, 'user_id', 'user_id');
+    }
+
+    /**
+     * Example relation: user responses to surveys
+     */
+    public function responses()
+    {
+        return $this->hasMany(Response::class, 'user_id', 'user_id');
     }
 }

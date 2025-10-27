@@ -12,6 +12,8 @@ return new class extends Migration {
             // $table->foreignId('survey_id')->constrained('surveys')->cascadeOnDelete();
             $table->enum('question_type', ['text', 'multiple_choice', 'checkbox', 'rating']);
             $table->string('question_name');
+            $table->string('external_id')->nullable()->unique()->after('description');
+
             $table->timestamps();
         });
     }

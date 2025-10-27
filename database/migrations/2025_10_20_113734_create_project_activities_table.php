@@ -8,6 +8,8 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('project_activities', function (Blueprint $table) {
            $table->uuid('project_activity_id')->primary();
+           $table->string('external_id')->nullable()->unique();
+
             $table->timestamps();
         });
     }
