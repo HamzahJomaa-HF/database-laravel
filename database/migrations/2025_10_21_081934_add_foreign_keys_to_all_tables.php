@@ -30,34 +30,34 @@ return new class extends Migration {
         });
 
         // 2. ProjectCenter → Program (ProjectCenter belongs to a Program)
-        Schema::table('project_centers', function (Blueprint $table) {
-            if (!Schema::hasColumn('project_centers', 'program_id')) {
+        Schema::table('project', function (Blueprint $table) {
+            if (!Schema::hasColumn('project', 'program_id')) {
                 $table->uuid('program_id');
             }
-            $table->foreign('program_id', 'FK_PROJECT_CENTERS_PROGRAM_ID')
+            $table->foreign('program_id', 'FK_project_PROGRAM_ID')
                   ->references('program_id')->on('programs')
                   ->onDelete('cascade');
 
-            if (!Schema::hasColumn('project_centers', 'parent_project_center_id')) {
-                $table->uuid('parent_project_center_id')->nullable()->after('project_center_id');
+            if (!Schema::hasColumn('project', 'parent_project_id')) {
+                $table->uuid('parent_project_id')->nullable()->after('project_id');
 
-                $table->foreign('parent_project_center_id', 'FK_PROJECT_CENTERS_PARENT')
-                      ->references('project_center_id')
-                      ->on('project_centers')
+                $table->foreign('parent_project_id', 'FK_project_PARENT')
+                      ->references('project_id')
+                      ->on('project')
                       ->onDelete('set null');
             }
         });
 
         // 3. ProjectActivity → ProjectCenter, Activities (Junction table)
         Schema::table('project_activities', function (Blueprint $table) {
-            if (!Schema::hasColumn('project_activities', 'project_center_id')) {
-                $table->uuid('project_center_id');
+            if (!Schema::hasColumn('project_activities', 'project_id')) {
+                $table->uuid('project_id');
             }
             if (!Schema::hasColumn('project_activities', 'activity_id')) {
                 $table->uuid('activity_id');
             }
-            $table->foreign('project_center_id', 'FK_PROJECT_ACTIVITIES_PROJECT_CENTER_ID')
-                  ->references('project_center_id')->on('project_centers')
+            $table->foreign('project_id', 'FK_PROJECT_ACTIVITIES_project_id')
+                  ->references('project_id')->on('project')
                   ->onDelete('cascade');
             $table->foreign('activity_id', 'FK_PROJECT_ACTIVITIES_ACTIVITY_ID')
                   ->references('activity_id')->on('activities')
@@ -207,7 +207,7 @@ return new class extends Migration {
                   ->references('role_id')->on('roles')
                   ->onDelete('set null');
             $table->foreign('project_id', 'FK_EMPLOYEES_PROJECT_ID')
-                  ->references('project_center_id')->on('project_centers')
+                  ->references('project_id')->on('project')
                   ->onDelete('set null');
         });
     }
@@ -249,13 +249,13 @@ return new class extends Migration {
             $t->dropForeign('FK_ACTIVITIES_TARGET_COP');
         });
         Schema::table('project_activities', function (Blueprint $t) {
-            $t->dropForeign('FK_PROJECT_ACTIVITIES_PROJECT_CENTER_ID');
+            $t->dropForeign('FK_PROJECT_ACTIVITIES_project_id');
             $t->dropForeign('FK_PROJECT_ACTIVITIES_ACTIVITY_ID');
         });
-        Schema::table('project_centers', function (Blueprint $t) {
-            $t->dropForeign('FK_PROJECT_CENTERS_PARENT');
-            $t->dropForeign('FK_PROJECT_CENTERS_PROGRAM_ID');
-            $t->dropColumn('parent_project_center_id');
+        Schema::table('project', function (Blueprint $t) {
+            $t->dropForeign('FK_project_PARENT');
+            $t->dropForeign('FK_project_PROGRAM_ID');
+            $t->dropColumn('parent_project_id');
         });
         Schema::table('cops', fn(Blueprint $t) => $t->dropForeign('FK_COPS_PROGRAM_ID'));
     }
