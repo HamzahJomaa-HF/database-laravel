@@ -84,6 +84,7 @@ class ProgramController extends Controller
                 'name' => 'required|string|max:255',
                 'type' => 'required|string|max:100',
                 'description' => 'nullable|string',
+                'parent_program_id' => 'nullable|uuid|exists:programs,program_id', 
                 'program_type' => 'required|string|max:100',
             ]);
 
@@ -93,6 +94,7 @@ class ProgramController extends Controller
                 'type' => $validated['type'],
                 'description' => $validated['description'] ?? null,
                 'program_type' => $validated['program_type'],
+                'parent_program_id' => $validated['parent_program_id'] ?? null, 
             ]);
 
             return response()->json([
@@ -151,6 +153,7 @@ class ProgramController extends Controller
                 'description' => 'nullable|string',
                 'type' => 'sometimes|string|max:100',
                 'program_type' => 'sometimes|string|max:100',
+                'parent_program_id' => 'nullable|uuid|exists:programs,program_id', 
             ]);
 
             $program->update($validated);

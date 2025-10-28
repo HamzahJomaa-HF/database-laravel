@@ -25,24 +25,25 @@ class Project extends Model
     ];
 
     protected static function boot()
-    {
-        parent::boot();
+{
+    parent::boot();
 
-        static::creating(function ($project) {
-            // Generate UUID for primary key
-            if (empty($project->project_id)) {
-                $project->project_id = (string) Str::uuid();
-            }
+    static::creating(function ($project) {
+        // Generate UUID for primary key if not set
+        if (empty($project->project_id)) {
+            $project->project_id = (string) Str::uuid();
+        }
 
-             // Generate unique external_id like projects
+        // Generate unique external_id
         $year = now()->format('Y');
         $month = now()->format('m');
-        $type = strtolower($activity->activity_type ?? 'general');
+        $type = strtolower($project->project_type ?? 'general');
         $random = substr(Str::uuid(), 0, 4); // ensures uniqueness
 
-        $activity->external_id = "act_{$year}_{$month}_{$type}_{$random}";
+        $project->external_id = "proj_{$year}_{$month}_{$type}_{$random}";
     });
-    }
+}
+
 
     /**
      * Relation to Program

@@ -18,6 +18,7 @@ class Program extends Model
         'name',
         'type',
         'program_type',
+        'parent_program_id',
         'description',
         'external_id'
     ];
