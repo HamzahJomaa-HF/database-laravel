@@ -23,24 +23,26 @@ class Program extends Model
     ];
 
     protected static function boot()
-    {
-        parent::boot();
+{
+    parent::boot();
 
-        static::creating(function ($program) {
-            // Generate UUID if not provided
-            if (empty($program->program_id)) {
-                $program->program_id = (string) Str::uuid();
-            }
+    static::creating(function ($program) {
+        // Generate UUID if not provided
+        if (empty($program->program_id)) {
+            $program->program_id = (string) \Illuminate\Support\Str::uuid();
+        }
 
-            // Generate external ID: prog_{YYYY}_{MM}_{slug(name)}
-            if (empty($program->external_id)) {
-                $year = now()->format('Y');
-                $month = now()->format('m');
-                $slugName = Str::slug($program->name ?? 'unknown', '_');
-                $program->external_id = "prog_{$year}_{$month}_{$slugName}";
-            }
-        });
-    }
+        // Generate a unique external ID if not provided
+        if (empty($program->external_id)) {
+            $year = now()->format('Y');
+            $month = now()->format('m');
+            $slugName = \Illuminate\Support\Str::slug($program->name ?? 'unknown', '_');
+            $random = \Illuminate\Support\Str::random(4); // ensures uniqueness
+            $program->external_id = "prog_{$year}_{$month}_{$slugName}_{$random}";
+        }
+    });
+}
+
 
     /**
      * Relation to ProjectCenters (if needed)

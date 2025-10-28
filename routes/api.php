@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\ActivityController;
 use App\Http\Controllers\API\ProgramController;
-use App\Http\Controllers\API\ProjectCenterController;
+use App\Http\Controllers\API\ProjectController;
 use App\Http\Controllers\API\SurveyController;
 use App\Http\Controllers\API\RoleController;
 use App\Http\Controllers\API\CopController;
@@ -43,11 +43,14 @@ Route::prefix('programs')->group(function () {
     Route::delete('/{id}', [ProgramController::class, 'destroy']);
 });
 
-// Project Centers
-Route::get('/project', [ProjectCenterController::class, 'index']);
-Route::post('/project', [ProjectCenterController::class, 'store']);
-Route::put('/project/{id}', [ProjectCenterController::class, 'update']);
-Route::delete('/project/{id}', [ProjectCenterController::class, 'destroy']);
+// Project 
+
+
+Route::get('/projects', [ProjectController::class, 'index']);
+Route::post('/projects', [ProjectController::class, 'store']);
+Route::put('/projects/{id}', [ProjectController::class, 'update']);
+Route::delete('/projects/{id}', [ProjectController::class, 'destroy']);
+
 
 // Surveys
 Route::get('/surveys', [SurveyController::class, 'index']);

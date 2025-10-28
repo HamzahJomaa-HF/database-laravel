@@ -1205,13 +1205,13 @@
                 }
             }
         },
-        "/api/project": {
+        "/api/projects": {
             "get": {
                 "tags": [
                     "Projects"
                 ],
                 "summary": "Get all projects or a specific project by ID",
-                "operationId": "6980c5b62708773e263c2e44ecec7d31",
+                "operationId": "2ea4919d0a733012d5e30a9c60233aca",
                 "parameters": [
                     {
                         "name": "id",
@@ -1238,7 +1238,7 @@
                     "Projects"
                 ],
                 "summary": "Create a new project",
-                "operationId": "2bdeed45d0e3be7fab25b0820ee6b5c2",
+                "operationId": "48ad9efff74ef8cbc32998fcb386e258",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -1290,13 +1290,13 @@
                 }
             }
         },
-        "/api/project/{id}": {
+        "/api/projects/{id}": {
             "put": {
                 "tags": [
                     "Projects"
                 ],
                 "summary": "Update an existing project",
-                "operationId": "f50b282cd3e75822ed87f77f433b4e36",
+                "operationId": "4e99159fd01220e5d1879aaa765489b4",
                 "parameters": [
                     {
                         "name": "id",
@@ -1357,7 +1357,7 @@
                     "Projects"
                 ],
                 "summary": "Delete a project by UUID",
-                "operationId": "cffa8447bd0e6f7b4709b848496c6d46",
+                "operationId": "9061d822d45e087b7bfd1a3a659c3ac2",
                 "parameters": [
                     {
                         "name": "id",

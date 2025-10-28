@@ -12,7 +12,7 @@ return new class extends Migration {
             $table->string('type');
             $table->string('program_type');
             $table->text('description')->nullable();
-             $table->string('external_id')->unique()->after('description');
+            $table->string('external_id')->unique()->nullable()->after('description');
             $table->timestamps();
 
         });

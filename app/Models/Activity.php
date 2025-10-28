@@ -37,13 +37,14 @@ class Activity extends Model
                 $activity->activity_id = (string) Str::uuid();
             }
 
-            // Generate external ID: act_{YYYY}_{MM}_{type}
-            $year = now()->format('Y');
-            $month = now()->format('m');
-            $type = Str::slug($activity->activity_type ?? 'unknown', '_'); // sanitize type
+            // Generate unique external_id like projects
+        $year = now()->format('Y');
+        $month = now()->format('m');
+        $type = strtolower($activity->activity_type ?? 'general');
+        $random = substr(Str::uuid(), 0, 4); // ensures uniqueness
 
-            $activity->external_id = "act_{$year}_{$month}_{$type}";
-        });
+        $activity->external_id = "act_{$year}_{$month}_{$type}_{$random}";
+    });
     }
 
     /**

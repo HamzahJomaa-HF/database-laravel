@@ -20,7 +20,7 @@ class ProjectController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/project",
+     *     path="/api/projects",
      *     summary="Get all projects or a specific project by ID",
      *     tags={"Projects"},
      *     @OA\Parameter(
@@ -60,7 +60,7 @@ class ProjectController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/api/project",
+     *     path="/api/projects",
      *     summary="Create a new project",
      *     tags={"Projects"},
      *     @OA\RequestBody(
@@ -116,7 +116,7 @@ class ProjectController extends Controller
 
     /**
      * @OA\Put(
-     *     path="/api/project/{id}",
+     *     path="/api/projects/{id}",
      *     summary="Update an existing project",
      *     tags={"Projects"},
      *     @OA\Parameter(
@@ -186,7 +186,7 @@ class ProjectController extends Controller
 
     /**
      * @OA\Delete(
-     *     path="/api/project/{id}",
+     *     path="/api/projects/{id}",
      *     summary="Delete a project by UUID",
      *     tags={"Projects"},
      *     @OA\Parameter(
