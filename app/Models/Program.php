@@ -20,6 +20,9 @@ class Program extends Model
         'program_type',
         'parent_program_id',
         'description',
+        'time', 
+        'start_date',   
+        'end_date',     
         'external_id'
     ];
 
@@ -52,4 +55,14 @@ class Program extends Model
     {
         return $this->hasMany(ProjectCenter::class, 'program_id', 'program_id');
     }
+    public function parentProgram()
+{
+    return $this->belongsTo(Program::class, 'parent_program_id', 'program_id');
+}
+
+public function subPrograms()
+{
+    return $this->hasMany(Program::class, 'parent_program_id', 'program_id');
+}
+
 }

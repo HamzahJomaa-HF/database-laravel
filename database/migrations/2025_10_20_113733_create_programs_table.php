@@ -13,6 +13,9 @@ return new class extends Migration {
             $table->string('program_type');
             $table->text('description')->nullable();
             $table->string('external_id')->unique()->nullable()->after('description');
+            $table->string('time')->nullable(); 
+            $table->date('start_date')->nullable();
+            $table->date('end_date')->nullable();
             $table->timestamps();
 
         });

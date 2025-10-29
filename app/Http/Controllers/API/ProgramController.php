@@ -78,42 +78,49 @@ class ProgramController extends Controller
      * )
      */
     public function store(Request $request)
-    {
-        try {
-            $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'type' => 'required|string|max:100',
-                'description' => 'nullable|string',
-                'parent_program_id' => 'nullable|uuid|exists:programs,program_id', 
-                'program_type' => 'required|string|max:100',
-            ]);
+{
+    try {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'type' => 'required|string|max:100',
+            'description' => 'nullable|string',
+            'parent_program_id' => 'nullable|uuid|exists:programs,program_id', 
+            'program_type' => 'required|string|max:100',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+            'time' => 'nullable|string',
+        ]);
 
-            $program = Program::create([
-                'program_id' => Str::uuid(),
-                'name' => $validated['name'],
-                'type' => $validated['type'],
-                'description' => $validated['description'] ?? null,
-                'program_type' => $validated['program_type'],
-                'parent_program_id' => $validated['parent_program_id'] ?? null, 
-            ]);
+        $program = Program::create([
+            'program_id' => Str::uuid(),
+            'name' => $validated['name'],
+            'type' => $validated['type'],
+            'description' => $validated['description'] ?? null,
+            'program_type' => $validated['program_type'],
+            'parent_program_id' => $validated['parent_program_id'] ?? null,
+            'start_date' => $validated['start_date'] ?? null,
+            'end_date' => $validated['end_date'] ?? null,
+            'time' => $validated['time'] ?? null,
+        ]);
 
-            return response()->json([
-                'data' => $program,
-                'message' => 'Program created successfully'
-            ], 201);
+        return response()->json([
+            'data' => $program,
+            'message' => 'Program created successfully'
+        ], 201);
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An unexpected error occurred',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json([
+            'message' => 'Validation failed',
+            'errors' => $e->errors()
+        ], 422);
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'An unexpected error occurred',
+            'error' => $e->getMessage()
+        ], 500);
     }
+}
+
 
     /**
      * @OA\Put(
@@ -154,6 +161,9 @@ class ProgramController extends Controller
                 'type' => 'sometimes|string|max:100',
                 'program_type' => 'sometimes|string|max:100',
                 'parent_program_id' => 'nullable|uuid|exists:programs,program_id', 
+                'start_date' => 'nullable|date', 
+                'end_date' => 'nullable|date',   
+                'time' => 'nullable|string',
             ]);
 
             $program->update($validated);
