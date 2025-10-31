@@ -15,6 +15,7 @@ class Project extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
+        'name',
         'start_date',
         'end_date',
         'program_id',

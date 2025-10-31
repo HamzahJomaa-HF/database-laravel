@@ -83,6 +83,7 @@ class ProjectController extends Controller
     {
         try {
             $validated = $request->validate([
+                'name' => 'required|string',
                 'start_date' => 'nullable|date',
                 'end_date' => 'nullable|date|after_or_equal:start_date',
                 'program_id' => 'required|uuid|exists:programs,program_id',

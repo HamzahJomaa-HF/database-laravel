@@ -8,6 +8,7 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('projects', function (Blueprint $table) {
             $table->uuid('project_id')->primary();
+            $table->string('name');
             // $table->foreignId('program_id')->constrained('programs')->cascadeOnDelete();
             $table->date('start_date')->nullable();
             $table->date('end_date')->nullable();
