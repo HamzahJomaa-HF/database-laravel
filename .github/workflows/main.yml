@@ -1,0 +1,66 @@
+name: Deploy Laravel to Azure App Service
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: your-laravel-app     # <-- exact name of your Azure Web App
+  AZURE_WEBAPP_PACKAGE_PATH: '.'          # root of repo
+  PHP_VERSION: '8.2'                      # match your Laravel version
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 1. Setup PHP (for composer)
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mbstring, intl, gd, mysql, pdo_mysql, bcmath
+          coverage: none
+
+      # 2. Install dependencies
+      - name: Install Composer dependencies
+        run: |
+          composer install --no-interaction --prefer-dist --optimize-autoloader
+        env:
+          COMPOSER_ALLOW_SUPERUSER: 1
+
+      # 3. Build frontend (optional, remove if no vite/mix)
+      - name: Install Node and build assets
+        if: exists('package.json')
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: npm install
+        if: exists('package.json')
+        run: npm install
+      - name: Build assets
+        if: exists('package.json')
+        run: npm run build --if-present
+
+      # 4. Optimize Laravel
+      - name: Laravel optimizations
+        run: |
+          php artisan config:cache
+          php artisan route:cache || true
+          php artisan view:cache || true
+
+      # 5. Publish to Azure App Service
+      #    You must create AZURE_PUBLISH_PROFILE secret in GitHub
+      - name: 'Deploy to Azure Web App'
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
+          package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+
+      # 6. (Optional) Run artisan commands on Azure via SSH/Kudu after deploy
+      # You can call php artisan migrate there, or use a second job.
