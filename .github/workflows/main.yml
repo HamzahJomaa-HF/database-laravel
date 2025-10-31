@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: your-laravel-app-name   # Replace with your Azure Web App name
+  AZURE_WEBAPP_NAME: "haririfoundation-database"   # Replace with your Azure Web App name
   AZURE_WEBAPP_PACKAGE_PATH: '.'
   PHP_VERSION: '8.2'
 
