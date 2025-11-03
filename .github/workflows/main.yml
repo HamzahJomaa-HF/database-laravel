@@ -40,6 +40,7 @@ jobs:
 
       - name: Prepare artifact (exclude dev files)
         run: |
+          rm -rf deploy
           mkdir -p deploy
           rsync -a --delete \
             --exclude ".git" \
@@ -47,12 +48,12 @@ jobs:
             --exclude ".github" \
             --exclude "storage" \
             ./ ./deploy/
-          # include built assets if present (e.g. Laravel Vite's public/build)
           if [ -d "public/build" ]; then
             mkdir -p deploy/public/build
             rsync -a public/build/ deploy/public/build/
           fi
 
+    
       - name: Copy files to VM (release path)
         uses: appleboy/scp-action@v0.1.7
         with:
