@@ -61,6 +61,7 @@ jobs:
           username: ${{ secrets.VM_USER }}
           port: ${{ secrets.VM_PORT }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
           source: "deploy/*"
           target: "${{ env.RELEASE_DIR }}"
           strip_components: 1
@@ -72,6 +73,7 @@ jobs:
           username: ${{ secrets.VM_USER }}
           port: ${{ secrets.VM_PORT }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             set -e
 
