@@ -17,6 +17,7 @@ class Activity extends Model
     protected $fillable = [
         'activity_title',
         'activity_type',
+        'folder_name',
         'content_network',
         'start_date',
         'end_date',
@@ -67,4 +68,26 @@ class Activity extends Model
     // {
     //     return $this->belongsTo(TargetGroup::class, 'target_cop', 'id');
     // }
+    /**
+ * Portfolios this activity belongs to
+ */
+public function portfolios()
+{
+    return $this->belongsToMany(
+        Portfolio::class,          // Related model
+        'portfolio_activities',    // Pivot table
+        'activity_id',             // FK on pivot pointing to this model
+        'portfolio_id'             // FK on pivot pointing to Portfolio
+    );
+}
+public function attachPortfolio($portfolioId)
+{
+    $this->portfolios()->syncWithoutDetaching([$portfolioId]);
+}
+
+public function detachPortfolio($portfolioId)
+{
+    $this->portfolios()->detach($portfolioId);
+}
+
 }

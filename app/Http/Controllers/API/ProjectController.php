@@ -67,6 +67,8 @@ class ProjectController extends Controller
      *         required=true,
      *         @OA\JsonContent(
      *             required={"program_id"},
+     *             @OA\Property(property="name", type="string", example="Project 1"),
+     *             @OA\Property(property="folder_name", type="string", example="Project_1_Folder"),
      *             @OA\Property(property="start_date", type="string", format="date", example="2025-10-20"),
      *             @OA\Property(property="end_date", type="string", format="date", example="2025-10-22"),
      *             @OA\Property(property="program_id", type="string", format="uuid"),
@@ -84,6 +86,7 @@ class ProjectController extends Controller
         try {
             $validated = $request->validate([
                 'name' => 'required|string',
+                'folder_name' => 'nullable|string|max:255',
                 'start_date' => 'nullable|date',
                 'end_date' => 'nullable|date|after_or_equal:start_date',
                 'program_id' => 'required|uuid|exists:programs,program_id',
@@ -130,6 +133,8 @@ class ProjectController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
+     *             @OA\Property(property="name", type="string"),
+     *             @OA\Property(property="folder_name", type="string"),
      *             @OA\Property(property="start_date", type="string", format="date"),
      *             @OA\Property(property="end_date", type="string", format="date"),
      *             @OA\Property(property="program_id", type="string", format="uuid"),
@@ -151,6 +156,8 @@ class ProjectController extends Controller
             }
 
             $validated = $request->validate([
+                'name' => 'sometimes|string',
+                'folder_name' => 'nullable|string|max:255',
                 'start_date' => 'nullable|date',
                 'end_date' => 'nullable|date|after_or_equal:start_date',
                 'program_id' => 'sometimes|uuid|exists:programs,program_id',

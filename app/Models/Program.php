@@ -16,6 +16,7 @@ class Program extends Model
 
     protected $fillable = [
         'name',
+        'folder_name',
         'type',
         'program_type',
         'parent_program_id',
@@ -51,9 +52,9 @@ class Program extends Model
     /**
      * Relation to ProjectCenters (if needed)
      */
-    public function projectCenters()
+    public function projects()
     {
-        return $this->hasMany(ProjectCenter::class, 'program_id', 'program_id');
+        return $this->hasMany(Project::class, 'program_id', 'program_id');
     }
     public function parentProgram()
 {

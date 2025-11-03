@@ -16,6 +16,7 @@ class Project extends Model
 
     protected $fillable = [
         'name',
+        'folder_name',
         'start_date',
         'end_date',
         'program_id',

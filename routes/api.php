@@ -16,6 +16,9 @@ use App\Http\Controllers\API\QuestionsController;
 use App\Http\Controllers\API\SurveyQuestionsController;
 use App\Http\Controllers\API\ResponsesController;
 use App\Http\Controllers\API\AnswersController;
+use App\Http\Controllers\API\PortfolioActivityController;
+use App\Http\Controllers\API\PortfolioController;
+        
 
 
 
@@ -137,6 +140,21 @@ Route::prefix('answers')->group(function () {
     Route::delete('/{id}', [AnswersController::class, 'destroy']);
 });
 
+// Portfolios
+Route::prefix('portfolios')->group(function () {
+    Route::get('/', [PortfolioController::class, 'index']);          // Get all portfolios
+    Route::post('/', [PortfolioController::class, 'store']);         // Create a new portfolio
+    Route::put('/{id}', [PortfolioController::class, 'update']);     // Update a portfolio
+    Route::delete('/{id}', [PortfolioController::class, 'destroy']); // Delete a portfolio
+});
+
+// Portfolio Activities (many-to-many pivot)
+Route::prefix('portfolio-activities')->group(function () {
+    Route::get('/', [PortfolioActivityController::class, 'index']);           // Get all portfolio-activity links
+    Route::post('/', [PortfolioActivityController::class, 'store']);          // Add a new activity to a portfolio
+    Route::put('/{id}', [PortfolioActivityController::class, 'update']);      // Update a portfolio-activity link (if needed)
+    Route::delete('/{id}', [PortfolioActivityController::class, 'destroy']);  // Remove a portfolio-activity link
+});
 
 
 

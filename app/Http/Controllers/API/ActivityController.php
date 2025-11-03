@@ -61,6 +61,7 @@ class ActivityController extends Controller
      *         @OA\JsonContent(
      *             required={"activity_title", "activity_type", "content_network", "start_date", "end_date"},
      *             @OA\Property(property="activity_title", type="string", example="Workshop on AI"),
+     *             @OA\Property(property="folder_name", type="string", example="AI_Workshop_Folder"),
      *             @OA\Property(property="activity_type", type="string", example="Training"),
      *             @OA\Property(property="content_network", type="string", example="Online"),
      *             @OA\Property(property="start_date", type="string", format="date", example="2025-10-20"),
@@ -78,6 +79,7 @@ class ActivityController extends Controller
         try {
             $validated = $request->validate([
                 'activity_title' => 'required|string|max:255',
+                'folder_name' => 'nullable|string|max:255',
                 'activity_type' => 'required|string|max:255',
                 'content_network' => 'nullable|string|max:255',
                 'start_date' => 'required|date',
@@ -122,6 +124,7 @@ class ActivityController extends Controller
      *         required=true,
      *         @OA\JsonContent(
      *             @OA\Property(property="activity_title", type="string", example="Updated Workshop Title"),
+     *             @OA\Property(property="folder_name", type="string", example="Updated_Folder_Name"),
      *             @OA\Property(property="activity_type", type="string", example="Seminar"),
      *             @OA\Property(property="content_network", type="string", example="Offline"),
      *             @OA\Property(property="start_date", type="string", format="date", example="2025-10-21"),
@@ -144,6 +147,7 @@ class ActivityController extends Controller
 
         $validated = $request->validate([
             'activity_title' => 'sometimes|string|max:255',
+            'folder_name' => 'nullable|string|max:255',
             'activity_type' => 'sometimes|string|max:255',
             'content_network' => 'nullable|string|max:255',
             'start_date' => 'nullable|date',

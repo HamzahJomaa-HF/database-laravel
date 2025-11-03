@@ -3,52 +3,52 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use App\Models\Program;
+use App\Models\Portfolio;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
-class ProgramController extends Controller
+class PortfolioController extends Controller
 {
     /**
      * @OA\Info(
      *      version="1.0.0",
      *      title="Hariri Foundation API",
-     *      description="API documentation for Programs Management",
+     *      description="API documentation for Portfolio Management",
      *      @OA\Contact(email="support@haririfoundation.com")
      * )
      */
 
     /**
      * @OA\Get(
-     *     path="/api/programs",
-     *     summary="Get all programs or a specific program by ID",
-     *     tags={"Programs"},
+     *     path="/api/portfolios",
+     *     summary="Get all portfolios or a specific portfolio by ID",
+     *     tags={"Portfolios"},
      *     @OA\Parameter(
      *         name="id",
      *         in="query",
-     *         description="Optional program UUID to fetch a specific program",
+     *         description="Optional portfolio UUID to fetch a specific portfolio",
      *         required=false,
      *         @OA\Schema(type="string", format="uuid")
      *     ),
-     *     @OA\Response(response=200, description="Programs retrieved successfully"),
-     *     @OA\Response(response=404, description="Program not found")
+     *     @OA\Response(response=200, description="Portfolios retrieved successfully"),
+     *     @OA\Response(response=404, description="Portfolio not found")
      * )
      */
     public function index(Request $request)
     {
         try {
             if ($request->has('id')) {
-                $program = Program::where('program_id', $request->id)->first();
-                if (!$program) {
-                    return response()->json(['message' => 'Program not found'], 404);
+                $portfolio = Portfolio::where('portfolio_id', $request->id)->first();
+                if (!$portfolio) {
+                    return response()->json(['message' => 'Portfolio not found'], 404);
                 }
-                return response()->json($program);
+                return response()->json($portfolio);
             }
 
-            $programs = Program::all();
+            $portfolios = Portfolio::all();
             return response()->json([
-                'data' => $programs,
-                'message' => 'Programs retrieved successfully'
+                'data' => $portfolios,
+                'message' => 'Portfolios retrieved successfully'
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -60,21 +60,21 @@ class ProgramController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/api/programs",
-     *     summary="Create a new program",
-     *     tags={"Programs"},
+     *     path="/api/portfolios",
+     *     summary="Create a new portfolio",
+     *     tags={"Portfolios"},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"name", "type", "program_type"},
-     *             @OA\Property(property="name", type="string", example="Youth Development"),
-     *             @OA\Property(property="folder_name", type="string", example="Youth_Dev_Folder"),
-     *             @OA\Property(property="type", type="string", example="Youth"),
-     *             @OA\Property(property="program_type", type="string", example="Youth"),
-     *             @OA\Property(property="description", type="string", example="Program description here")
+     *             required={"name", "type"},
+     *             @OA\Property(property="name", type="string", example="Leadership Portfolio"),
+     *             @OA\Property(property="type", type="string", example="Programmatic"),
+     *             @OA\Property(property="description", type="string", example="Portfolio description here"),
+     *             @OA\Property(property="start_date", type="string", format="date", example="2025-01-01"),
+     *             @OA\Property(property="end_date", type="string", format="date", example="2025-12-31")
      *         )
      *     ),
-     *     @OA\Response(response=201, description="Program created successfully"),
+     *     @OA\Response(response=201, description="Portfolio created successfully"),
      *     @OA\Response(response=400, description="Invalid input data")
      * )
      */
@@ -83,32 +83,24 @@ class ProgramController extends Controller
         try {
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
-                'folder_name' => 'nullable|string|max:255',
                 'type' => 'required|string|max:100',
                 'description' => 'nullable|string',
-                'parent_program_id' => 'nullable|uuid|exists:programs,program_id',
-                'program_type' => 'required|string|max:100',
                 'start_date' => 'nullable|date',
                 'end_date' => 'nullable|date',
-                'time' => 'nullable|string',
             ]);
 
-            $program = Program::create([
-                'program_id' => Str::uuid(),
+            $portfolio = Portfolio::create([
+                'portfolio_id' => Str::uuid(),
                 'name' => $validated['name'],
-                'folder_name' => $validated['folder_name'] ?? null,
                 'type' => $validated['type'],
                 'description' => $validated['description'] ?? null,
-                'program_type' => $validated['program_type'],
-                'parent_program_id' => $validated['parent_program_id'] ?? null,
                 'start_date' => $validated['start_date'] ?? null,
                 'end_date' => $validated['end_date'] ?? null,
-                'time' => $validated['time'] ?? null,
             ]);
 
             return response()->json([
-                'data' => $program,
-                'message' => 'Program created successfully'
+                'data' => $portfolio,
+                'message' => 'Portfolio created successfully'
             ], 201);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -126,55 +118,49 @@ class ProgramController extends Controller
 
     /**
      * @OA\Put(
-     *     path="/api/programs/{id}",
-     *     summary="Update an existing program",
-     *     tags={"Programs"},
+     *     path="/api/portfolios/{id}",
+     *     summary="Update an existing portfolio",
+     *     tags={"Portfolios"},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
-     *         description="Program UUID to update",
+     *         description="Portfolio UUID to update",
      *         required=true,
      *         @OA\Schema(type="string", format="uuid")
      *     ),
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             @OA\Property(property="name", type="string", example="Updated Program Name"),
-     *             @OA\Property(property="folder_name", type="string", example="Updated_Folder"),
+     *             @OA\Property(property="name", type="string", example="Updated Portfolio Name"),
      *             @OA\Property(property="description", type="string", example="Updated description"),
-     *             @OA\Property(property="type", type="string", example="Updated Type"),
-     *             @OA\Property(property="program_type", type="string", example="Updated Type")
+     *             @OA\Property(property="type", type="string", example="Updated Type")
      *         )
      *     ),
-     *     @OA\Response(response=200, description="Program updated successfully"),
-     *     @OA\Response(response=404, description="Program not found")
+     *     @OA\Response(response=200, description="Portfolio updated successfully"),
+     *     @OA\Response(response=404, description="Portfolio not found")
      * )
      */
     public function update(Request $request, $id)
     {
         try {
-            $program = Program::where('program_id', $id)->first();
-            if (!$program) {
-                return response()->json(['message' => 'Program not found'], 404);
+            $portfolio = Portfolio::where('portfolio_id', $id)->first();
+            if (!$portfolio) {
+                return response()->json(['message' => 'Portfolio not found'], 404);
             }
 
             $validated = $request->validate([
                 'name' => 'sometimes|string|max:255',
-                'folder_name' => 'nullable|string|max:255',
                 'description' => 'nullable|string',
                 'type' => 'sometimes|string|max:100',
-                'program_type' => 'sometimes|string|max:100',
-                'parent_program_id' => 'nullable|uuid|exists:programs,program_id',
                 'start_date' => 'nullable|date',
                 'end_date' => 'nullable|date',
-                'time' => 'nullable|string',
             ]);
 
-            $program->update($validated);
+            $portfolio->update($validated);
 
             return response()->json([
-                'data' => $program,
-                'message' => 'Program updated successfully'
+                'data' => $portfolio,
+                'message' => 'Portfolio updated successfully'
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -192,36 +178,36 @@ class ProgramController extends Controller
 
     /**
      * @OA\Delete(
-     *     path="/api/programs/{id}",
-     *     summary="Delete a program by UUID",
-     *     tags={"Programs"},
+     *     path="/api/portfolios/{id}",
+     *     summary="Delete a portfolio by UUID",
+     *     tags={"Portfolios"},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
-     *         description="Program UUID to delete",
+     *         description="Portfolio UUID to delete",
      *         required=true,
      *         @OA\Schema(type="string", format="uuid")
      *     ),
-     *     @OA\Response(response=200, description="Program deleted successfully"),
-     *     @OA\Response(response=404, description="Program not found")
+     *     @OA\Response(response=200, description="Portfolio deleted successfully"),
+     *     @OA\Response(response=404, description="Portfolio not found")
      * )
      */
     public function destroy($id)
     {
         try {
-            $program = Program::where('program_id', $id)->first();
+            $portfolio = Portfolio::where('portfolio_id', $id)->first();
 
-            if (!$program) {
+            if (!$portfolio) {
                 return response()->json([
-                    'message' => 'Program not found',
+                    'message' => 'Portfolio not found',
                     'id_sent' => $id,
-                    'all_ids' => Program::pluck('program_id')
+                    'all_ids' => Portfolio::pluck('portfolio_id')
                 ], 404);
             }
 
-            $program->delete();
+            $portfolio->delete();
 
-            return response()->json(['message' => 'Program deleted successfully']);
+            return response()->json(['message' => 'Portfolio deleted successfully']);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'An unexpected error occurred',

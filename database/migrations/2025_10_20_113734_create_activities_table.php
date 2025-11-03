@@ -8,8 +8,8 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('activities', function (Blueprint $table) {
            $table->uuid('activity_id')->primary();
-            $table->string('external_id')->unique(); // 👈 custom external id
-
+            $table->string('external_id')->unique(); 
+            $table->string('folder_name')->nullable()->after('name');
             $table->string('activity_title');
             $table->string('activity_type')->nullable();
             $table->text('content_network')->nullable();
