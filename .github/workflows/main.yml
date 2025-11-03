@@ -1,58 +1,128 @@
-name: Deploy Laravel to Azure App Service
+name: Deploy Laravel to Azure VM
 
 on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: "haririfoundation-database"   # Replace with your Azure Web App name
-  AZURE_WEBAPP_PACKAGE_PATH: '.'
   PHP_VERSION: '8.2'
+  APP_DIR: ${{ secrets.APP_DIR }} # e.g. /var/www/hariri-foundation
+  RELEASE_DIR: ${{ secrets.APP_DIR }}/releases/${{ github.sha }}
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ env.PHP_VERSION }}
-          extensions: mbstring, intl, gd, mysql, pdo_mysql, bcmath
+          extensions: mbstring, intl, gd, mysql, pdo_mysql, bcmath, zip
           coverage: none
 
-      - name: Install Composer dependencies
-        run: |
-          composer install --no-interaction --prefer-dist --optimize-autoloader
-        env:
-          COMPOSER_ALLOW_SUPERUSER: 1
-
-      # Optional frontend build (runs only if package.json exists)
-      - name: Setup Node
+      # Optional: compile front-end locally so server doesn't need Node
+      - name: Setup Node (optional)
         if: ${{ hashFiles('package.json') != '' }}
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: npm install
+      - name: Install Node deps (optional)
         if: ${{ hashFiles('package.json') != '' }}
-        run: npm install
+        run: npm ci
 
-      - name: Build assets
+      - name: Build assets (optional)
         if: ${{ hashFiles('package.json') != '' }}
         run: npm run build --if-present
 
-      - name: Laravel optimization
+      - name: Prepare artifact (exclude dev files)
         run: |
-          php artisan config:cache
-          php artisan route:cache || true
-          php artisan view:cache || true
+          mkdir -p deploy
+          rsync -a --delete \
+            --exclude ".git" \
+            --exclude "node_modules" \
+            --exclude ".github" \
+            --exclude "storage" \
+            ./ ./deploy/
+          # include built assets if present (e.g. Laravel Vite's public/build)
+          if [ -d "public/build" ]; then
+            mkdir -p deploy/public/build
+            rsync -a public/build/ deploy/public/build/
+          fi
 
-      - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v3
+      - name: Copy files to VM (release path)
+        uses: appleboy/scp-action@v0.1.7
         with:
-          app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
-          package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          port: ${{ secrets.VM_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "deploy/*"
+          target: "${{ env.RELEASE_DIR }}"
+          strip_components: 1
+
+      - name: Run remote deploy steps
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          port: ${{ secrets.VM_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+
+            APP_DIR="${{ env.APP_DIR }}"
+            RELEASE_DIR="${{ env.RELEASE_DIR }}"
+            SHARED_DIR="$APP_DIR/shared"
+
+            # Ensure shared dirs exist
+            sudo -u www-data mkdir -p "$SHARED_DIR/storage" "$SHARED_DIR/bootstrap/cache"
+
+            # Link shared storage & cache into release
+            ln -sfn "$SHARED_DIR/storage" "$RELEASE_DIR/storage"
+            ln -sfn "$SHARED_DIR/bootstrap/cache" "$RELEASE_DIR/bootstrap/cache"
+
+            # .env handling
+            if [ -n "${{ secrets.LARAVEL_ENV }}" ]; then
+              echo "${{ secrets.LARAVEL_ENV }}" | sudo -u www-data tee "$SHARED_DIR/.env" >/dev/null
+            fi
+            ln -sfn "$SHARED_DIR/.env" "$RELEASE_DIR/.env"
+
+            # Composer install (optimized, no dev)
+            cd "$RELEASE_DIR"
+            composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+
+            # Generate APP_KEY if missing
+            if ! grep -q "^APP_KEY=base64:" "$RELEASE_DIR/.env"; then
+              php artisan key:generate --force
+              # move the generated key back to shared .env to persist
+              cp "$RELEASE_DIR/.env" "$SHARED_DIR/.env"
+            fi
+
+            # Laravel caches
+            php artisan storage:link || true
+            php artisan config:cache
+            php artisan route:cache || true
+            php artisan view:cache || true
+
+            # DB migrate (safe in prod)
+            php artisan migrate --force
+
+            # Atomic release: symlink current -> this release
+            ln -sfn "$RELEASE_DIR" "$APP_DIR/current"
+
+            # Permissions
+            sudo chown -R www-data:www-data "$APP_DIR"
+            sudo setfacl -R -m u:www-data:rwx "$APP_DIR" || true
+
+            # Reload services
+            sudo systemctl reload php8.2-fpm || true
+            sudo systemctl reload nginx || true
+
+            # (Optional) restart queue workers if using Supervisor
+            if command -v supervisorctl >/dev/null 2>&1; then
+              sudo supervisorctl restart laravel-worker:* || true
+            fi
