@@ -32,7 +32,7 @@ jobs:
 
       - name: Install Node deps (optional)
         if: ${{ hashFiles('package.json') != '' }}
-        run: npm ci
+        run: npm install
 
       - name: Build assets (optional)
         if: ${{ hashFiles('package.json') != '' }}
