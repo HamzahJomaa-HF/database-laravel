@@ -74,7 +74,8 @@ class ProjectController extends Controller
      *             @OA\Property(property="program_id", type="string", format="uuid"),
      *             @OA\Property(property="parent_project_id", type="string", format="uuid"),
      *             @OA\Property(property="project_type", type="string", example="Research"),
-     *             @OA\Property(property="project_group", type="string", example="Group A")
+     *             @OA\Property(property="project_group", type="string", example="Group A"),
+     * 
      *         )
      *     ),
      *     @OA\Response(response=201, description="Project created successfully"),
