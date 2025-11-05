@@ -60,6 +60,10 @@
                                         "type": "string",
                                         "example": "Workshop on AI"
                                     },
+                                    "folder_name": {
+                                        "type": "string",
+                                        "example": "AI_Workshop_Folder"
+                                    },
                                     "activity_type": {
                                         "type": "string",
                                         "example": "Training"
@@ -132,6 +136,10 @@
                                     "activity_title": {
                                         "type": "string",
                                         "example": "Updated Workshop Title"
+                                    },
+                                    "folder_name": {
+                                        "type": "string",
+                                        "example": "Updated_Folder_Name"
                                     },
                                     "activity_type": {
                                         "type": "string",
@@ -888,6 +896,324 @@
                 }
             }
         },
+        "/api/portfolio-activities": {
+            "get": {
+                "tags": [
+                    "Portfolio Activities"
+                ],
+                "summary": "Get all portfolio activities or a specific one by ID",
+                "operationId": "41e0c6d51b8452bc837607a4d599e5d8",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "Optional portfolio activity UUID to fetch a specific one",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Portfolio activities retrieved successfully"
+                    },
+                    "404": {
+                        "description": "Portfolio activity not found"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Portfolio Activities"
+                ],
+                "summary": "Create a new portfolio activity",
+                "operationId": "bb8d5747f657d288fa7dac824f1ec46d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "portfolio_id",
+                                    "activity_id"
+                                ],
+                                "properties": {
+                                    "portfolio_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "uuid-of-portfolio"
+                                    },
+                                    "activity_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "uuid-of-activity"
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "example": "Optional note about the relation"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Portfolio activity created successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input data"
+                    }
+                }
+            }
+        },
+        "/api/portfolio-activities/{id}": {
+            "put": {
+                "tags": [
+                    "Portfolio Activities"
+                ],
+                "summary": "Update an existing portfolio activity",
+                "operationId": "aa86050f5154ddbf68489bc74118e960",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Portfolio activity UUID to update",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "portfolio_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "uuid-of-portfolio"
+                                    },
+                                    "activity_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "uuid-of-activity"
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "example": "Updated note"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Portfolio activity updated successfully"
+                    },
+                    "404": {
+                        "description": "Portfolio activity not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Portfolio Activities"
+                ],
+                "summary": "Delete a portfolio activity by UUID",
+                "operationId": "509ad6370b4be6e96c4db9cd620de3eb",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Portfolio activity UUID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Portfolio activity deleted successfully"
+                    },
+                    "404": {
+                        "description": "Portfolio activity not found"
+                    }
+                }
+            }
+        },
+        "/api/portfolios": {
+            "get": {
+                "tags": [
+                    "Portfolios"
+                ],
+                "summary": "Get all portfolios or a specific portfolio by ID",
+                "operationId": "46eb98d490938a040f14182198f279a5",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "Optional portfolio UUID to fetch a specific portfolio",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Portfolios retrieved successfully"
+                    },
+                    "404": {
+                        "description": "Portfolio not found"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Portfolios"
+                ],
+                "summary": "Create a new portfolio",
+                "operationId": "6f7ec58632f0d462bc704782cb9eb568",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "type"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Leadership Portfolio"
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "example": "Programmatic"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Portfolio description here"
+                                    },
+                                    "start_date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2025-01-01"
+                                    },
+                                    "end_date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2025-12-31"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Portfolio created successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input data"
+                    }
+                }
+            }
+        },
+        "/api/portfolios/{id}": {
+            "put": {
+                "tags": [
+                    "Portfolios"
+                ],
+                "summary": "Update an existing portfolio",
+                "operationId": "9c240abc77eb319b60122c46dca5c268",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Portfolio UUID to update",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Updated Portfolio Name"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Updated description"
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "example": "Updated Type"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Portfolio updated successfully"
+                    },
+                    "404": {
+                        "description": "Portfolio not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Portfolios"
+                ],
+                "summary": "Delete a portfolio by UUID",
+                "operationId": "de2c135bfaba8416c1d29aff9420e636",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Portfolio UUID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Portfolio deleted successfully"
+                    },
+                    "404": {
+                        "description": "Portfolio not found"
+                    }
+                }
+            }
+        },
         "/api/programs": {
             "get": {
                 "tags": [
@@ -936,6 +1262,10 @@
                                     "name": {
                                         "type": "string",
                                         "example": "Youth Development"
+                                    },
+                                    "folder_name": {
+                                        "type": "string",
+                                        "example": "Youth_Dev_Folder"
                                     },
                                     "type": {
                                         "type": "string",
@@ -993,6 +1323,10 @@
                                     "name": {
                                         "type": "string",
                                         "example": "Updated Program Name"
+                                    },
+                                    "folder_name": {
+                                        "type": "string",
+                                        "example": "Updated_Folder"
                                     },
                                     "description": {
                                         "type": "string",
@@ -1248,6 +1582,14 @@
                                     "program_id"
                                 ],
                                 "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Project 1"
+                                    },
+                                    "folder_name": {
+                                        "type": "string",
+                                        "example": "Project_1_Folder"
+                                    },
                                     "start_date": {
                                         "type": "string",
                                         "format": "date",
@@ -1315,6 +1657,12 @@
                         "application/json": {
                             "schema": {
                                 "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "folder_name": {
+                                        "type": "string"
+                                    },
                                     "start_date": {
                                         "type": "string",
                                         "format": "date"
@@ -2497,6 +2845,14 @@
         {
             "name": "Employees",
             "description": "Employees"
+        },
+        {
+            "name": "Portfolio Activities",
+            "description": "Portfolio Activities"
+        },
+        {
+            "name": "Portfolios",
+            "description": "Portfolios"
         },
         {
             "name": "Programs",

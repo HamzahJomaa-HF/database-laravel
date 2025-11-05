@@ -95,10 +95,8 @@ class ProjectController extends Controller
                 'project_group' => 'nullable|string|max:255',
             ]);
 
-            $project = Project::create(array_merge($validated, [
-                'project_id' => Str::uuid(),
-                'external_id' => 'proj_' . date('Y_m') . '_' . strtolower($validated['project_type'] ?? 'general') . '_' . substr(Str::uuid(), 0, 4),
-            ]));
+            // ✅ Use mass assignment (the model boot() handles UUID + external_id)
+            $project = Project::create($validated);
 
             return response()->json([
                 'data' => $project,

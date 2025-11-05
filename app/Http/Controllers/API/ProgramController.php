@@ -93,18 +93,8 @@ class ProgramController extends Controller
                 'time' => 'nullable|string',
             ]);
 
-            $program = Program::create([
-                'program_id' => Str::uuid(),
-                'name' => $validated['name'],
-                'folder_name' => $validated['folder_name'] ?? null,
-                'type' => $validated['type'],
-                'description' => $validated['description'] ?? null,
-                'program_type' => $validated['program_type'],
-                'parent_program_id' => $validated['parent_program_id'] ?? null,
-                'start_date' => $validated['start_date'] ?? null,
-                'end_date' => $validated['end_date'] ?? null,
-                'time' => $validated['time'] ?? null,
-            ]);
+            // ✅ Use mass assignment (the model boot() handles UUID + external_id)
+            $program = Program::create($validated);
 
             return response()->json([
                 'data' => $program,
