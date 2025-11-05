@@ -39,12 +39,32 @@ class Program extends Model
 
         // Generate a unique external ID if not provided
         if (empty($program->external_id)) {
+
             $year = now()->format('Y');
             $month = now()->format('m');
-            $slugName = \Illuminate\Support\Str::slug($program->name ?? 'unknown', '_');
-            $random = \Illuminate\Support\Str::random(4); // ensures uniqueness
-            $program->external_id = "prog_{$year}_{$month}_{$slugName}_{$random}";
+
+            // Get last program created in this year-month
+            $lastProgram = \App\Models\Program::whereYear('created_at', $year)
+                ->whereMonth('created_at', $month)
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            // Extract last sequence number safely
+            $lastNumber = 0;
+            if ($lastProgram && preg_match('/_(\d+)$/', $lastProgram->external_id, $matches)) {
+                $lastNumber = (int) $matches[1];
+            }
+
+            $nextNumber = $lastNumber + 1;
+
+            $program->external_id = sprintf(
+                "PRG_%s_%s_%03d",
+                $year,
+                $month,
+                $nextNumber
+            );
         }
+
     });
 }
 
@@ -57,13 +77,13 @@ class Program extends Model
         return $this->hasMany(Project::class, 'program_id', 'program_id');
     }
     public function parentProgram()
-{
-    return $this->belongsTo(Program::class, 'parent_program_id', 'program_id');
-}
+    {
+        return $this->belongsTo(Program::class, 'parent_program_id', 'program_id');
+    }
 
-public function subPrograms()
-{
-    return $this->hasMany(Program::class, 'parent_program_id', 'program_id');
-}
+    public function subPrograms()
+    {
+        return $this->hasMany(Program::class, 'parent_program_id', 'program_id');
+    }
 
 }

@@ -36,13 +36,9 @@ class Project extends Model
             $project->project_id = (string) Str::uuid();
         }
 
-        // Generate unique external_id
-        $year = now()->format('Y');
-        $month = now()->format('m');
-        $type = strtolower($project->project_type ?? 'general');
-        $random = substr(Str::uuid(), 0, 4); // ensures uniqueness
 
-        $project->external_id = "proj_{$year}_{$month}_{$type}_{$random}";
+        
+
     });
 }
 
