@@ -158,4 +158,14 @@ Route::prefix('portfolio-activities')->group(function () {
 
 
 
+// All API routes for Users
+Route::prefix('users')->group(function () {
+    // RESTful routes: index, store, update, destroy
+    Route::get('/', [UserController::class, 'index']);      // GET /api/users or /api/users?id=UUID
+    Route::post('/', [UserController::class, 'store']);     // POST /api/users
+    Route::put('{id}', [UserController::class, 'update']);  // PUT /api/users/{id}
+    Route::delete('{id}', [UserController::class, 'destroy']); // DELETE /api/users/{id}
+});
+
+
 

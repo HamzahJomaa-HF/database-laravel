@@ -2656,7 +2656,7 @@
                 "tags": [
                     "Users"
                 ],
-                "summary": "Create a new user",
+                "summary": "Create or update user automatically based on unique identifiers",
                 "operationId": "9fea6f2adcb69614c521a7733358382d",
                 "requestBody": {
                     "required": true,
@@ -2670,6 +2670,10 @@
                                     "phone_number"
                                 ],
                                 "properties": {
+                                    "person_id": {
+                                        "type": "string",
+                                        "example": "P123456"
+                                    },
                                     "first_name": {
                                         "type": "string",
                                         "example": "John"
@@ -2695,7 +2699,7 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "User created successfully"
+                        "description": "User created or updated successfully"
                     },
                     "422": {
                         "description": "Validation failed"
@@ -2742,6 +2746,9 @@
                                         "format": "date"
                                     },
                                     "phone_number": {
+                                        "type": "string"
+                                    },
+                                    "person_id": {
                                         "type": "string"
                                     }
                                 },

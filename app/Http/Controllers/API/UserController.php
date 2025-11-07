@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * @OA\Info(
@@ -65,19 +66,20 @@ class UserController extends Controller
     /**
      * @OA\Post(
      *     path="/api/users",
-     *     summary="Create a new user",
+     *     summary="Create or update user automatically based on unique identifiers",
      *     tags={"Users"},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
      *             required={"first_name","last_name","dob","phone_number"},
+     *             @OA\Property(property="person_id", type="string", example="P123456"),
      *             @OA\Property(property="first_name", type="string", example="John"),
      *             @OA\Property(property="last_name", type="string", example="Doe"),
      *             @OA\Property(property="dob", type="string", format="date", example="1990-01-01"),
      *             @OA\Property(property="phone_number", type="string", example="+96170000000")
      *         )
      *     ),
-     *     @OA\Response(response=201, description="User created successfully"),
+     *     @OA\Response(response=201, description="User created or updated successfully"),
      *     @OA\Response(response=422, description="Validation failed"),
      *     @OA\Response(response=500, description="Unexpected error")
      * )
@@ -85,31 +87,65 @@ class UserController extends Controller
     public function store(Request $request)
     {
         try {
-            $validated = $request->validate([
+            $validator = Validator::make($request->all(), [
+                'person_id' => 'nullable|string|max:255',
                 'first_name' => 'required|string|max:255',
                 'last_name' => 'required|string|max:255',
                 'dob' => 'required|date',
                 'phone_number' => 'required|string|max:20',
             ]);
 
-            $user = User::create([
+            if ($validator->fails()) {
+                return response()->json([
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Check for existing user
+            $user = User::where('person_id', $request->person_id)
+                ->orWhere(function ($q) use ($request) {
+                    $q->where('dob', $request->dob)
+                      ->where('phone_number', $request->phone_number);
+                })
+                ->orWhere(function ($q) use ($request) {
+                    $q->where('first_name', 'ILIKE', $request->first_name)
+                      ->where('last_name', 'ILIKE', $request->last_name)
+                      ->where('dob', $request->dob)
+                      ->where('phone_number', $request->phone_number);
+                })
+                ->first();
+
+            if ($user) {
+                $user->update([
+                    'first_name' => $request->first_name,
+                    'last_name' => $request->last_name,
+                    'dob' => $request->dob,
+                    'phone_number' => $request->phone_number,
+                    'person_id' => $request->person_id ?? $user->person_id,
+                ]);
+
+                return response()->json([
+                    'data' => $user,
+                    'message' => 'User already existed and was updated successfully'
+                ], 200);
+            }
+
+            // Create new user
+            $newUser = User::create([
                 'user_id' => Str::uuid(),
-                'first_name' => $validated['first_name'],
-                'last_name' => $validated['last_name'],
-                'dob' => $validated['dob'],
-                'phone_number' => $validated['phone_number'],
+                'person_id' => $request->person_id,
+                'first_name' => $request->first_name,
+                'last_name' => $request->last_name,
+                'dob' => $request->dob,
+                'phone_number' => $request->phone_number,
             ]);
 
             return response()->json([
-                'data' => $user,
+                'data' => $newUser,
                 'message' => 'User created successfully'
             ], 201);
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'An unexpected error occurred',
@@ -136,7 +172,8 @@ class UserController extends Controller
      *             @OA\Property(property="first_name", type="string"),
      *             @OA\Property(property="last_name", type="string"),
      *             @OA\Property(property="dob", type="string", format="date"),
-     *             @OA\Property(property="phone_number", type="string")
+     *             @OA\Property(property="phone_number", type="string"),
+     *             @OA\Property(property="person_id", type="string")
      *         )
      *     ),
      *     @OA\Response(response=200, description="User updated successfully"),
@@ -158,6 +195,7 @@ class UserController extends Controller
                 'last_name' => 'sometimes|string|max:255',
                 'dob' => 'sometimes|date',
                 'phone_number' => 'sometimes|string|max:20',
+                'person_id' => 'sometimes|string|max:255',
             ]);
 
             $user->update($validated);

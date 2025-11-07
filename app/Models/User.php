@@ -19,6 +19,7 @@ class User extends Model
         'last_name',
         'dob',
         'phone_number',
+        'person_id',
     ];
 
     /**
