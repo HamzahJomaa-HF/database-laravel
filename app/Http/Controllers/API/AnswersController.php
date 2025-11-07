@@ -84,7 +84,6 @@ class AnswersController extends Controller
                 'question_id' => $validated['question_id'],
                 'response_id' => $validated['response_id'],
                 'answer_value' => $validated['answer_value'] ?? null,
-                'external_id' => 'ans_' . now()->format('Y_m_') . substr(Str::uuid(), 0, 6),
             ]);
 
             return response()->json([

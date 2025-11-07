@@ -5,7 +5,6 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class ProjectController extends Controller
 {
@@ -74,8 +73,7 @@ class ProjectController extends Controller
      *             @OA\Property(property="program_id", type="string", format="uuid"),
      *             @OA\Property(property="parent_project_id", type="string", format="uuid"),
      *             @OA\Property(property="project_type", type="string", example="Research"),
-     *             @OA\Property(property="project_group", type="string", example="Group A"),
-     * 
+     *             @OA\Property(property="project_group", type="string", example="Group A")
      *         )
      *     ),
      *     @OA\Response(response=201, description="Project created successfully"),
@@ -96,7 +94,6 @@ class ProjectController extends Controller
                 'project_group' => 'nullable|string|max:255',
             ]);
 
-            // ✅ Use mass assignment (the model boot() handles UUID + external_id)
             $project = Project::create($validated);
 
             return response()->json([
@@ -166,11 +163,6 @@ class ProjectController extends Controller
             ]);
 
             $project->fill($validated);
-
-            if (isset($validated['project_type']) && $validated['project_type'] !== $project->getOriginal('project_type')) {
-                $project->external_id = 'proj_' . date('Y_m') . '_' . strtolower($validated['project_type']) . '_' . substr(Str::uuid(), 0, 4);
-            }
-
             $project->save();
 
             return response()->json([

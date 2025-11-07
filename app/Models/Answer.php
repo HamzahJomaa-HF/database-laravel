@@ -32,12 +32,30 @@ class Answer extends Model
                 $answer->answer_id = (string) Str::uuid();
             }
 
-            // Optional: Generate external ID: ans_{YYYY}_{MM}_{random6}
+            // Sequential external ID: ANS_{YYYY}_{MM}_{sequence}
             if (empty($answer->external_id)) {
                 $year = now()->format('Y');
                 $month = now()->format('m');
-                $randomSuffix = substr(Str::uuid(), 0, 6);
-                $answer->external_id = "ans_{$year}_{$month}_{$randomSuffix}";
+
+                // Get last answer created in this year-month
+                $lastAnswer = Answer::whereYear('created_at', $year)
+                    ->whereMonth('created_at', $month)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+
+                $lastNumber = 0;
+                if ($lastAnswer && preg_match('/_(\d+)$/', $lastAnswer->external_id, $matches)) {
+                    $lastNumber = (int) $matches[1];
+                }
+
+                $nextNumber = $lastNumber + 1;
+
+                $answer->external_id = sprintf(
+                    "ANS_%s_%s_%03d",
+                    $year,
+                    $month,
+                    $nextNumber
+                );
             }
         });
     }

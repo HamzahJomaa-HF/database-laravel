@@ -30,12 +30,31 @@ class ProjectActivity extends Model
                 $projectActivity->project_activity_id = (string) Str::uuid();
             }
 
-            // Generate external_id in the format: projact_{YYYY}_{MM}_{short_uuid}
-            $year = now()->format('Y');
-            $month = now()->format('m');
-            $shortUuid = substr((string) Str::uuid(), 0, 8);
+            // Generate sequential external_id: PROJACT_{YYYY}_{MM}_{sequence}
+            if (empty($projectActivity->external_id)) {
+                $year = now()->format('Y');
+                $month = now()->format('m');
 
-            $projectActivity->external_id = "projact_{$year}_{$month}_{$shortUuid}";
+                // Get last ProjectActivity created in this year-month
+                $last = ProjectActivity::whereYear('created_at', $year)
+                    ->whereMonth('created_at', $month)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+
+                $lastNumber = 0;
+                if ($last && preg_match('/_(\d+)$/', $last->external_id, $matches)) {
+                    $lastNumber = (int) $matches[1];
+                }
+
+                $nextNumber = $lastNumber + 1;
+
+                $projectActivity->external_id = sprintf(
+                    "PROJACT_%s_%s_%03d",
+                    $year,
+                    $month,
+                    $nextNumber
+                );
+            }
         });
     }
 
@@ -46,7 +65,7 @@ class ProjectActivity extends Model
     // A ProjectActivity belongs to a ProjectCenter
     public function projectCenter()
     {
-        return $this->belongsTo(ProjectCenter::class, 'project_center_id', 'project_center_id');
+        return $this->belongsTo(Project::class, 'project_center_id', 'project_center_id');
     }
 
     // A ProjectActivity belongs to an Activity

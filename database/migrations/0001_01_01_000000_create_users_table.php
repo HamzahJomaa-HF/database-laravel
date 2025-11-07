@@ -18,7 +18,8 @@ return new class extends Migration
             $table->string('first_name');
             $table->string('last_name');
            $table->date('dob');
-            $table->string('phone_number');
+            $table->string('phone_number')->unique();
+            $table->string('person_id')->unique();
             $table->timestamps();
 
         

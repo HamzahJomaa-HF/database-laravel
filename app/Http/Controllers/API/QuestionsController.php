@@ -87,7 +87,6 @@ class QuestionsController extends Controller
 
             $question = Question::create([
                 'question_id' => Str::uuid(),
-                'external_id' => Str::uuid(),
                 'survey_id' => $validated['survey_id'] ?? null,
                 'question_type' => $validated['question_type'],
                 'question_name' => $validated['question_name'],

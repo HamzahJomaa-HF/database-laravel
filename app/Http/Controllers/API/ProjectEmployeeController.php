@@ -69,8 +69,7 @@ class ProjectEmployeeController extends Controller
      *             required={"program_id", "employee_id"},
      *             @OA\Property(property="program_id", type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000"),
      *             @OA\Property(property="employee_id", type="string", format="uuid", example="321e6547-e89b-12d3-a456-426614174000"),
-     *             @OA\Property(property="description", type="string", example="Project coordination duties"),
-     *             @OA\Property(property="external_id", type="string", example="EXT-10023")
+     *             @OA\Property(property="description", type="string", example="Project coordination duties")
      *         )
      *     ),
      *     @OA\Response(response=201, description="Project Employee created successfully"),
@@ -83,8 +82,7 @@ class ProjectEmployeeController extends Controller
             $validated = $request->validate([
                 'program_id' => 'required|uuid|exists:programs,program_id',
                 'employee_id' => 'required|uuid|exists:employees,employee_id',
-                'description' => 'nullable|string',
-                'external_id' => 'nullable|string|max:255'
+                'description' => 'nullable|string'
             ]);
 
             $projectEmployee = ProjectEmployee::create([
@@ -92,7 +90,6 @@ class ProjectEmployeeController extends Controller
                 'program_id' => $validated['program_id'],
                 'employee_id' => $validated['employee_id'],
                 'description' => $validated['description'] ?? null,
-                'external_id' => $validated['external_id'] ?? null,
             ]);
 
             return response()->json([
@@ -130,8 +127,7 @@ class ProjectEmployeeController extends Controller
      *         @OA\JsonContent(
      *             @OA\Property(property="program_id", type="string", format="uuid"),
      *             @OA\Property(property="employee_id", type="string", format="uuid"),
-     *             @OA\Property(property="description", type="string", example="Updated description"),
-     *             @OA\Property(property="external_id", type="string", example="EXT-9999")
+     *             @OA\Property(property="description", type="string", example="Updated description")
      *         )
      *     ),
      *     @OA\Response(response=200, description="Project Employee updated successfully"),
@@ -149,8 +145,7 @@ class ProjectEmployeeController extends Controller
             $validated = $request->validate([
                 'program_id' => 'sometimes|uuid|exists:programs,program_id',
                 'employee_id' => 'sometimes|uuid|exists:employees,employee_id',
-                'description' => 'nullable|string',
-                'external_id' => 'nullable|string|max:255'
+                'description' => 'nullable|string'
             ]);
 
             $projectEmployee->update($validated);

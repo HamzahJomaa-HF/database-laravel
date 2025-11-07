@@ -1436,10 +1436,6 @@
                                         "type": "string",
                                         "format": "uuid",
                                         "example": "b3f4a3d9-91c6-4899-bc2e-7a6b7b9b91e4"
-                                    },
-                                    "external_id": {
-                                        "type": "string",
-                                        "example": "proj_act_2025_10_center1_activityA"
                                     }
                                 },
                                 "type": "object"
@@ -1491,10 +1487,6 @@
                                         "type": "string",
                                         "format": "uuid",
                                         "example": "b3f4a3d9-91c6-4899-bc2e-7a6b7b9b91e4"
-                                    },
-                                    "external_id": {
-                                        "type": "string",
-                                        "example": "proj_act_updated"
                                     }
                                 },
                                 "type": "object"
@@ -1785,10 +1777,6 @@
                                     "description": {
                                         "type": "string",
                                         "example": "Project coordination duties"
-                                    },
-                                    "external_id": {
-                                        "type": "string",
-                                        "example": "EXT-10023"
                                     }
                                 },
                                 "type": "object"
@@ -1842,10 +1830,6 @@
                                     "description": {
                                         "type": "string",
                                         "example": "Updated description"
-                                    },
-                                    "external_id": {
-                                        "type": "string",
-                                        "example": "EXT-9999"
                                     }
                                 },
                                 "type": "object"
@@ -2096,10 +2080,6 @@
                                         "type": "string",
                                         "format": "uuid"
                                     },
-                                    "external_id": {
-                                        "type": "string",
-                                        "example": "ext_12345"
-                                    },
                                     "submitted_at": {
                                         "type": "string",
                                         "format": "date-time"
@@ -2152,10 +2132,6 @@
                                     "user_id": {
                                         "type": "string",
                                         "format": "uuid"
-                                    },
-                                    "external_id": {
-                                        "type": "string",
-                                        "example": "ext_12345"
                                     },
                                     "submitted_at": {
                                         "type": "string",

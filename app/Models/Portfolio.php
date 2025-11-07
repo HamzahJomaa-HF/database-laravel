@@ -35,13 +35,30 @@ class Portfolio extends Model
                 $portfolio->portfolio_id = (string) Str::uuid();
             }
 
-            // Generate unique external_id
+            // Generate sequential external_id: PORT_{YYYY}_{MM}_{sequence}
             if (empty($portfolio->external_id)) {
                 $year = now()->format('Y');
                 $month = now()->format('m');
-                $slugName = Str::slug($portfolio->name ?? 'unknown', '_');
-                $random = Str::random(4);
-                $portfolio->external_id = "port_{$year}_{$month}_{$slugName}_{$random}";
+
+                // Get last portfolio created in this year-month
+                $lastPortfolio = Portfolio::whereYear('created_at', $year)
+                    ->whereMonth('created_at', $month)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+
+                $lastNumber = 0;
+                if ($lastPortfolio && preg_match('/_(\d+)$/', $lastPortfolio->external_id, $matches)) {
+                    $lastNumber = (int) $matches[1];
+                }
+
+                $nextNumber = $lastNumber + 1;
+
+                $portfolio->external_id = sprintf(
+                    "PORT_%s_%s_%03d",
+                    $year,
+                    $month,
+                    $nextNumber
+                );
             }
         });
     }

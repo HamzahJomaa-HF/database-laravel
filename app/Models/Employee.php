@@ -24,6 +24,7 @@ class Employee extends Model
         'employee_type',
         'start_date',
         'end_date',
+        'external_id', // added external_id
     ];
 
     protected static function boot()
@@ -35,11 +36,37 @@ class Employee extends Model
             if (empty($employee->employee_id)) {
                 $employee->employee_id = (string) Str::uuid();
             }
+
+            // Generate sequential external_id: EMP_{YYYY}_{MM}_{sequence}
+            if (empty($employee->external_id)) {
+                $year = now()->format('Y');
+                $month = now()->format('m');
+
+                // Get last employee created in this year-month
+                $lastEmployee = Employee::whereYear('created_at', $year)
+                    ->whereMonth('created_at', $month)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+
+                $lastNumber = 0;
+                if ($lastEmployee && preg_match('/_(\d+)$/', $lastEmployee->external_id, $matches)) {
+                    $lastNumber = (int) $matches[1];
+                }
+
+                $nextNumber = $lastNumber + 1;
+
+                $employee->external_id = sprintf(
+                    "EMP_%s_%s_%03d",
+                    $year,
+                    $month,
+                    $nextNumber
+                );
+            }
         });
     }
 
     /**
-     * Relation to Project (if needed)
+     * Relation to Project
      */
     public function project()
     {
@@ -47,7 +74,7 @@ class Employee extends Model
     }
 
     /**
-     * Relation to Role (if needed)
+     * Relation to Role
      */
     public function role()
     {

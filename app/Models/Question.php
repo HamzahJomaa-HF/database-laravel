@@ -31,12 +31,30 @@ class Question extends Model
                 $question->question_id = (string) Str::uuid();
             }
 
-            // Auto-generate external_id if not provided
+            // Generate sequential external_id: QUES_{YYYY}_{MM}_{sequence}
             if (empty($question->external_id)) {
                 $year = now()->format('Y');
                 $month = now()->format('m');
-                $slugName = Str::slug($question->question_name ?? 'question', '_');
-                $question->external_id = "ques_{$year}_{$month}_{$slugName}";
+
+                // Get last Question created in this year-month
+                $last = Question::whereYear('created_at', $year)
+                    ->whereMonth('created_at', $month)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+
+                $lastNumber = 0;
+                if ($last && preg_match('/_(\d+)$/', $last->external_id, $matches)) {
+                    $lastNumber = (int) $matches[1];
+                }
+
+                $nextNumber = $lastNumber + 1;
+
+                $question->external_id = sprintf(
+                    "QUES_%s_%s_%03d",
+                    $year,
+                    $month,
+                    $nextNumber
+                );
             }
         });
     }

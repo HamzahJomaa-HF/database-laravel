@@ -68,8 +68,7 @@ class ProjectActivityController extends Controller
      *         @OA\JsonContent(
      *             required={"project_center_id", "activity_id"},
      *             @OA\Property(property="project_center_id", type="string", format="uuid", example="a2f4d8c7-8b5f-4d88-9d7c-12e456789abc"),
-     *             @OA\Property(property="activity_id", type="string", format="uuid", example="b3f4a3d9-91c6-4899-bc2e-7a6b7b9b91e4"),
-     *             @OA\Property(property="external_id", type="string", example="proj_act_2025_10_center1_activityA")
+     *             @OA\Property(property="activity_id", type="string", format="uuid", example="b3f4a3d9-91c6-4899-bc2e-7a6b7b9b91e4")
      *         )
      *     ),
      *     @OA\Response(response=201, description="Project Activity created successfully"),
@@ -82,14 +81,12 @@ class ProjectActivityController extends Controller
             $validated = $request->validate([
                 'project_center_id' => 'required|uuid',
                 'activity_id' => 'required|uuid',
-                'external_id' => 'nullable|string|max:255',
             ]);
 
             $projectActivity = ProjectActivity::create([
                 'project_activity_id' => Str::uuid(),
                 'project_center_id' => $validated['project_center_id'],
                 'activity_id' => $validated['activity_id'],
-                'external_id' => $validated['external_id'] ?? null,
             ]);
 
             return response()->json([
@@ -126,8 +123,7 @@ class ProjectActivityController extends Controller
      *         required=true,
      *         @OA\JsonContent(
      *             @OA\Property(property="project_center_id", type="string", format="uuid", example="a2f4d8c7-8b5f-4d88-9d7c-12e456789abc"),
-     *             @OA\Property(property="activity_id", type="string", format="uuid", example="b3f4a3d9-91c6-4899-bc2e-7a6b7b9b91e4"),
-     *             @OA\Property(property="external_id", type="string", example="proj_act_updated")
+     *             @OA\Property(property="activity_id", type="string", format="uuid", example="b3f4a3d9-91c6-4899-bc2e-7a6b7b9b91e4")
      *         )
      *     ),
      *     @OA\Response(response=200, description="Project Activity updated successfully"),
@@ -145,7 +141,6 @@ class ProjectActivityController extends Controller
             $validated = $request->validate([
                 'project_center_id' => 'sometimes|uuid',
                 'activity_id' => 'sometimes|uuid',
-                'external_id' => 'nullable|string|max:255',
             ]);
 
             $activity->update($validated);

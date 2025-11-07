@@ -32,13 +32,31 @@ class Survey extends Model
                 $survey->survey_id = (string) Str::uuid();
             }
 
-            // Generate external ID: surv_{YYYY}_{MM}_{slug(description)}_{4 random chars}
-            $year = now()->format('Y');
-            $month = now()->format('m');
-            $slugDesc = Str::slug(substr($survey->description ?? 'survey', 0, 20), '_'); // limit to 20 chars
-            $randomSuffix = substr(Str::uuid(), 0, 4);
+            // Generate sequential external_id: SURV_{YYYY}_{MM}_{sequence}
+            if (empty($survey->external_id)) {
+                $year = now()->format('Y');
+                $month = now()->format('m');
 
-            $survey->external_id = "surv_{$year}_{$month}_{$slugDesc}_{$randomSuffix}";
+                // Get last Survey created in this year-month
+                $last = Survey::whereYear('created_at', $year)
+                    ->whereMonth('created_at', $month)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+
+                $lastNumber = 0;
+                if ($last && preg_match('/_(\d+)$/', $last->external_id, $matches)) {
+                    $lastNumber = (int) $matches[1];
+                }
+
+                $nextNumber = $lastNumber + 1;
+
+                $survey->external_id = sprintf(
+                    "SURV_%s_%s_%03d",
+                    $year,
+                    $month,
+                    $nextNumber
+                );
+            }
         });
     }
 

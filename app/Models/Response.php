@@ -31,13 +31,30 @@ class Response extends Model
                 $response->response_id = (string) Str::uuid();
             }
 
-            // Optional: Generate external ID like "resp_{YYYY}_{MM}_{slug(user_id)}"
-            $year = now()->format('Y');
-            $month = now()->format('m');
-            $slugUser = Str::slug($response->user_id ?? 'unknown', '_');
-
+            // Generate sequential external_id: RESP_{YYYY}_{MM}_{sequence}
             if (empty($response->external_id)) {
-                $response->external_id = "resp_{$year}_{$month}_{$slugUser}";
+                $year = now()->format('Y');
+                $month = now()->format('m');
+
+                // Get last Response created in this year-month
+                $last = Response::whereYear('created_at', $year)
+                    ->whereMonth('created_at', $month)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+
+                $lastNumber = 0;
+                if ($last && preg_match('/_(\d+)$/', $last->external_id, $matches)) {
+                    $lastNumber = (int) $matches[1];
+                }
+
+                $nextNumber = $lastNumber + 1;
+
+                $response->external_id = sprintf(
+                    "RESP_%s_%s_%03d",
+                    $year,
+                    $month,
+                    $nextNumber
+                );
             }
 
             // Default submitted_at to now if not provided

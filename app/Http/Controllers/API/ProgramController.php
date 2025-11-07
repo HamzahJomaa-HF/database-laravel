@@ -93,7 +93,6 @@ class ProgramController extends Controller
                 'time' => 'nullable|string',
             ]);
 
-            // ✅ Use mass assignment (the model boot() handles UUID + external_id)
             $program = Program::create($validated);
 
             return response()->json([

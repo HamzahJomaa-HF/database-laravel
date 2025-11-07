@@ -60,7 +60,6 @@ class ResponsesController extends Controller
      *             required={"survey_id","user_id"},
      *             @OA\Property(property="survey_id", type="string", format="uuid"),
      *             @OA\Property(property="user_id", type="string", format="uuid"),
-     *             @OA\Property(property="external_id", type="string", example="ext_12345"),
      *             @OA\Property(property="submitted_at", type="string", format="date-time")
      *         )
      *     ),
@@ -74,7 +73,6 @@ class ResponsesController extends Controller
             $validated = $request->validate([
                 'survey_id' => 'required|uuid',
                 'user_id' => 'required|uuid',
-                'external_id' => 'nullable|string|max:255',
                 'submitted_at' => 'nullable|date',
             ]);
 
@@ -82,7 +80,6 @@ class ResponsesController extends Controller
                 'response_id' => Str::uuid(),
                 'survey_id' => $validated['survey_id'],
                 'user_id' => $validated['user_id'],
-                'external_id' => $validated['external_id'] ?? null,
                 'submitted_at' => $validated['submitted_at'] ?? now(),
             ]);
 
@@ -121,7 +118,6 @@ class ResponsesController extends Controller
      *         @OA\JsonContent(
      *             @OA\Property(property="survey_id", type="string", format="uuid"),
      *             @OA\Property(property="user_id", type="string", format="uuid"),
-     *             @OA\Property(property="external_id", type="string", example="ext_12345"),
      *             @OA\Property(property="submitted_at", type="string", format="date-time")
      *         )
      *     ),
@@ -140,7 +136,6 @@ class ResponsesController extends Controller
             $validated = $request->validate([
                 'survey_id' => 'sometimes|uuid',
                 'user_id' => 'sometimes|uuid',
-                'external_id' => 'nullable|string|max:255',
                 'submitted_at' => 'nullable|date',
             ]);
 

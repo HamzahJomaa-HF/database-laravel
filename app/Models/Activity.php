@@ -33,23 +33,42 @@ class Activity extends Model
         parent::boot();
 
         static::creating(function ($activity) {
-            // Generate UUID for primary key
+            // ✅ Generate UUID for primary key
             if (empty($activity->activity_id)) {
                 $activity->activity_id = (string) Str::uuid();
             }
 
-            // Generate unique external_id like projects
-        $year = now()->format('Y');
-        $month = now()->format('m');
-        $type = strtolower($activity->activity_type ?? 'general');
-        $random = substr(Str::uuid(), 0, 4); // ensures uniqueness
+            // ✅ Generate a unique external ID like the Program model
+            if (empty($activity->external_id)) {
+                $year = now()->format('Y');
+                $month = now()->format('m');
 
-        $activity->external_id = "act_{$year}_{$month}_{$type}_{$random}";
-    });
+                // Get the last created activity for this year-month
+                $lastActivity = self::whereYear('created_at', $year)
+                    ->whereMonth('created_at', $month)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+
+                // Extract last sequence number
+                $lastNumber = 0;
+                if ($lastActivity && preg_match('/_(\d+)$/', $lastActivity->external_id, $matches)) {
+                    $lastNumber = (int) $matches[1];
+                }
+
+                $nextNumber = $lastNumber + 1;
+
+                $activity->external_id = sprintf(
+                    "ACT_%s_%s_%03d",
+                    $year,
+                    $month,
+                    $nextNumber
+                );
+            }
+        });
     }
 
     /**
-     * Self-relation for parent/child activities
+     * 🔗 Self-relation for parent/child activities
      */
     public function parent()
     {
@@ -62,32 +81,25 @@ class Activity extends Model
     }
 
     /**
-     * Optional relation for target_cop if needed
+     * 🔗 Many-to-Many: Activities belong to Portfolios
      */
-    // public function targetGroup()
-    // {
-    //     return $this->belongsTo(TargetGroup::class, 'target_cop', 'id');
-    // }
-    /**
- * Portfolios this activity belongs to
- */
-public function portfolios()
-{
-    return $this->belongsToMany(
-        Portfolio::class,          // Related model
-        'portfolio_activities',    // Pivot table
-        'activity_id',             // FK on pivot pointing to this model
-        'portfolio_id'             // FK on pivot pointing to Portfolio
-    );
-}
-public function attachPortfolio($portfolioId)
-{
-    $this->portfolios()->syncWithoutDetaching([$portfolioId]);
-}
+    public function portfolios()
+    {
+        return $this->belongsToMany(
+            Portfolio::class,
+            'portfolio_activities',
+            'activity_id',
+            'portfolio_id'
+        );
+    }
 
-public function detachPortfolio($portfolioId)
-{
-    $this->portfolios()->detach($portfolioId);
-}
+    public function attachPortfolio($portfolioId)
+    {
+        $this->portfolios()->syncWithoutDetaching([$portfolioId]);
+    }
 
+    public function detachPortfolio($portfolioId)
+    {
+        $this->portfolios()->detach($portfolioId);
+    }
 }

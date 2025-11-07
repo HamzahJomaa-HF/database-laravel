@@ -34,12 +34,31 @@ class ActivityUser extends Model
                 $activityUser->activity_user_id = (string) Str::uuid();
             }
 
-            // Optional: Generate external ID: au_{YYYY}_{MM}_{random}
+            // Generate sequential external ID like Program model: au_{YYYY}_{MM}_{sequence}
             if (empty($activityUser->external_id)) {
                 $year = now()->format('Y');
                 $month = now()->format('m');
-                $random = Str::random(6);
-                $activityUser->external_id = "au_{$year}_{$month}_{$random}";
+
+                // Get last activity user created in this year-month
+                $lastActivityUser = ActivityUser::whereYear('created_at', $year)
+                    ->whereMonth('created_at', $month)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+
+                // Extract last sequence number safely
+                $lastNumber = 0;
+                if ($lastActivityUser && preg_match('/_(\d+)$/', $lastActivityUser->external_id, $matches)) {
+                    $lastNumber = (int) $matches[1];
+                }
+
+                $nextNumber = $lastNumber + 1;
+
+                $activityUser->external_id = sprintf(
+                    "AU_%s_%s_%03d",
+                    $year,
+                    $month,
+                    $nextNumber
+                );
             }
         });
     }

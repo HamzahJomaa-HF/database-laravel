@@ -5,7 +5,6 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Activity;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class ActivityController extends Controller
 {
@@ -36,19 +35,26 @@ class ActivityController extends Controller
      */
     public function index(Request $request)
     {
-        if ($request->has('id')) {
-            $activity = Activity::where('activity_id', $request->id)->first();
-            if (!$activity) {
-                return response()->json(['message' => 'Activity not found'], 404);
+        try {
+            if ($request->has('id')) {
+                $activity = Activity::where('activity_id', $request->id)->first();
+                if (!$activity) {
+                    return response()->json(['message' => 'Activity not found'], 404);
+                }
+                return response()->json($activity);
             }
-            return response()->json($activity);
-        }
 
-        $activities = Activity::all();
-        return response()->json([
-            'data' => $activities,
-            'message' => 'Activities retrieved successfully'
-        ]);
+            $activities = Activity::all();
+            return response()->json([
+                'data' => $activities,
+                'message' => 'Activities retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'An unexpected error occurred',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -85,7 +91,8 @@ class ActivityController extends Controller
                 'start_date' => 'required|date',
                 'end_date' => 'required|date|after_or_equal:start_date',
                 'parent_activity' => 'nullable|uuid|exists:activities,activity_id',
-                'target_cop' => 'nullable|uuid|exists:users,id',
+                'target_cop' => 'nullable|uuid|exists:users,user_id',
+
             ]);
 
             $activity = Activity::create($validated);
@@ -139,35 +146,42 @@ class ActivityController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $activity = Activity::where('activity_id', $id)->first();
+        try {
+            $activity = Activity::where('activity_id', $id)->first();
 
-        if (!$activity) {
-            return response()->json(['message' => 'Activity not found'], 404);
+            if (!$activity) {
+                return response()->json(['message' => 'Activity not found'], 404);
+            }
+
+            $validated = $request->validate([
+                'activity_title' => 'sometimes|string|max:255',
+                'folder_name' => 'nullable|string|max:255',
+                'activity_type' => 'sometimes|string|max:255',
+                'content_network' => 'nullable|string|max:255',
+                'start_date' => 'nullable|date',
+                'end_date' => 'nullable|date|after_or_equal:start_date',
+                'parent_activity' => 'nullable|uuid|exists:activities,activity_id',
+                'target_cop' => 'nullable|uuid|exists:users,user_id',
+
+            ]);
+
+            $activity->update($validated);
+
+            return response()->json([
+                'data' => $activity,
+                'message' => 'Activity updated successfully'
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'An unexpected error occurred',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        $validated = $request->validate([
-            'activity_title' => 'sometimes|string|max:255',
-            'folder_name' => 'nullable|string|max:255',
-            'activity_type' => 'sometimes|string|max:255',
-            'content_network' => 'nullable|string|max:255',
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'parent_activity' => 'nullable|uuid|exists:activities,activity_id',
-            'target_cop' => 'nullable|uuid|exists:users,id',
-        ]);
-
-        $activity->fill($validated);
-
-        if (isset($validated['activity_type']) && $validated['activity_type'] !== $activity->getOriginal('activity_type')) {
-            $activity->external_id = 'act_' . date('Y_m') . '_' . strtolower($activity->activity_type) . '_' . substr(Str::uuid(), 0, 4);
-        }
-
-        $activity->save();
-
-        return response()->json([
-            'data' => $activity,
-            'message' => 'Activity updated successfully'
-        ]);
     }
 
     /**
@@ -188,14 +202,21 @@ class ActivityController extends Controller
      */
     public function destroy($id)
     {
-        $activity = Activity::where('activity_id', $id)->first();
+        try {
+            $activity = Activity::where('activity_id', $id)->first();
 
-        if (!$activity) {
-            return response()->json(['message' => 'Activity not found'], 404);
+            if (!$activity) {
+                return response()->json(['message' => 'Activity not found'], 404);
+            }
+
+            $activity->delete();
+
+            return response()->json(['message' => 'Activity deleted successfully']);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'An unexpected error occurred',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        $activity->delete();
-
-        return response()->json(['message' => 'Activity deleted successfully']);
     }
 }
