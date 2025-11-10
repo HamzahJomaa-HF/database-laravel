@@ -15,11 +15,18 @@ class User extends Model
     protected $keyType = 'string';      // UUID is a string
 
     protected $fillable = [
+        'identification_id',
         'first_name',
+        'middle_name',
         'last_name',
+        'gender',
+        'nationality',
         'dob',
+        'register_number',
         'phone_number',
-        'person_id',
+        'marital_status',
+        'current_situation',
+        'passport_number',
     ];
 
     /**
@@ -50,5 +57,13 @@ class User extends Model
     public function responses()
     {
         return $this->hasMany(Response::class, 'user_id', 'user_id');
+    }
+
+    /**
+     * Example relation: user diplomas
+     */
+    public function diplomas()
+    {
+        return $this->hasMany(UserDiploma::class, 'user_id', 'user_id');
     }
 }

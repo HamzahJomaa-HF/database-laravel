@@ -18,6 +18,10 @@ use App\Http\Controllers\API\ResponsesController;
 use App\Http\Controllers\API\AnswersController;
 use App\Http\Controllers\API\PortfolioActivityController;
 use App\Http\Controllers\API\PortfolioController;
+use App\Http\Controllers\API\DiplomaController;
+use App\Http\Controllers\API\UserDiplomaController;
+
+
         
 
 
@@ -168,4 +172,19 @@ Route::prefix('users')->group(function () {
 });
 
 
+// Diplomas
+Route::prefix('diplomas')->group(function () {
+    Route::get('/', [DiplomaController::class, 'index']);          
+    Route::post('/', [DiplomaController::class, 'store']);        
+    Route::put('/{id}', [DiplomaController::class, 'update']);    
+    Route::delete('/{id}', [DiplomaController::class, 'destroy']);
+});
+
+// User Diplomas (pivot table linking users and diplomas)
+Route::prefix('user-diplomas')->group(function () {
+    Route::get('/', [UserDiplomaController::class, 'index']);          
+    Route::post('/', [UserDiplomaController::class, 'store']);         
+    Route::put('/{id}', [UserDiplomaController::class, 'update']);     
+    Route::delete('/{id}', [UserDiplomaController::class, 'destroy']); 
+});
 

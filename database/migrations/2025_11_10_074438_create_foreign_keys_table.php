@@ -226,6 +226,25 @@ return new class extends Migration {
                   ->references('activity_id')->on('activities')
                   ->onDelete('cascade');
         });
+        // users_diploma → user, diploma
+Schema::table('users_diploma', function (Blueprint $table) {
+    if (!Schema::hasColumn('users_diploma', 'user_id')) {
+        $table->uuid('user_id');
+    }
+    if (!Schema::hasColumn('users_diploma', 'diploma_id')) {
+        $table->unsignedBigInteger('diploma_id');
+    }
+
+    $table->foreign('user_id', 'FK_USERS_DIPLOMA_USER_ID')
+          ->references('user_id')->on('users')
+          ->onDelete('cascade');
+
+    $table->foreign('diploma_id', 'FK_USERS_DIPLOMA_DIPLOMA_ID')
+          ->references('id')->on('diploma')
+          ->onDelete('cascade');
+});
+
+
     }
 
     public function down(): void
@@ -277,5 +296,14 @@ return new class extends Migration {
         });
         Schema::table('cops', fn(Blueprint $t) => $t->dropForeign('FK_COPS_PROGRAM_ID'));
         Schema::table('programs', fn(Blueprint $t) => $t->dropForeign('FK_PROGRAMS_PARENT_PROGRAM'));
+
+        Schema::table('users_diploma', function (Blueprint $table) {
+    $table->dropForeign('FK_USERS_DIPLOMA_USER_ID');
+    $table->dropForeign('FK_USERS_DIPLOMA_DIPLOMA_ID');
+});
+
+
+
+
     }
 };

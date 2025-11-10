@@ -689,6 +689,165 @@
                 }
             }
         },
+        "/api/diplomas": {
+            "get": {
+                "tags": [
+                    "Diplomas"
+                ],
+                "summary": "Get all diplomas or a specific diploma by ID",
+                "operationId": "bc91a6a21f3cca195ace7033da5e5ddc",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "Optional diploma ID to fetch a specific diploma",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Diplomas retrieved successfully"
+                    },
+                    "404": {
+                        "description": "Diploma not found"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Diplomas"
+                ],
+                "summary": "Create a new diploma",
+                "operationId": "ff11e6a7cbcbc0dc5fd49bf7d766c69f",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "diploma_name"
+                                ],
+                                "properties": {
+                                    "diploma_name": {
+                                        "type": "string",
+                                        "example": "Bachelor of Science"
+                                    },
+                                    "institution": {
+                                        "type": "string",
+                                        "example": "Hariri University"
+                                    },
+                                    "year": {
+                                        "type": "integer",
+                                        "example": 2020
+                                    },
+                                    "external_id": {
+                                        "type": "string",
+                                        "example": "EXT12345"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Diploma created successfully"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            }
+        },
+        "/api/diplomas/{id}": {
+            "put": {
+                "tags": [
+                    "Diplomas"
+                ],
+                "summary": "Update an existing diploma",
+                "operationId": "ef0740491819e20d11b7e020a6c8c73e",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Diploma ID to update",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "diploma_name": {
+                                        "type": "string",
+                                        "example": "Updated Diploma Name"
+                                    },
+                                    "institution": {
+                                        "type": "string",
+                                        "example": "Updated University"
+                                    },
+                                    "year": {
+                                        "type": "integer",
+                                        "example": 2021
+                                    },
+                                    "external_id": {
+                                        "type": "string",
+                                        "example": "EXT67890"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Diploma updated successfully"
+                    },
+                    "404": {
+                        "description": "Diploma not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Diplomas"
+                ],
+                "summary": "Delete a diploma by ID",
+                "operationId": "6891a5474836b097c99b488914d24589",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Diploma ID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Diploma deleted successfully"
+                    },
+                    "404": {
+                        "description": "Diploma not found"
+                    }
+                }
+            }
+        },
         "/api/employees": {
             "get": {
                 "tags": [
@@ -2670,26 +2829,54 @@
                                     "phone_number"
                                 ],
                                 "properties": {
-                                    "person_id": {
+                                    "identification_id": {
                                         "type": "string",
-                                        "example": "P123456"
+                                        "example": "ID123456"
                                     },
                                     "first_name": {
                                         "type": "string",
                                         "example": "John"
                                     },
+                                    "middle_name": {
+                                        "type": "string",
+                                        "example": "M."
+                                    },
                                     "last_name": {
                                         "type": "string",
                                         "example": "Doe"
+                                    },
+                                    "gender": {
+                                        "type": "string",
+                                        "example": "Male"
+                                    },
+                                    "nationality": {
+                                        "type": "string",
+                                        "example": "Lebanese"
                                     },
                                     "dob": {
                                         "type": "string",
                                         "format": "date",
                                         "example": "1990-01-01"
                                     },
+                                    "register_number": {
+                                        "type": "string",
+                                        "example": "R123456"
+                                    },
                                     "phone_number": {
                                         "type": "string",
                                         "example": "+96170000000"
+                                    },
+                                    "marital_status": {
+                                        "type": "string",
+                                        "example": "Single"
+                                    },
+                                    "current_situation": {
+                                        "type": "string",
+                                        "example": "Employed"
+                                    },
+                                    "passport_number": {
+                                        "type": "string",
+                                        "example": "P987654"
                                     }
                                 },
                                 "type": "object"
@@ -2735,20 +2922,41 @@
                         "application/json": {
                             "schema": {
                                 "properties": {
+                                    "identification_id": {
+                                        "type": "string"
+                                    },
                                     "first_name": {
                                         "type": "string"
                                     },
+                                    "middle_name": {
+                                        "type": "string"
+                                    },
                                     "last_name": {
+                                        "type": "string"
+                                    },
+                                    "gender": {
+                                        "type": "string"
+                                    },
+                                    "nationality": {
                                         "type": "string"
                                     },
                                     "dob": {
                                         "type": "string",
                                         "format": "date"
                                     },
+                                    "register_number": {
+                                        "type": "string"
+                                    },
                                     "phone_number": {
                                         "type": "string"
                                     },
-                                    "person_id": {
+                                    "marital_status": {
+                                        "type": "string"
+                                    },
+                                    "current_situation": {
+                                        "type": "string"
+                                    },
+                                    "passport_number": {
                                         "type": "string"
                                     }
                                 },
@@ -2802,6 +3010,147 @@
                     }
                 }
             }
+        },
+        "/api/user-diplomas": {
+            "get": {
+                "tags": [
+                    "UserDiplomas"
+                ],
+                "summary": "Get all user diplomas or a specific one by ID",
+                "operationId": "21776f4889c8a6b71f53f73b603b60f2",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "Optional UserDiploma ID to fetch a specific record",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "UserDiplomas retrieved successfully"
+                    },
+                    "404": {
+                        "description": "UserDiploma not found"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "UserDiplomas"
+                ],
+                "summary": "Create a new user diploma",
+                "operationId": "2a6ae7e947a4bab2a6cb1d06a6cbcf72",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "user_id",
+                                    "diploma_id"
+                                ],
+                                "properties": {
+                                    "user_id": {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+                                    },
+                                    "diploma_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "UserDiploma created successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input data"
+                    }
+                }
+            }
+        },
+        "/api/user-diplomas/{id}": {
+            "put": {
+                "tags": [
+                    "UserDiplomas"
+                ],
+                "summary": "Update an existing user diploma",
+                "operationId": "caf7d676d3dbc1517058180a4afecd19",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "UserDiploma ID to update",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "user_id": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "diploma_id": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "UserDiploma updated successfully"
+                    },
+                    "404": {
+                        "description": "UserDiploma not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "UserDiplomas"
+                ],
+                "summary": "Delete a user diploma by ID",
+                "operationId": "ee37b50008c277997fb0415cce7977cd",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "UserDiploma ID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "UserDiploma deleted successfully"
+                    },
+                    "404": {
+                        "description": "UserDiploma not found"
+                    }
+                }
+            }
         }
     },
     "tags": [
@@ -2824,6 +3173,10 @@
         {
             "name": "COPs",
             "description": "COPs"
+        },
+        {
+            "name": "Diplomas",
+            "description": "Diplomas"
         },
         {
             "name": "Employees",
@@ -2872,6 +3225,10 @@
         {
             "name": "SurveyQuestions",
             "description": "SurveyQuestions"
+        },
+        {
+            "name": "UserDiplomas",
+            "description": "UserDiplomas"
         }
     ]
 }

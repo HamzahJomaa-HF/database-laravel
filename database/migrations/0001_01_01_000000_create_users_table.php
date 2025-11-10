@@ -14,16 +14,22 @@ return new class extends Migration
        
         // Users table
         Schema::create('users', function (Blueprint $table) {
-            $table->uuid('user_id')->primary();
-            $table->string('first_name');
-            $table->string('last_name');
-           $table->date('dob');
-            $table->string('phone_number')->unique();
-            $table->string('person_id')->unique();
-            $table->timestamps();
+    $table->uuid('user_id')->primary();
+    $table->string('identification_id')->unique();
+    $table->string('first_name');
+    $table->string('middle_name')->nullable();
+    $table->string('last_name');
+    $table->string('gender')->nullable();          // Arabic or English values
+    $table->string('nationality')->nullable();     // Arabic or English values
+    $table->date('dob');
+    $table->string('register_number')->nullable();
+    $table->string('phone_number')->unique();
+    $table->string('marital_status')->nullable();  // Arabic or English values
+    $table->string('current_situation')->nullable(); // Arabic or English values
+    $table->string('passport_number')->nullable(); // new column
+    $table->timestamps();
+});
 
-        
-        });
 
         // Password reset tokens table
         Schema::create('password_reset_tokens', function (Blueprint $table) {

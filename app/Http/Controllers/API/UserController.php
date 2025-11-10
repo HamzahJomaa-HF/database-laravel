@@ -72,11 +72,18 @@ class UserController extends Controller
      *         required=true,
      *         @OA\JsonContent(
      *             required={"first_name","last_name","dob","phone_number"},
-     *             @OA\Property(property="person_id", type="string", example="P123456"),
+     *             @OA\Property(property="identification_id", type="string", example="ID123456"),
      *             @OA\Property(property="first_name", type="string", example="John"),
+     *             @OA\Property(property="middle_name", type="string", example="M."),
      *             @OA\Property(property="last_name", type="string", example="Doe"),
+     *             @OA\Property(property="gender", type="string", example="Male"),
+     *             @OA\Property(property="nationality", type="string", example="Lebanese"),
      *             @OA\Property(property="dob", type="string", format="date", example="1990-01-01"),
-     *             @OA\Property(property="phone_number", type="string", example="+96170000000")
+     *             @OA\Property(property="register_number", type="string", example="R123456"),
+     *             @OA\Property(property="phone_number", type="string", example="+96170000000"),
+     *             @OA\Property(property="marital_status", type="string", example="Single"),
+     *             @OA\Property(property="current_situation", type="string", example="Employed"),
+     *             @OA\Property(property="passport_number", type="string", example="P987654")
      *         )
      *     ),
      *     @OA\Response(response=201, description="User created or updated successfully"),
@@ -88,11 +95,18 @@ class UserController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'person_id' => 'nullable|string|max:255',
+                'identification_id' => 'nullable|string|max:255',
                 'first_name' => 'required|string|max:255',
+                'middle_name' => 'nullable|string|max:255',
                 'last_name' => 'required|string|max:255',
+                'gender' => 'nullable|string|max:50',
+                'nationality' => 'nullable|string|max:255',
                 'dob' => 'required|date',
+                'register_number' => 'nullable|string|max:255',
                 'phone_number' => 'required|string|max:20',
+                'marital_status' => 'nullable|string|max:50',
+                'current_situation' => 'nullable|string|max:255',
+                'passport_number' => 'nullable|string|max:50',
             ]);
 
             if ($validator->fails()) {
@@ -102,8 +116,7 @@ class UserController extends Controller
                 ], 422);
             }
 
-            // Check for existing user
-            $user = User::where('person_id', $request->person_id)
+            $user = User::where('identification_id', $request->identification_id)
                 ->orWhere(function ($q) use ($request) {
                     $q->where('dob', $request->dob)
                       ->where('phone_number', $request->phone_number);
@@ -119,10 +132,17 @@ class UserController extends Controller
             if ($user) {
                 $user->update([
                     'first_name' => $request->first_name,
+                    'middle_name' => $request->middle_name,
                     'last_name' => $request->last_name,
+                    'gender' => $request->gender,
+                    'nationality' => $request->nationality,
                     'dob' => $request->dob,
+                    'register_number' => $request->register_number,
                     'phone_number' => $request->phone_number,
-                    'person_id' => $request->person_id ?? $user->person_id,
+                    'marital_status' => $request->marital_status,
+                    'current_situation' => $request->current_situation,
+                    'passport_number' => $request->passport_number,
+                    'identification_id' => $request->identification_id ?? $user->identification_id,
                 ]);
 
                 return response()->json([
@@ -131,14 +151,20 @@ class UserController extends Controller
                 ], 200);
             }
 
-            // Create new user
             $newUser = User::create([
                 'user_id' => Str::uuid(),
-                'person_id' => $request->person_id,
+                'identification_id' => $request->identification_id,
                 'first_name' => $request->first_name,
+                'middle_name' => $request->middle_name,
                 'last_name' => $request->last_name,
+                'gender' => $request->gender,
+                'nationality' => $request->nationality,
                 'dob' => $request->dob,
+                'register_number' => $request->register_number,
                 'phone_number' => $request->phone_number,
+                'marital_status' => $request->marital_status,
+                'current_situation' => $request->current_situation,
+                'passport_number' => $request->passport_number,
             ]);
 
             return response()->json([
@@ -169,11 +195,18 @@ class UserController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
+     *             @OA\Property(property="identification_id", type="string"),
      *             @OA\Property(property="first_name", type="string"),
+     *             @OA\Property(property="middle_name", type="string"),
      *             @OA\Property(property="last_name", type="string"),
+     *             @OA\Property(property="gender", type="string"),
+     *             @OA\Property(property="nationality", type="string"),
      *             @OA\Property(property="dob", type="string", format="date"),
+     *             @OA\Property(property="register_number", type="string"),
      *             @OA\Property(property="phone_number", type="string"),
-     *             @OA\Property(property="person_id", type="string")
+     *             @OA\Property(property="marital_status", type="string"),
+     *             @OA\Property(property="current_situation", type="string"),
+     *             @OA\Property(property="passport_number", type="string")
      *         )
      *     ),
      *     @OA\Response(response=200, description="User updated successfully"),
@@ -191,11 +224,18 @@ class UserController extends Controller
             }
 
             $validated = $request->validate([
+                'identification_id' => 'sometimes|string|max:255',
                 'first_name' => 'sometimes|string|max:255',
+                'middle_name' => 'sometimes|string|max:255',
                 'last_name' => 'sometimes|string|max:255',
+                'gender' => 'sometimes|string|max:50',
+                'nationality' => 'sometimes|string|max:255',
                 'dob' => 'sometimes|date',
+                'register_number' => 'sometimes|string|max:255',
                 'phone_number' => 'sometimes|string|max:20',
-                'person_id' => 'sometimes|string|max:255',
+                'marital_status' => 'sometimes|string|max:50',
+                'current_situation' => 'sometimes|string|max:255',
+                'passport_number' => 'sometimes|string|max:50',
             ]);
 
             $user->update($validated);
