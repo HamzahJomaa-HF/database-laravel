@@ -1055,6 +1055,138 @@
                 }
             }
         },
+        "/api/nationalities": {
+            "get": {
+                "tags": [
+                    "Nationalities"
+                ],
+                "summary": "Get all nationalities or a specific nationality by ID",
+                "operationId": "9dde020d329998a57899eb73bb1a0700",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "Optional nationality ID to fetch a specific record",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Nationalities retrieved successfully"
+                    },
+                    "404": {
+                        "description": "Nationality not found"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Nationalities"
+                ],
+                "summary": "Create a new nationality",
+                "operationId": "9128de1a3e3838d6f36b385fea18113f",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Lebanese"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Nationality created successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input data"
+                    }
+                }
+            }
+        },
+        "/api/nationalities/{id}": {
+            "put": {
+                "tags": [
+                    "Nationalities"
+                ],
+                "summary": "Update an existing nationality",
+                "operationId": "2430f9841a8b180ddc87cb596516e140",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Nationality ID to update",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Updated Nationality Name"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Nationality updated successfully"
+                    },
+                    "404": {
+                        "description": "Nationality not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Nationalities"
+                ],
+                "summary": "Delete a nationality by ID",
+                "operationId": "f64557fec0ae6babb74e4ec29e3bc70d",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Nationality ID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Nationality deleted successfully"
+                    },
+                    "404": {
+                        "description": "Nationality not found"
+                    }
+                }
+            }
+        },
         "/api/portfolio-activities": {
             "get": {
                 "tags": [
@@ -2815,7 +2947,7 @@
                 "tags": [
                     "Users"
                 ],
-                "summary": "Create or update user automatically based on unique identifiers",
+                "summary": "Create a user (no update if exists)",
                 "operationId": "9fea6f2adcb69614c521a7733358382d",
                 "requestBody": {
                     "required": true,
@@ -2844,6 +2976,10 @@
                                     "last_name": {
                                         "type": "string",
                                         "example": "Doe"
+                                    },
+                                    "mother_name": {
+                                        "type": "string",
+                                        "example": "Jane"
                                     },
                                     "gender": {
                                         "type": "string",
@@ -2886,7 +3022,10 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "User created or updated successfully"
+                        "description": "User created successfully"
+                    },
+                    "409": {
+                        "description": "User already exists"
                     },
                     "422": {
                         "description": "Validation failed"
@@ -2932,6 +3071,9 @@
                                         "type": "string"
                                     },
                                     "last_name": {
+                                        "type": "string"
+                                    },
+                                    "mother_name": {
                                         "type": "string"
                                     },
                                     "gender": {
@@ -3151,6 +3293,147 @@
                     }
                 }
             }
+        },
+        "/api/user-nationalities": {
+            "get": {
+                "tags": [
+                    "UserNationalities"
+                ],
+                "summary": "Get all user nationalities or a specific one by ID",
+                "operationId": "6c8617809a1c323d30c8127f708cc1a7",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "query",
+                        "description": "Optional user nationality ID to fetch a specific record",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User nationalities retrieved successfully"
+                    },
+                    "404": {
+                        "description": "User nationality not found"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "UserNationalities"
+                ],
+                "summary": "Create a new user nationality",
+                "operationId": "10d1daaea3adfaf1129553676cd9cfab",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "user_id",
+                                    "nationality_id"
+                                ],
+                                "properties": {
+                                    "user_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "nationality_id": {
+                                        "type": "integer",
+                                        "example": 2
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "User nationality created successfully"
+                    },
+                    "400": {
+                        "description": "Invalid input data"
+                    }
+                }
+            }
+        },
+        "/api/user-nationalities/{id}": {
+            "put": {
+                "tags": [
+                    "UserNationalities"
+                ],
+                "summary": "Update an existing user nationality",
+                "operationId": "e33460cefd2e7067286bc16642f822da",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "User nationality ID to update",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "user_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "nationality_id": {
+                                        "type": "integer",
+                                        "example": 2
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "User nationality updated successfully"
+                    },
+                    "404": {
+                        "description": "User nationality not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "UserNationalities"
+                ],
+                "summary": "Delete a user nationality by ID",
+                "operationId": "a0f997e2b90c2ae1c5921f3b85731bbd",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "User nationality ID to delete",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User nationality deleted successfully"
+                    },
+                    "404": {
+                        "description": "User nationality not found"
+                    }
+                }
+            }
         }
     },
     "tags": [
@@ -3181,6 +3464,10 @@
         {
             "name": "Employees",
             "description": "Employees"
+        },
+        {
+            "name": "Nationalities",
+            "description": "Nationalities"
         },
         {
             "name": "Portfolio Activities",
@@ -3229,6 +3516,10 @@
         {
             "name": "UserDiplomas",
             "description": "UserDiplomas"
+        },
+        {
+            "name": "UserNationalities",
+            "description": "UserNationalities"
         }
     ]
 }

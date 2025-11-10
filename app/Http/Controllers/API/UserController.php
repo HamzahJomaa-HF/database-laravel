@@ -66,7 +66,7 @@ class UserController extends Controller
     /**
      * @OA\Post(
      *     path="/api/users",
-     *     summary="Create or update user automatically based on unique identifiers",
+     *     summary="Create a user (no update if exists)",
      *     tags={"Users"},
      *     @OA\RequestBody(
      *         required=true,
@@ -76,6 +76,7 @@ class UserController extends Controller
      *             @OA\Property(property="first_name", type="string", example="John"),
      *             @OA\Property(property="middle_name", type="string", example="M."),
      *             @OA\Property(property="last_name", type="string", example="Doe"),
+     *             @OA\Property(property="mother_name", type="string", example="Jane"),
      *             @OA\Property(property="gender", type="string", example="Male"),
      *             @OA\Property(property="nationality", type="string", example="Lebanese"),
      *             @OA\Property(property="dob", type="string", format="date", example="1990-01-01"),
@@ -86,7 +87,8 @@ class UserController extends Controller
      *             @OA\Property(property="passport_number", type="string", example="P987654")
      *         )
      *     ),
-     *     @OA\Response(response=201, description="User created or updated successfully"),
+     *     @OA\Response(response=201, description="User created successfully"),
+     *     @OA\Response(response=409, description="User already exists"),
      *     @OA\Response(response=422, description="Validation failed"),
      *     @OA\Response(response=500, description="Unexpected error")
      * )
@@ -99,6 +101,7 @@ class UserController extends Controller
                 'first_name' => 'required|string|max:255',
                 'middle_name' => 'nullable|string|max:255',
                 'last_name' => 'required|string|max:255',
+                'mother_name' => 'nullable|string|max:255',
                 'gender' => 'nullable|string|max:50',
                 'nationality' => 'nullable|string|max:255',
                 'dob' => 'required|date',
@@ -116,47 +119,28 @@ class UserController extends Controller
                 ], 422);
             }
 
-            $user = User::where('identification_id', $request->identification_id)
+            // Check if user exists
+            $existingUser = User::where('identification_id', $request->identification_id)
                 ->orWhere(function ($q) use ($request) {
                     $q->where('dob', $request->dob)
                       ->where('phone_number', $request->phone_number);
                 })
-                ->orWhere(function ($q) use ($request) {
-                    $q->where('first_name', 'ILIKE', $request->first_name)
-                      ->where('last_name', 'ILIKE', $request->last_name)
-                      ->where('dob', $request->dob)
-                      ->where('phone_number', $request->phone_number);
-                })
                 ->first();
 
-            if ($user) {
-                $user->update([
-                    'first_name' => $request->first_name,
-                    'middle_name' => $request->middle_name,
-                    'last_name' => $request->last_name,
-                    'gender' => $request->gender,
-                    'nationality' => $request->nationality,
-                    'dob' => $request->dob,
-                    'register_number' => $request->register_number,
-                    'phone_number' => $request->phone_number,
-                    'marital_status' => $request->marital_status,
-                    'current_situation' => $request->current_situation,
-                    'passport_number' => $request->passport_number,
-                    'identification_id' => $request->identification_id ?? $user->identification_id,
-                ]);
-
+            if ($existingUser) {
                 return response()->json([
-                    'data' => $user,
-                    'message' => 'User already existed and was updated successfully'
-                ], 200);
+                    'message' => 'User already exists'
+                ], 409); // Conflict
             }
 
+            // Create new user
             $newUser = User::create([
                 'user_id' => Str::uuid(),
                 'identification_id' => $request->identification_id,
                 'first_name' => $request->first_name,
                 'middle_name' => $request->middle_name,
                 'last_name' => $request->last_name,
+                'mother_name' => $request->mother_name,
                 'gender' => $request->gender,
                 'nationality' => $request->nationality,
                 'dob' => $request->dob,
@@ -199,6 +183,7 @@ class UserController extends Controller
      *             @OA\Property(property="first_name", type="string"),
      *             @OA\Property(property="middle_name", type="string"),
      *             @OA\Property(property="last_name", type="string"),
+     *             @OA\Property(property="mother_name", type="string"),
      *             @OA\Property(property="gender", type="string"),
      *             @OA\Property(property="nationality", type="string"),
      *             @OA\Property(property="dob", type="string", format="date"),
@@ -228,6 +213,7 @@ class UserController extends Controller
                 'first_name' => 'sometimes|string|max:255',
                 'middle_name' => 'sometimes|string|max:255',
                 'last_name' => 'sometimes|string|max:255',
+                'mother_name' => 'sometimes|string|max:255',
                 'gender' => 'sometimes|string|max:50',
                 'nationality' => 'sometimes|string|max:255',
                 'dob' => 'sometimes|date',

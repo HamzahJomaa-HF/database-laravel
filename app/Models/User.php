@@ -18,6 +18,7 @@ class User extends Model
         'identification_id',
         'first_name',
         'middle_name',
+        'mother_name',
         'last_name',
         'gender',
         'nationality',

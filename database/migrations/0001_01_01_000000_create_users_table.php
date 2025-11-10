@@ -18,15 +18,18 @@ return new class extends Migration
     $table->string('identification_id')->unique();
     $table->string('first_name');
     $table->string('middle_name')->nullable();
+    $table->string('mother_name')->nullable();
     $table->string('last_name');
-    $table->string('gender')->nullable();          // Arabic or English values
+    $table->string('gender')->nullable();          
     $table->string('nationality')->nullable();     // Arabic or English values
     $table->date('dob');
     $table->string('register_number')->nullable();
     $table->string('phone_number')->unique();
-    $table->string('marital_status')->nullable();  // Arabic or English values
-    $table->string('current_situation')->nullable(); // Arabic or English values
-    $table->string('passport_number')->nullable(); // new column
+    $table->string('marital_status')->nullable();  
+    $table->string('current_situation')->nullable(); 
+    $table->string('passport_number')->nullable(); 
+    $table->string('register_place')->nullable();
+
     $table->timestamps();
 });
 
