@@ -21,7 +21,6 @@ class User extends Model
         'mother_name',
         'last_name',
         'gender',
-        'nationality',
         'dob',
         'register_number',
         'phone_number',
@@ -64,7 +63,8 @@ class User extends Model
      * Example relation: user diplomas
      */
     public function diplomas()
-    {
-        return $this->hasMany(UserDiploma::class, 'user_id', 'user_id');
-    }
+{
+    return $this->belongsToMany(Diploma::class, 'users_diploma', 'user_id', 'diploma_id');
+}
+
 }

@@ -21,7 +21,6 @@ return new class extends Migration
     $table->string('mother_name')->nullable();
     $table->string('last_name');
     $table->string('gender')->nullable();          
-    $table->string('nationality')->nullable();     // Arabic or English values
     $table->date('dob');
     $table->string('register_number')->nullable();
     $table->string('phone_number')->unique();

@@ -9,9 +9,10 @@ class UserDiploma extends Model
 {
     use HasFactory;
 
-    protected $primaryKey = 'id'; // Bigint primary key
-    public $incrementing = true;   // Auto-incrementing
-    protected $keyType = 'int';    // Bigint is an integer
+    protected $table = 'users_diploma'; // Pivot table
+    public $timestamps = true; 
+    public $incrementing = false; // Not needed if no primary key
+    protected $keyType = 'string'; // Not needed if no primary key
 
     protected $fillable = [
         'user_id',
@@ -19,18 +20,15 @@ class UserDiploma extends Model
     ];
 
     /**
-     * Relation: a UserDiploma belongs to a User
+     * Relations
      */
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id', 'user_id');
     }
 
-    /**
-     * Relation: a UserDiploma belongs to a Diploma
-     */
     public function diploma()
     {
-        return $this->belongsTo(Diploma::class, 'diploma_id', 'id');
+        return $this->belongsTo(Diploma::class, 'diploma_id', 'diploma_id');
     }
 }

@@ -8,12 +8,14 @@ use Illuminate\Database\Eloquent\Model;
 class Diploma extends Model
 {
     use HasFactory;
+    protected $table = 'diploma';
 
-    protected $primaryKey = 'id';  // Bigint primary key
-    public $incrementing = true;    // Auto-incrementing
-    protected $keyType = 'int';     // Bigint type
+    protected $primaryKey = 'diploma_id';  
+    public $incrementing = false;    // UUID primary key
+    protected $keyType = 'string';     // UUID is a string
 
     protected $fillable = [
+        'diploma_id',
         'diploma_name',
         'institution',
         'year',
@@ -61,7 +63,7 @@ class Diploma extends Model
      */
     public function users()
     {
-        return $this->belongsToMany(User::class, 'user_diplomas', 'diploma_id', 'user_id')
+        return $this->belongsToMany(User::class, 'users_diploma', 'diploma_id', 'user_id')
                     ->withTimestamps();
     }
 }

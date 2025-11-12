@@ -16,9 +16,9 @@ class NationalityController extends Controller
      *     @OA\Parameter(
      *         name="id",
      *         in="query",
-     *         description="Optional nationality ID to fetch a specific record",
+     *         description="Optional nationality UUID to fetch a specific record",
      *         required=false,
-     *         @OA\Schema(type="integer")
+     *         @OA\Schema(type="string", format="uuid")
      *     ),
      *     @OA\Response(response=200, description="Nationalities retrieved successfully"),
      *     @OA\Response(response=404, description="Nationality not found")
@@ -61,7 +61,7 @@ class NationalityController extends Controller
      *         )
      *     ),
      *     @OA\Response(response=201, description="Nationality created successfully"),
-     *     @OA\Response(response=400, description="Invalid input data")
+     *     @OA\Response(response=422, description="Validation failed")
      * )
      */
     public function store(Request $request)
@@ -99,9 +99,9 @@ class NationalityController extends Controller
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
-     *         description="Nationality ID to update",
+     *         description="Nationality UUID to update",
      *         required=true,
-     *         @OA\Schema(type="integer")
+     *         @OA\Schema(type="string", format="uuid")
      *     ),
      *     @OA\RequestBody(
      *         required=true,
@@ -110,7 +110,8 @@ class NationalityController extends Controller
      *         )
      *     ),
      *     @OA\Response(response=200, description="Nationality updated successfully"),
-     *     @OA\Response(response=404, description="Nationality not found")
+     *     @OA\Response(response=404, description="Nationality not found"),
+     *     @OA\Response(response=422, description="Validation failed")
      * )
      */
     public function update(Request $request, $id)
@@ -148,14 +149,14 @@ class NationalityController extends Controller
     /**
      * @OA\Delete(
      *     path="/api/nationalities/{id}",
-     *     summary="Delete a nationality by ID",
+     *     summary="Delete a nationality by UUID",
      *     tags={"Nationalities"},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
-     *         description="Nationality ID to delete",
+     *         description="Nationality UUID to delete",
      *         required=true,
-     *         @OA\Schema(type="integer")
+     *         @OA\Schema(type="string", format="uuid")
      *     ),
      *     @OA\Response(response=200, description="Nationality deleted successfully"),
      *     @OA\Response(response=404, description="Nationality not found")

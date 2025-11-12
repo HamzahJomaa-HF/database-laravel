@@ -6,28 +6,20 @@ use App\Http\Controllers\Controller;
 use App\Models\Diploma;
 use Illuminate\Http\Request;
 
+
 class DiplomaController extends Controller
 {
-    /**
-     * @OA\Info(
-     *      version="1.0.0",
-     *      title="Diploma API",
-     *      description="API documentation for Diploma Management",
-     *      @OA\Contact(email="support@example.com")
-     * )
-     */
-
     /**
      * @OA\Get(
      *     path="/api/diplomas",
      *     summary="Get all diplomas or a specific diploma by ID",
      *     tags={"Diplomas"},
      *     @OA\Parameter(
-     *         name="id",
+     *         name="diploma_id", 
      *         in="query",
-     *         description="Optional diploma ID to fetch a specific diploma",
+     *         description="Optional diploma UUID to fetch a specific diploma",
      *         required=false,
-     *         @OA\Schema(type="integer")
+     *         @OA\Schema(type="string", format="uuid")
      *     ),
      *     @OA\Response(response=200, description="Diplomas retrieved successfully"),
      *     @OA\Response(response=404, description="Diploma not found")
@@ -36,8 +28,9 @@ class DiplomaController extends Controller
     public function index(Request $request)
     {
         try {
-            if ($request->has('id')) {
-                $diploma = Diploma::find($request->id);
+            // ✅ FIX: Change from 'id' to 'diploma_id'
+            if ($request->has('diploma_id')) {
+                $diploma = Diploma::where('diploma_id', $request->diploma_id)->first();
                 if (!$diploma) {
                     return response()->json(['message' => 'Diploma not found'], 404);
                 }
@@ -107,15 +100,15 @@ class DiplomaController extends Controller
 
     /**
      * @OA\Put(
-     *     path="/api/diplomas/{id}",
+     *     path="/api/diplomas/{diploma_id}", 
      *     summary="Update an existing diploma",
      *     tags={"Diplomas"},
      *     @OA\Parameter(
-     *         name="id",
+     *         name="diploma_id", 
      *         in="path",
-     *         description="Diploma ID to update",
+     *         description="Diploma UUID to update",
      *         required=true,
-     *         @OA\Schema(type="integer")
+     *         @OA\Schema(type="string", format="uuid")
      *     ),
      *     @OA\RequestBody(
      *         required=true,
@@ -131,10 +124,10 @@ class DiplomaController extends Controller
      *     @OA\Response(response=422, description="Validation error")
      * )
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, $diploma_id) 
     {
         try {
-            $diploma = Diploma::find($id);
+            $diploma = Diploma::where('diploma_id', $diploma_id)->first(); 
             if (!$diploma) {
                 return response()->json(['message' => 'Diploma not found'], 404);
             }
@@ -167,24 +160,24 @@ class DiplomaController extends Controller
 
     /**
      * @OA\Delete(
-     *     path="/api/diplomas/{id}",
-     *     summary="Delete a diploma by ID",
+     *     path="/api/diplomas/{diploma_id}", 
+     *     summary="Delete a diploma by UUID",
      *     tags={"Diplomas"},
      *     @OA\Parameter(
-     *         name="id",
+     *         name="diploma_id", 
      *         in="path",
-     *         description="Diploma ID to delete",
+     *         description="Diploma UUID to delete",
      *         required=true,
-     *         @OA\Schema(type="integer")
+     *         @OA\Schema(type="string", format="uuid")
      *     ),
      *     @OA\Response(response=200, description="Diploma deleted successfully"),
      *     @OA\Response(response=404, description="Diploma not found")
      * )
      */
-    public function destroy($id)
+    public function destroy($diploma_id)
     {
         try {
-            $diploma = Diploma::find($id);
+            $diploma = Diploma::where('diploma_id', $diploma_id)->first(); 
             if (!$diploma) {
                 return response()->json(['message' => 'Diploma not found'], 404);
             }

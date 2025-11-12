@@ -698,12 +698,13 @@
                 "operationId": "bc91a6a21f3cca195ace7033da5e5ddc",
                 "parameters": [
                     {
-                        "name": "id",
+                        "name": "diploma_id",
                         "in": "query",
-                        "description": "Optional diploma ID to fetch a specific diploma",
+                        "description": "Optional diploma UUID to fetch a specific diploma",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -763,21 +764,22 @@
                 }
             }
         },
-        "/api/diplomas/{id}": {
+        "/api/diplomas/{diploma_id}": {
             "put": {
                 "tags": [
                     "Diplomas"
                 ],
                 "summary": "Update an existing diploma",
-                "operationId": "ef0740491819e20d11b7e020a6c8c73e",
+                "operationId": "b73a8e09c6f97492aafec0ddb7afa361",
                 "parameters": [
                     {
-                        "name": "id",
+                        "name": "diploma_id",
                         "in": "path",
-                        "description": "Diploma ID to update",
+                        "description": "Diploma UUID to update",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -825,16 +827,17 @@
                 "tags": [
                     "Diplomas"
                 ],
-                "summary": "Delete a diploma by ID",
-                "operationId": "6891a5474836b097c99b488914d24589",
+                "summary": "Delete a diploma by UUID",
+                "operationId": "37fe3b1114746c5703f0ebabce25c30b",
                 "parameters": [
                     {
-                        "name": "id",
+                        "name": "diploma_id",
                         "in": "path",
-                        "description": "Diploma ID to delete",
+                        "description": "Diploma UUID to delete",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -1066,10 +1069,11 @@
                     {
                         "name": "id",
                         "in": "query",
-                        "description": "Optional nationality ID to fetch a specific record",
+                        "description": "Optional nationality UUID to fetch a specific record",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -1111,8 +1115,8 @@
                     "201": {
                         "description": "Nationality created successfully"
                     },
-                    "400": {
-                        "description": "Invalid input data"
+                    "422": {
+                        "description": "Validation failed"
                     }
                 }
             }
@@ -1128,10 +1132,11 @@
                     {
                         "name": "id",
                         "in": "path",
-                        "description": "Nationality ID to update",
+                        "description": "Nationality UUID to update",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -1157,6 +1162,9 @@
                     },
                     "404": {
                         "description": "Nationality not found"
+                    },
+                    "422": {
+                        "description": "Validation failed"
                     }
                 }
             },
@@ -1164,16 +1172,17 @@
                 "tags": [
                     "Nationalities"
                 ],
-                "summary": "Delete a nationality by ID",
+                "summary": "Delete a nationality by UUID",
                 "operationId": "f64557fec0ae6babb74e4ec29e3bc70d",
                 "parameters": [
                     {
                         "name": "id",
                         "in": "path",
-                        "description": "Nationality ID to delete",
+                        "description": "Nationality UUID to delete",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -2985,10 +2994,6 @@
                                         "type": "string",
                                         "example": "Male"
                                     },
-                                    "nationality": {
-                                        "type": "string",
-                                        "example": "Lebanese"
-                                    },
                                     "dob": {
                                         "type": "string",
                                         "format": "date",
@@ -3079,9 +3084,6 @@
                                     "gender": {
                                         "type": "string"
                                     },
-                                    "nationality": {
-                                        "type": "string"
-                                    },
                                     "dob": {
                                         "type": "string",
                                         "format": "date"
@@ -3162,12 +3164,13 @@
                 "operationId": "21776f4889c8a6b71f53f73b603b60f2",
                 "parameters": [
                     {
-                        "name": "id",
+                        "name": "users_diploma_id",
                         "in": "query",
                         "description": "Optional UserDiploma ID to fetch a specific record",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -3184,7 +3187,7 @@
                 "tags": [
                     "UserDiplomas"
                 ],
-                "summary": "Create a new user diploma",
+                "summary": "Create a new user diploma relationship",
                 "operationId": "2a6ae7e947a4bab2a6cb1d06a6cbcf72",
                 "requestBody": {
                     "required": true,
@@ -3202,8 +3205,9 @@
                                         "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
                                     },
                                     "diploma_id": {
-                                        "type": "integer",
-                                        "example": 1
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "f47ac10b-58cc-4372-a567-0e02b2c3d480"
                                     }
                                 },
                                 "type": "object"
@@ -3217,25 +3221,87 @@
                     },
                     "400": {
                         "description": "Invalid input data"
+                    },
+                    "409": {
+                        "description": "Relationship already exists"
                     }
                 }
             }
         },
-        "/api/user-diplomas/{id}": {
+        "/api/users/{user_id}/diplomas": {
+            "get": {
+                "tags": [
+                    "UserDiplomas"
+                ],
+                "summary": "Get all diplomas for a specific user",
+                "operationId": "cf8b083b25511fa06754a8853703432c",
+                "parameters": [
+                    {
+                        "name": "user_id",
+                        "in": "path",
+                        "description": "User ID to get diplomas for",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User diplomas retrieved successfully"
+                    },
+                    "404": {
+                        "description": "User not found"
+                    }
+                }
+            }
+        },
+        "/api/diplomas/{diploma_id}/users": {
+            "get": {
+                "tags": [
+                    "UserDiplomas"
+                ],
+                "summary": "Get all users for a specific diploma",
+                "operationId": "fc38d115636bd1750c11f92760ae0541",
+                "parameters": [
+                    {
+                        "name": "diploma_id",
+                        "in": "path",
+                        "description": "Diploma ID to get users for",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Diploma users retrieved successfully"
+                    },
+                    "404": {
+                        "description": "Diploma not found"
+                    }
+                }
+            }
+        },
+        "/api/user-diplomas/{users_diploma_id}": {
             "put": {
                 "tags": [
                     "UserDiplomas"
                 ],
-                "summary": "Update an existing user diploma",
-                "operationId": "caf7d676d3dbc1517058180a4afecd19",
+                "summary": "Update an existing user diploma relationship",
+                "operationId": "ee785529152960ce4160c1a4f6974201",
                 "parameters": [
                     {
-                        "name": "id",
+                        "name": "users_diploma_id",
                         "in": "path",
-                        "description": "UserDiploma ID to update",
+                        "description": "UserDiploma relationship ID to update",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -3247,10 +3313,13 @@
                                 "properties": {
                                     "user_id": {
                                         "type": "string",
-                                        "format": "uuid"
+                                        "format": "uuid",
+                                        "example": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
                                     },
                                     "diploma_id": {
-                                        "type": "integer"
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "f47ac10b-58cc-4372-a567-0e02b2c3d480"
                                     }
                                 },
                                 "type": "object"
@@ -3271,16 +3340,17 @@
                 "tags": [
                     "UserDiplomas"
                 ],
-                "summary": "Delete a user diploma by ID",
-                "operationId": "ee37b50008c277997fb0415cce7977cd",
+                "summary": "Delete a user diploma relationship by ID",
+                "operationId": "b9b49768569da9dba69616d9ca087616",
                 "parameters": [
                     {
-                        "name": "id",
+                        "name": "users_diploma_id",
                         "in": "path",
-                        "description": "UserDiploma ID to delete",
+                        "description": "UserDiploma relationship ID to delete",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -3294,6 +3364,45 @@
                 }
             }
         },
+        "/api/users/{user_id}/diplomas/{diploma_id}": {
+            "delete": {
+                "tags": [
+                    "UserDiplomas"
+                ],
+                "summary": "Delete a specific user diploma relationship",
+                "operationId": "9eed8fbc80c92c9dcffca280c182f262",
+                "parameters": [
+                    {
+                        "name": "user_id",
+                        "in": "path",
+                        "description": "User ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "diploma_id",
+                        "in": "path",
+                        "description": "Diploma ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User diploma relationship deleted successfully"
+                    },
+                    "404": {
+                        "description": "User diploma relationship not found"
+                    }
+                }
+            }
+        },
         "/api/user-nationalities": {
             "get": {
                 "tags": [
@@ -3303,12 +3412,13 @@
                 "operationId": "6c8617809a1c323d30c8127f708cc1a7",
                 "parameters": [
                     {
-                        "name": "id",
+                        "name": "users_nationality_id",
                         "in": "query",
                         "description": "Optional user nationality ID to fetch a specific record",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -3325,7 +3435,7 @@
                 "tags": [
                     "UserNationalities"
                 ],
-                "summary": "Create a new user nationality",
+                "summary": "Create a new user nationality relationship",
                 "operationId": "10d1daaea3adfaf1129553676cd9cfab",
                 "requestBody": {
                     "required": true,
@@ -3338,12 +3448,14 @@
                                 ],
                                 "properties": {
                                     "user_id": {
-                                        "type": "integer",
-                                        "example": 1
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "550e8400-e29b-41d4-a716-446655440000"
                                     },
                                     "nationality_id": {
-                                        "type": "integer",
-                                        "example": 2
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "550e8400-e29b-41d4-a716-446655440001"
                                     }
                                 },
                                 "type": "object"
@@ -3357,25 +3469,87 @@
                     },
                     "400": {
                         "description": "Invalid input data"
+                    },
+                    "409": {
+                        "description": "Relationship already exists"
                     }
                 }
             }
         },
-        "/api/user-nationalities/{id}": {
+        "/api/users/{user_id}/nationalities": {
+            "get": {
+                "tags": [
+                    "UserNationalities"
+                ],
+                "summary": "Get all nationalities for a specific user",
+                "operationId": "6237b530282acf1257608ec4fc34c976",
+                "parameters": [
+                    {
+                        "name": "user_id",
+                        "in": "path",
+                        "description": "User ID to get nationalities for",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User nationalities retrieved successfully"
+                    },
+                    "404": {
+                        "description": "User not found"
+                    }
+                }
+            }
+        },
+        "/api/nationalities/{nationality_id}/users": {
+            "get": {
+                "tags": [
+                    "UserNationalities"
+                ],
+                "summary": "Get all users for a specific nationality",
+                "operationId": "b73b2dcea1132e7ec6e923649d057548",
+                "parameters": [
+                    {
+                        "name": "nationality_id",
+                        "in": "path",
+                        "description": "Nationality ID to get users for",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Nationality users retrieved successfully"
+                    },
+                    "404": {
+                        "description": "Nationality not found"
+                    }
+                }
+            }
+        },
+        "/api/user-nationalities/{users_nationality_id}": {
             "put": {
                 "tags": [
                     "UserNationalities"
                 ],
-                "summary": "Update an existing user nationality",
-                "operationId": "e33460cefd2e7067286bc16642f822da",
+                "summary": "Update an existing user nationality relationship",
+                "operationId": "0d57bd760b24cc94d4f66f76a0fc7930",
                 "parameters": [
                     {
-                        "name": "id",
+                        "name": "users_nationality_id",
                         "in": "path",
-                        "description": "User nationality ID to update",
+                        "description": "User nationality relationship ID to update",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -3386,12 +3560,14 @@
                             "schema": {
                                 "properties": {
                                     "user_id": {
-                                        "type": "integer",
-                                        "example": 1
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "550e8400-e29b-41d4-a716-446655440000"
                                     },
                                     "nationality_id": {
-                                        "type": "integer",
-                                        "example": 2
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "550e8400-e29b-41d4-a716-446655440001"
                                     }
                                 },
                                 "type": "object"
@@ -3412,16 +3588,17 @@
                 "tags": [
                     "UserNationalities"
                 ],
-                "summary": "Delete a user nationality by ID",
-                "operationId": "a0f997e2b90c2ae1c5921f3b85731bbd",
+                "summary": "Delete a user nationality relationship by ID",
+                "operationId": "8590df9521c1a28364115586b07b7c14",
                 "parameters": [
                     {
-                        "name": "id",
+                        "name": "users_nationality_id",
                         "in": "path",
-                        "description": "User nationality ID to delete",
+                        "description": "User nationality relationship ID to delete",
                         "required": true,
                         "schema": {
-                            "type": "integer"
+                            "type": "string",
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -3431,6 +3608,45 @@
                     },
                     "404": {
                         "description": "User nationality not found"
+                    }
+                }
+            }
+        },
+        "/api/users/{user_id}/nationalities/{nationality_id}": {
+            "delete": {
+                "tags": [
+                    "UserNationalities"
+                ],
+                "summary": "Delete a specific user nationality relationship",
+                "operationId": "37fcfe1b09057209a21bbd2406835f29",
+                "parameters": [
+                    {
+                        "name": "user_id",
+                        "in": "path",
+                        "description": "User ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "nationality_id",
+                        "in": "path",
+                        "description": "Nationality ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User nationality relationship deleted successfully"
+                    },
+                    "404": {
+                        "description": "User nationality relationship not found"
                     }
                 }
             }

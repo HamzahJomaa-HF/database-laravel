@@ -20,7 +20,8 @@ use App\Http\Controllers\API\PortfolioActivityController;
 use App\Http\Controllers\API\PortfolioController;
 use App\Http\Controllers\API\DiplomaController;
 use App\Http\Controllers\API\UserDiplomaController;
-
+use App\Http\Controllers\API\NationalityController;
+use App\Http\Controllers\API\UserNationalityController;
 
         
 
@@ -186,5 +187,19 @@ Route::prefix('user-diplomas')->group(function () {
     Route::post('/', [UserDiplomaController::class, 'store']);         
     Route::put('/{id}', [UserDiplomaController::class, 'update']);     
     Route::delete('/{id}', [UserDiplomaController::class, 'destroy']); 
+   
 });
+// Nationality
+Route::get('/nationalities', [NationalityController::class, 'index']);
+Route::get('/nationalities/{nationality_id}', [NationalityController::class, 'show']);
+Route::post('/nationalities', [NationalityController::class, 'store']);
+Route::put('/nationalities/{nationality_id}', [NationalityController::class, 'update']);
+Route::delete('/nationalities/{nationality_id}', [NationalityController::class, 'destroy']);
+
+//UserNationality
+Route::get('/user-nationalities', [UserNationalityController::class, 'index']);
+Route::get('/user-nationalities/{users_nationality_id}', [UserNationalityController::class, 'show']);
+Route::post('/user-nationalities', [UserNationalityController::class, 'store']);
+Route::put('/user-nationalities/{users_nationality_id}', [UserNationalityController::class, 'update']);
+Route::delete('/user-nationalities/{users_nationality_id}', [UserNationalityController::class, 'destroy']);
 

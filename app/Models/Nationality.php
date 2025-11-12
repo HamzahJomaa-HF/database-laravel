@@ -11,9 +11,9 @@ class Nationality extends Model
     use HasFactory;
 
     protected $table = 'nationality'; // Table name
-    protected $primaryKey = 'id';
-    public $incrementing = true; // Auto-increment ID
-    protected $keyType = 'int';
+    protected $primaryKey = 'nationality_id';
+    public $incrementing = false; // UUID primary key
+    protected $keyType = 'string';
 
     protected $fillable = [
         'name',
@@ -60,6 +60,6 @@ class Nationality extends Model
      */
     public function users()
     {
-        return $this->hasMany(User::class, 'nationality_id', 'id');
+        return $this->hasMany(User::class, 'nationality_id', 'nationality_id');
     }
 }

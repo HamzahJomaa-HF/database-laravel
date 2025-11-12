@@ -9,27 +9,15 @@ class UserNationality extends Model
 {
     use HasFactory;
 
-    protected $table = 'users_nationality'; // Table name
-    protected $primaryKey = 'id';
-    public $incrementing = true; // Auto-increment ID
-    protected $keyType = 'int';
+    protected $table = 'users_nationality'; // Pivot table
+    public $timestamps = true; // Keep timestamps
+    public $incrementing = false; // Not needed if no primary key
+    protected $keyType = 'string'; // Not needed if no primary key
 
     protected $fillable = [
         'user_id',
         'nationality_id',
     ];
-
-    /**
-     * Boot method to handle any automatic logic on creating
-     */
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::creating(function ($userNationality) {
-            // Optional: You can add logic here if needed for external_id or other fields
-        });
-    }
 
     /**
      * Relations
@@ -41,6 +29,6 @@ class UserNationality extends Model
 
     public function nationality()
     {
-        return $this->belongsTo(Nationality::class, 'nationality_id', 'id');
+        return $this->belongsTo(Nationality::class, 'nationality_id', 'nationality_id');
     }
 }
