@@ -5,14 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class User extends Model
 {
     use HasFactory;
 
-    protected $primaryKey = 'user_id';  // UUID primary key
-    public $incrementing = false;       // Not auto-incrementing
-    protected $keyType = 'string';      // UUID is a string
+    protected $primaryKey = 'user_id';  
+    public $incrementing = false;       
+    protected $keyType = 'string';      
 
     protected $fillable = [
         'identification_id',
@@ -25,46 +26,63 @@ class User extends Model
         'register_number',
         'phone_number',
         'marital_status',
-        'current_situation',
+        'employment_status',
         'passport_number',
+        'register_place',
     ];
 
-    /**
-     * Boot method to automatically generate UUID
-     */
     protected static function boot()
     {
         parent::boot();
 
         static::creating(function ($user) {
+            // Generate UUID if not already set
             if (empty($user->user_id)) {
                 $user->user_id = (string) Str::uuid();
+            }
+
+            // Check the creation logic
+            $condition1 = !empty($user->identification_id);
+            $condition2 = !empty($user->passport_number);
+            $condition3 = (
+                !empty($user->dob) &&
+                !empty($user->phone_number) &&
+                !empty($user->first_name) &&
+                !empty($user->middle_name) &&
+                !empty($user->last_name)
+            );
+            $condition4 = (
+                !empty($user->register_number) &&
+                !empty($user->register_place) &&
+                !empty($user->first_name) &&
+                !empty($user->middle_name) &&
+                !empty($user->last_name) &&
+                !empty($user->dob)
+            );
+
+            if (!($condition1 || $condition2 || $condition3 || $condition4)) {
+                throw ValidationException::withMessages([
+                    'user' => 'User creation requires either identification_id, passport_number, 
+                    (dob, phone_number, first_name, middle_name, last_name), 
+                    or (register_number, register_place, first_name, middle_name, last_name, dob).'
+                ]);
             }
         });
     }
 
-    /**
-     * Example relation: a user can have multiple sessions
-     */
+    // Relationships
     public function sessions()
     {
         return $this->hasMany(Session::class, 'user_id', 'user_id');
     }
 
-    /**
-     * Example relation: user responses to surveys
-     */
     public function responses()
     {
         return $this->hasMany(Response::class, 'user_id', 'user_id');
     }
 
-    /**
-     * Example relation: user diplomas
-     */
     public function diplomas()
-{
-    return $this->belongsToMany(Diploma::class, 'users_diploma', 'user_id', 'diploma_id');
-}
-
+    {
+        return $this->belongsToMany(Diploma::class, 'users_diploma', 'user_id', 'diploma_id');
+    }
 }

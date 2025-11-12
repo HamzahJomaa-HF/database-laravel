@@ -39,7 +39,43 @@ class UserController extends Controller
      *     @OA\Response(response=404, description="User not found")
      * )
      */
+
+
+    
+
     public function index(Request $request)
+{
+    try {
+        if ($request->has('id')) {
+            $user = User::where('user_id', $request->id)->first();
+            if (!$user) {
+                return response()->json(['message' => 'User not found'], 404);
+            }
+            return response()->json($user);
+        }
+
+        // Pagination logic
+        $perPage = $request->query('per_page', 10); // Default 10 per page
+        $users = User::paginate($perPage);
+
+        return response()->json([
+            'data' => $users->items(), // actual user records
+            'pagination' => [
+                'current_page' => $users->currentPage(),
+                'last_page' => $users->lastPage(),
+                'per_page' => $users->perPage(),
+                'total' => $users->total(),
+            ],
+            'message' => 'Users retrieved successfully'
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'An unexpected error occurred',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+/*public function index(Request $request)
     {
         try {
             if ($request->has('id')) {
@@ -61,7 +97,8 @@ class UserController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
-    }
+    }*/
+        
 
     /**
      * @OA\Post(
@@ -82,7 +119,7 @@ class UserController extends Controller
      *             @OA\Property(property="register_number", type="string", example="R123456"),
      *             @OA\Property(property="phone_number", type="string", example="+96170000000"),
      *             @OA\Property(property="marital_status", type="string", example="Single"),
-     *             @OA\Property(property="current_situation", type="string", example="Employed"),
+     *             @OA\Property(property="employment_status", type="string", example="Employed"),
      *             @OA\Property(property="passport_number", type="string", example="P987654")
      *         )
      *     ),
@@ -95,20 +132,22 @@ class UserController extends Controller
     public function store(Request $request)
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'identification_id' => 'nullable|string|max:255',
-                'first_name' => 'required|string|max:255',
-                'middle_name' => 'nullable|string|max:255',
-                'last_name' => 'required|string|max:255',
-                'mother_name' => 'nullable|string|max:255',
-                'gender' => 'nullable|string|max:50',
-                'dob' => 'required|date',
-                'register_number' => 'nullable|string|max:255',
-                'phone_number' => 'required|string|max:20',
-                'marital_status' => 'nullable|string|max:50',
-                'current_situation' => 'nullable|string|max:255',
-                'passport_number' => 'nullable|string|max:50',
-            ]);
+           $validator = Validator::make($request->all(), [
+    'identification_id' => 'nullable|string|max:255',
+    'passport_number' => 'nullable|string|max:50',
+    'first_name' => 'nullable|string|max:255',
+    'middle_name' => 'nullable|string|max:255',
+    'last_name' => 'nullable|string|max:255',
+    'mother_name' => 'nullable|string|max:255',
+    'gender' => 'nullable|string|max:50',
+    'dob' => 'nullable|date',
+    'register_number' => 'nullable|string|max:255',
+    'register_place' => 'nullable|string|max:255',
+    'phone_number' => 'nullable|string|max:20',
+    'marital_status' => 'nullable|string|max:50',
+    'employment_status' => 'nullable|string|max:255',
+]);
+
 
             if ($validator->fails()) {
                 return response()->json([
@@ -144,7 +183,7 @@ class UserController extends Controller
                 'register_number' => $request->register_number,
                 'phone_number' => $request->phone_number,
                 'marital_status' => $request->marital_status,
-                'current_situation' => $request->current_situation,
+                'employment_status' => $request->employment_status,
                 'passport_number' => $request->passport_number,
             ]);
 
@@ -186,7 +225,7 @@ class UserController extends Controller
      *             @OA\Property(property="register_number", type="string"),
      *             @OA\Property(property="phone_number", type="string"),
      *             @OA\Property(property="marital_status", type="string"),
-     *             @OA\Property(property="current_situation", type="string"),
+     *             @OA\Property(property="employment_status", type="string"),
      *             @OA\Property(property="passport_number", type="string")
      *         )
      *     ),
@@ -215,7 +254,7 @@ class UserController extends Controller
                 'register_number' => 'sometimes|string|max:255',
                 'phone_number' => 'sometimes|string|max:20',
                 'marital_status' => 'sometimes|string|max:50',
-                'current_situation' => 'sometimes|string|max:255',
+                'employment_status' => 'sometimes|string|max:255',
                 'passport_number' => 'sometimes|string|max:50',
             ]);
 

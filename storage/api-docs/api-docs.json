@@ -3011,7 +3011,7 @@
                                         "type": "string",
                                         "example": "Single"
                                     },
-                                    "current_situation": {
+                                    "employment_status": {
                                         "type": "string",
                                         "example": "Employed"
                                     },
@@ -3097,7 +3097,7 @@
                                     "marital_status": {
                                         "type": "string"
                                     },
-                                    "current_situation": {
+                                    "employment_status": {
                                         "type": "string"
                                     },
                                     "passport_number": {
