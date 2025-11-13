@@ -55,7 +55,7 @@ class UserController extends Controller
         }
 
         // Pagination logic
-        $perPage = $request->query('per_page', 10); // Default 10 per page
+        $perPage = $request->query('per_page', 50); // Default .. per page
         $users = User::paginate($perPage);
 
         return response()->json([
@@ -98,7 +98,7 @@ class UserController extends Controller
             ], 500);
         }
     }*/
-        
+
 
     /**
      * @OA\Post(
