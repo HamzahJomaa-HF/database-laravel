@@ -212,6 +212,287 @@
                 }
             }
         },
+        "/api/activity-users": {
+            "get": {
+                "tags": [
+                    "ActivityUsers"
+                ],
+                "summary": "List all ActivityUser records",
+                "description": "List all ActivityUser records",
+                "operationId": "24755962742f8d3af50256bb0f1f31d9",
+                "responses": {
+                    "200": {
+                        "description": "List of activity users",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "ActivityUsers"
+                ],
+                "summary": "Create a new ActivityUser record",
+                "description": "Create a new ActivityUser record (without file)",
+                "operationId": "fa2ed24839762c075d626fa51a132304",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "user_id",
+                                    "activity_id"
+                                ],
+                                "properties": {
+                                    "user_id": {
+                                        "type": "string"
+                                    },
+                                    "activity_id": {
+                                        "type": "string"
+                                    },
+                                    "is_lead": {
+                                        "type": "boolean"
+                                    },
+                                    "invited": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/activity-users/upload": {
+            "post": {
+                "tags": [
+                    "ActivityUsers"
+                ],
+                "summary": "Upload a file with a type",
+                "description": "Upload a file (without specifying an ActivityUser ID)",
+                "operationId": "cf85135765eb848ab53d4a480604847d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "file",
+                                    "type"
+                                ],
+                                "properties": {
+                                    "file": {
+                                        "description": "File to upload",
+                                        "type": "string",
+                                        "format": "binary"
+                                    },
+                                    "type": {
+                                        "description": "Type of the file",
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "File uploaded successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "file_url": {
+                                            "type": "string"
+                                        },
+                                        "type": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/activity-users/{id}": {
+            "get": {
+                "tags": [
+                    "ActivityUsers"
+                ],
+                "summary": "Get a single ActivityUser record",
+                "description": "Show a single ActivityUser record",
+                "operationId": "38087966ff40ed94420e9a86d856f64f",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ActivityUser found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "ActivityUsers"
+                ],
+                "summary": "Update an ActivityUser record",
+                "description": "Update an ActivityUser record",
+                "operationId": "8d26669011a3467b82927ecfcbb93d3f",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "is_lead": {
+                                        "type": "boolean"
+                                    },
+                                    "invited": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "ActivityUsers"
+                ],
+                "summary": "Delete an ActivityUser record",
+                "description": "Delete an ActivityUser record",
+                "operationId": "a921825f803bb04767c035e5df783808",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/answers": {
             "get": {
                 "tags": [
@@ -3478,6 +3759,10 @@
         }
     },
     "tags": [
+        {
+            "name": "ActivityUsers",
+            "description": "API Endpoints for managing Activity Users"
+        },
         {
             "name": "Users",
             "description": "API Endpoints of Users"

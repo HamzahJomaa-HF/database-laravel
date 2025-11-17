@@ -203,8 +203,24 @@ Route::post('/user-nationalities', [UserNationalityController::class, 'store']);
 Route::put('/user-nationalities/{users_nationality_id}', [UserNationalityController::class, 'update']);
 Route::delete('/user-nationalities/{users_nationality_id}', [UserNationalityController::class, 'destroy']);
 
-// If using API route
-Route::get('/import-activity-users/{activityId}', [App\Http\Controllers\API\ActivityUserController::class, 'importCsvFiles']);
 
-// Or for web route
-Route::get('/import-activity-users/{activityId}', [App\Http\Controllers\API\ActivityUserController::class, 'importCsvFiles']);
+Route::prefix('activity-users')->group(function () {
+    // List all ActivityUser records
+    Route::get('/', [ActivityUserController::class, 'index']);
+
+    // Create a new ActivityUser
+    Route::post('/', [ActivityUserController::class, 'store']);
+
+    // Show a single ActivityUser
+    Route::get('/{id}', [ActivityUserController::class, 'show']);
+
+    // Update an existing ActivityUser
+    Route::put('/{id}', [ActivityUserController::class, 'update']);
+
+    // Delete an ActivityUser
+    Route::delete('/{id}', [ActivityUserController::class, 'destroy']);
+
+    // Upload a file without an ID
+    Route::post('/upload', [ActivityUserController::class, 'uploadFileWithoutId']);
+    Route::post('/activity-users/debug-csv', [ActivityUserController::class, 'debugCsv']);
+});
