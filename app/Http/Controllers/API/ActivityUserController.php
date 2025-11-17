@@ -3,220 +3,178 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use App\Models\ActivityUser;
 use Illuminate\Http\Request;
+use App\Models\User;
+use App\Models\ActivityUser;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class ActivityUserController extends Controller
 {
     /**
-     * @OA\Info(
-     *      version="1.0.0",
-     *      title="Hariri Foundation API",
-     *      description="API documentation for Activity Users Management",
-     *      @OA\Contact(email="support@haririfoundation.com")
-     * )
+     * Import participants from 3 CSV files and attach them to a specific activity.
      */
-
-    /**
-     * @OA\Get(
-     *     path="/api/activity-users",
-     *     summary="Get all activity users or a specific activity user by ID",
-     *     tags={"ActivityUsers"},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="query",
-     *         description="Optional activity_user UUID to fetch a specific record",
-     *         required=false,
-     *         @OA\Schema(type="string", format="uuid")
-     *     ),
-     *     @OA\Response(response=200, description="Activity users retrieved successfully"),
-     *     @OA\Response(response=404, description="Activity user not found")
-     * )
-     */
-    public function index(Request $request)
+    public function importCsvFiles($activityId)
     {
-        try {
-            if ($request->has('id')) {
-                $activityUser = ActivityUser::where('activity_user_id', $request->id)->first();
-                if (!$activityUser) {
-                    return response()->json(['message' => 'Activity user not found'], 404);
+        // File paths
+        $files = [
+            'identification-passport' => "C:\\Users\\AyaAntar\\OneDrive - Hariri Foundation\\Documents\\identification-passport.csv",
+            'registration-place'      => "C:\\Users\\AyaAntar\\OneDrive - Hariri Foundation\\Documents\\registrationNumber-place.csv",
+            'dob-phone-fullname'      => "C:\\Users\\AyaAntar\\OneDrive - Hariri Foundation\\Documents\\dob-phone-fullname.csv",
+        ];
+
+        $usersData = [];
+        $rowNumber = 0; // unique counter across all files
+
+        // Helper function to generate a unique key for merging
+        $makeKey = function($firstName, $lastName, $registerNumber = null, $passportNumber = null) use (&$rowNumber) {
+            $rowNumber++;
+            $key = strtolower(trim($firstName . '_' . $lastName));
+            if (!empty($registerNumber)) $key .= '_' . $registerNumber;
+            elseif (!empty($passportNumber)) $key .= '_' . $passportNumber;
+            else $key .= '_' . $rowNumber;
+            return $key;
+        };
+
+        ///////////////////////////////////////////////////////
+        // 1️⃣ FILE 1 — identification-passport.csv
+        ///////////////////////////////////////////////////////
+        if (file_exists($files['identification-passport']) && ($handle = fopen($files['identification-passport'], 'r')) !== false) {
+            fgetcsv($handle); // skip header
+            while (($row = fgetcsv($handle)) !== false) {
+                $row = array_map('trim', $row);
+                if (count(array_filter($row)) === 0) continue;
+
+                $first = $row[2] ?? '';
+                $last  = $row[3] ?? '';
+                if ($first === '' && $last === '') continue;
+
+                $key = $makeKey($first, $last, null, $row[1] ?? null);
+
+                $usersData[$key] = array_merge($usersData[$key] ?? [], [
+                    'identification_id' => $row[0] ?? null,
+                    'passport_number'   => $row[1] ?? null,
+                    'first_name'        => $first,
+                    'last_name'         => $last,
+                    'type'              => $row[4] ?? null,
+                    'attended'          => $row[5] ?? null,
+                    'notes'             => $row[6] ?? null,
+                ]);
+            }
+            fclose($handle);
+        }
+
+        ///////////////////////////////////////////////////////
+        // 2️⃣ FILE 2 — registration-place.csv
+        ///////////////////////////////////////////////////////
+        if (file_exists($files['registration-place']) && ($handle = fopen($files['registration-place'], 'r')) !== false) {
+            fgetcsv($handle); // skip header
+            while (($row = fgetcsv($handle)) !== false) {
+                $row = array_map('trim', $row);
+                if (count(array_filter($row)) === 0) continue;
+
+                $first = $row[4] ?? '';
+                $last  = $row[6] ?? '';
+                if ($first === '' && $last === '') continue;
+
+                $key = $makeKey($first, $last, $row[0] ?? null, null);
+
+                $usersData[$key] = array_merge($usersData[$key] ?? [], [
+                    'register_number' => $row[0] ?? null,
+                    'register_place'  => $row[1] ?? null,
+                    'dob'             => $row[2] ?? null,
+                    'phone_number'    => $row[3] ?? null,
+                    'first_name'      => $first,
+                    'middle_name'     => $row[5] ?? null,
+                    'last_name'       => $last,
+                    'type'            => $row[7] ?? null,
+                    'attended'        => $row[8] ?? null,
+                    'notes'           => $row[9] ?? null,
+                ]);
+            }
+            fclose($handle);
+        }
+
+        ///////////////////////////////////////////////////////
+        // 3️⃣ FILE 3 — dob-phone-fullname.csv
+        ///////////////////////////////////////////////////////
+        if (file_exists($files['dob-phone-fullname']) && ($handle = fopen($files['dob-phone-fullname'], 'r')) !== false) {
+            fgetcsv($handle); // skip header
+            while (($row = fgetcsv($handle)) !== false) {
+                $row = array_map('trim', $row);
+                if (count(array_filter($row)) === 0) continue;
+
+                $first = $row[2] ?? '';
+                $last  = $row[4] ?? '';
+                if ($first === '' && $last === '') continue;
+
+                $key = $makeKey($first, $last);
+
+                // Parse DOB safely
+                $dob = $row[0] ?? null;
+                if ($dob) {
+                    try {
+                        $dob = Carbon::parse($dob)->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        $dob = null;
+                    }
                 }
-                return response()->json($activityUser);
+
+                $usersData[$key] = array_merge($usersData[$key] ?? [], [
+                    'dob'           => $dob,
+                    'phone_number'  => $row[1] ?? null,
+                    'first_name'    => $first,
+                    'middle_name'   => $row[3] ?? null,
+                    'last_name'     => $last,
+                    'type'          => $row[5] ?? null,
+                    'attended'      => $row[6] ?? null,
+                    'notes'         => $row[7] ?? null,
+                ]);
             }
-
-            $activityUsers = ActivityUser::all();
-            return response()->json([
-                'data' => $activityUsers,
-                'message' => 'Activity users retrieved successfully'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An unexpected error occurred',
-                'error' => $e->getMessage()
-            ], 500);
+            fclose($handle);
         }
-    }
 
-    /**
-     * @OA\Post(
-     *     path="/api/activity-users",
-     *     summary="Create a new activity user",
-     *     tags={"ActivityUsers"},
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"user_id","activity_id"},
-     *             @OA\Property(property="user_id", type="string", format="uuid"),
-     *             @OA\Property(property="activity_id", type="string", format="uuid"),
-     *             @OA\Property(property="cop_id", type="string", format="uuid", nullable=true),
-     *             @OA\Property(property="is_lead", type="boolean", example=false),
-     *             @OA\Property(property="invited", type="boolean", example=false),
-     *             @OA\Property(property="attended", type="boolean", example=false)
-     *         )
-     *     ),
-     *     @OA\Response(response=201, description="Activity user created successfully"),
-     *     @OA\Response(response=400, description="Invalid input data")
-     * )
-     */
-    public function store(Request $request)
-    {
-        try {
-            $validated = $request->validate([
-                'user_id' => 'required|uuid|exists:users,user_id',
-                'activity_id' => 'required|uuid|exists:activities,activity_id',
-                'cop_id' => 'nullable|uuid|exists:cops,cop_id',
-                'is_lead' => 'sometimes|boolean',
-                'invited' => 'sometimes|boolean',
-                'attended' => 'sometimes|boolean',
+        ///////////////////////////////////////////////////////
+        // 4️⃣ Insert Users & ActivityUsers
+        ///////////////////////////////////////////////////////
+        $totalInserted = 0;
+
+        foreach ($usersData as $user) {
+            // Skip if first and last name missing
+            if (empty($user['first_name']) && empty($user['last_name'])) continue;
+
+            // Create or update User
+            $userModel = User::updateOrCreate(
+                [
+                    'identification_id' => $user['identification_id'] ?? null,
+                    'passport_number'   => $user['passport_number'] ?? null,
+                    'register_number'   => $user['register_number'] ?? null,
+                ],
+                [
+                    'first_name'     => $user['first_name'] ?? null,
+                    'middle_name'    => $user['middle_name'] ?? null,
+                    'last_name'      => $user['last_name'] ?? null,
+                    'dob'            => $user['dob'] ?? null,
+                    'phone_number'   => $user['phone_number'] ?? null,
+                    'register_place' => $user['register_place'] ?? null,
+                ]
+            );
+
+            // Insert ActivityUser (use create to avoid overwriting)
+            ActivityUser::create([
+                'activity_id' => $activityId,
+                'user_id'     => $userModel->user_id,
+                'type'        => $user['type'] ?? null,
+                'attended'    => strtolower($user['attended'] ?? '') === 'yes',
+                'notes'       => $user['notes'] ?? null,
             ]);
 
-            $activityUser = ActivityUser::create(array_merge($validated, [
-                'activity_user_id' => (string) Str::uuid(),
-            ]));
-
-            return response()->json([
-                'data' => $activityUser,
-                'message' => 'Activity user created successfully'
-            ], 201);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An unexpected error occurred',
-                'error' => $e->getMessage()
-            ], 500);
+            $totalInserted++;
         }
+
+        return response()->json([
+            'message' => '✅ All CSV files imported successfully!',
+            'total_imported' => $totalInserted
+        ]);
     }
-
-    /**
-     * @OA\Put(
-     *     path="/api/activity-users/{id}",
-     *     summary="Update an existing activity user",
-     *     tags={"ActivityUsers"},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         description="Activity user UUID to update",
-     *         required=true,
-     *         @OA\Schema(type="string", format="uuid")
-     *     ),
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             @OA\Property(property="user_id", type="string", format="uuid"),
-     *             @OA\Property(property="activity_id", type="string", format="uuid"),
-     *             @OA\Property(property="cop_id", type="string", format="uuid", nullable=true),
-     *             @OA\Property(property="is_lead", type="boolean"),
-     *             @OA\Property(property="invited", type="boolean"),
-     *             @OA\Property(property="attended", type="boolean")
-     *         )
-     *     ),
-     *     @OA\Response(response=200, description="Activity user updated successfully"),
-     *     @OA\Response(response=404, description="Activity user not found")
-     * )
-     */
-    public function update(Request $request, $id)
-    {
-        try {
-            $activityUser = ActivityUser::where('activity_user_id', $id)->first();
-            if (!$activityUser) {
-                return response()->json(['message' => 'Activity user not found'], 404);
-            }
-
-            $validated = $request->validate([
-                'user_id' => 'sometimes|uuid|exists:users,user_id',
-                'activity_id' => 'sometimes|uuid|exists:activities,activity_id',
-                'cop_id' => 'nullable|uuid|exists:cops,cop_id',
-                'is_lead' => 'sometimes|boolean',
-                'invited' => 'sometimes|boolean',
-                'attended' => 'sometimes|boolean',
-            ]);
-
-            $activityUser->update($validated);
-
-            return response()->json([
-                'data' => $activityUser,
-                'message' => 'Activity user updated successfully'
-            ]);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An unexpected error occurred',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * @OA\Delete(
-     *     path="/api/activity-users/{id}",
-     *     summary="Delete an activity user by UUID",
-     *     tags={"ActivityUsers"},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         description="Activity user UUID to delete",
-     *         required=true,
-     *         @OA\Schema(type="string", format="uuid")
-     *     ),
-     *     @OA\Response(response=200, description="Activity user deleted successfully"),
-     *     @OA\Response(response=404, description="Activity user not found")
-     * )
-     */
-    public function destroy($id)
-    {
-        try {
-            $activityUser = ActivityUser::where('activity_user_id', $id)->first();
-            if (!$activityUser) {
-                return response()->json(['message' => 'Activity user not found'], 404);
-            }
-
-            $activityUser->delete();
-
-            return response()->json(['message' => 'Activity user deleted successfully']);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An unexpected error occurred',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-        
-    }
-
-
-
-
-
-    
 }

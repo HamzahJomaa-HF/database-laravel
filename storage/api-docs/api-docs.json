@@ -212,181 +212,6 @@
                 }
             }
         },
-        "/api/activity-users": {
-            "get": {
-                "tags": [
-                    "ActivityUsers"
-                ],
-                "summary": "Get all activity users or a specific activity user by ID",
-                "operationId": "24755962742f8d3af50256bb0f1f31d9",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "query",
-                        "description": "Optional activity_user UUID to fetch a specific record",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Activity users retrieved successfully"
-                    },
-                    "404": {
-                        "description": "Activity user not found"
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "ActivityUsers"
-                ],
-                "summary": "Create a new activity user",
-                "operationId": "fa2ed24839762c075d626fa51a132304",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "user_id",
-                                    "activity_id"
-                                ],
-                                "properties": {
-                                    "user_id": {
-                                        "type": "string",
-                                        "format": "uuid"
-                                    },
-                                    "activity_id": {
-                                        "type": "string",
-                                        "format": "uuid"
-                                    },
-                                    "cop_id": {
-                                        "type": "string",
-                                        "format": "uuid",
-                                        "nullable": true
-                                    },
-                                    "is_lead": {
-                                        "type": "boolean",
-                                        "example": false
-                                    },
-                                    "invited": {
-                                        "type": "boolean",
-                                        "example": false
-                                    },
-                                    "attended": {
-                                        "type": "boolean",
-                                        "example": false
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Activity user created successfully"
-                    },
-                    "400": {
-                        "description": "Invalid input data"
-                    }
-                }
-            }
-        },
-        "/api/activity-users/{id}": {
-            "put": {
-                "tags": [
-                    "ActivityUsers"
-                ],
-                "summary": "Update an existing activity user",
-                "operationId": "8d26669011a3467b82927ecfcbb93d3f",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "Activity user UUID to update",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "user_id": {
-                                        "type": "string",
-                                        "format": "uuid"
-                                    },
-                                    "activity_id": {
-                                        "type": "string",
-                                        "format": "uuid"
-                                    },
-                                    "cop_id": {
-                                        "type": "string",
-                                        "format": "uuid",
-                                        "nullable": true
-                                    },
-                                    "is_lead": {
-                                        "type": "boolean"
-                                    },
-                                    "invited": {
-                                        "type": "boolean"
-                                    },
-                                    "attended": {
-                                        "type": "boolean"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Activity user updated successfully"
-                    },
-                    "404": {
-                        "description": "Activity user not found"
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "ActivityUsers"
-                ],
-                "summary": "Delete an activity user by UUID",
-                "operationId": "a921825f803bb04767c035e5df783808",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "Activity user UUID to delete",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Activity user deleted successfully"
-                    },
-                    "404": {
-                        "description": "Activity user not found"
-                    }
-                }
-            }
-        },
         "/api/answers": {
             "get": {
                 "tags": [
@@ -1723,11 +1548,11 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "project_center_id",
+                                    "project_id",
                                     "activity_id"
                                 ],
                                 "properties": {
-                                    "project_center_id": {
+                                    "project_id": {
                                         "type": "string",
                                         "format": "uuid",
                                         "example": "a2f4d8c7-8b5f-4d88-9d7c-12e456789abc"
@@ -1778,7 +1603,7 @@
                         "application/json": {
                             "schema": {
                                 "properties": {
-                                    "project_center_id": {
+                                    "project_id": {
                                         "type": "string",
                                         "format": "uuid",
                                         "example": "a2f4d8c7-8b5f-4d88-9d7c-12e456789abc"
@@ -3660,10 +3485,6 @@
         {
             "name": "Activities",
             "description": "Activities"
-        },
-        {
-            "name": "ActivityUsers",
-            "description": "ActivityUsers"
         },
         {
             "name": "Answers",

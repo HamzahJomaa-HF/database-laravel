@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class ActivityUser extends Model
 {
@@ -21,46 +22,49 @@ class ActivityUser extends Model
         'is_lead',
         'invited',
         'attended',
-        'external_id', // optional external identifier
+        'type',
+        'external_id',
     ];
 
     protected static function boot()
     {
         parent::boot();
 
-        static::creating(function ($activityUser) {
-            // Generate UUID for primary key
-            if (empty($activityUser->activity_user_id)) {
-                $activityUser->activity_user_id = (string) Str::uuid();
+        static::creating(function ($model) {
+            if (empty($model->activity_user_id)) {
+                $model->activity_user_id = (string) Str::uuid();
             }
-
-            // Generate sequential external ID like Program model: au_{YYYY}_{MM}_{sequence}
-            if (empty($activityUser->external_id)) {
-                $year = now()->format('Y');
-                $month = now()->format('m');
-
-                // Get last activity user created in this year-month
-                $lastActivityUser = ActivityUser::whereYear('created_at', $year)
-                    ->whereMonth('created_at', $month)
-                    ->orderBy('created_at', 'desc')
-                    ->first();
-
-                // Extract last sequence number safely
-                $lastNumber = 0;
-                if ($lastActivityUser && preg_match('/_(\d+)$/', $lastActivityUser->external_id, $matches)) {
-                    $lastNumber = (int) $matches[1];
-                }
-
-                $nextNumber = $lastNumber + 1;
-
-                $activityUser->external_id = sprintf(
-                    "AU_%s_%s_%03d",
-                    $year,
-                    $month,
-                    $nextNumber
-                );
+            
+            // Generate external_id in AU_YYYY_MM_001 format if not provided
+            if (empty($model->external_id)) {
+                $model->external_id = self::generateSequentialId();
             }
         });
+    }
+
+    /**
+     * Generate sequential external_id in AU_YYYY_MM_001 format
+     */
+    protected static function generateSequentialId()
+    {
+        $year = now()->format('Y');
+        $month = now()->format('m');
+        
+        // Find the highest sequence number for this year and month
+        $lastRecord = static::where('external_id', 'like', "AU_{$year}_{$month}_%")
+            ->orderBy('external_id', 'desc')
+            ->first();
+        
+        if ($lastRecord) {
+            // Extract the number part and increment
+            $parts = explode('_', $lastRecord->external_id);
+            $lastNumber = (int) end($parts);
+            $nextNumber = $lastNumber + 1;
+        } else {
+            $nextNumber = 1;
+        }
+        
+        return sprintf("AU_%s_%s_%03d", $year, $month, $nextNumber);
     }
 
     /**

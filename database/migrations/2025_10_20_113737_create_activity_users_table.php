@@ -8,6 +8,7 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('activity_users', function (Blueprint $table) {
             $table->uuid('activity_user_id')->primary();
+            $table->string('type')->nullable();
             $table->boolean('is_lead')->default(false);
             $table->boolean('invited')->default(false);
             $table->boolean('attended')->default(false);

@@ -21,9 +21,9 @@ return new class extends Migration
     $table->string('mother_name')->nullable();
     $table->string('last_name');
     $table->string('gender')->nullable();          
-    $table->date('dob');
+    $table->date('dob')->nullable();   
     $table->string('register_number')->nullable();
-    $table->string('phone_number')->unique();
+    $table->string('phone_number')->nullable();
     $table->string('marital_status')->nullable();  
     $table->string('employment_status')->nullable(); 
     $table->string('passport_number')->nullable(); 

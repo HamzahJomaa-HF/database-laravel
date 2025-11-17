@@ -66,8 +66,8 @@ class ProjectActivityController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"project_center_id", "activity_id"},
-     *             @OA\Property(property="project_center_id", type="string", format="uuid", example="a2f4d8c7-8b5f-4d88-9d7c-12e456789abc"),
+     *             required={"project_id", "activity_id"},
+     *             @OA\Property(property="project_id", type="string", format="uuid", example="a2f4d8c7-8b5f-4d88-9d7c-12e456789abc"),
      *             @OA\Property(property="activity_id", type="string", format="uuid", example="b3f4a3d9-91c6-4899-bc2e-7a6b7b9b91e4")
      *         )
      *     ),
@@ -79,13 +79,13 @@ class ProjectActivityController extends Controller
     {
         try {
             $validated = $request->validate([
-                'project_center_id' => 'required|uuid',
+                'project_id' => 'required|uuid',
                 'activity_id' => 'required|uuid',
             ]);
 
             $projectActivity = ProjectActivity::create([
                 'project_activity_id' => Str::uuid(),
-                'project_center_id' => $validated['project_center_id'],
+                'project_id' => $validated['project_id'],
                 'activity_id' => $validated['activity_id'],
             ]);
 
@@ -122,7 +122,7 @@ class ProjectActivityController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             @OA\Property(property="project_center_id", type="string", format="uuid", example="a2f4d8c7-8b5f-4d88-9d7c-12e456789abc"),
+     *             @OA\Property(property="project_id", type="string", format="uuid", example="a2f4d8c7-8b5f-4d88-9d7c-12e456789abc"),
      *             @OA\Property(property="activity_id", type="string", format="uuid", example="b3f4a3d9-91c6-4899-bc2e-7a6b7b9b91e4")
      *         )
      *     ),
@@ -139,7 +139,7 @@ class ProjectActivityController extends Controller
             }
 
             $validated = $request->validate([
-                'project_center_id' => 'sometimes|uuid',
+                'project_id' => 'sometimes|uuid',
                 'activity_id' => 'sometimes|uuid',
             ]);
 

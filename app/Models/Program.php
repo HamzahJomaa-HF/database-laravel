@@ -28,46 +28,43 @@ class Program extends Model
     ];
 
     protected static function boot()
-{
-    parent::boot();
+    {
+        parent::boot();
 
-    static::creating(function ($program) {
-        // Generate UUID if not provided
-        if (empty($program->program_id)) {
-            $program->program_id = (string) \Illuminate\Support\Str::uuid();
-        }
-
-        // Generate a unique external ID if not provided
-        if (empty($program->external_id)) {
-
-            $year = now()->format('Y');
-            $month = now()->format('m');
-
-            // Get last program created in this year-month
-            $lastProgram = \App\Models\Program::whereYear('created_at', $year)
-                ->whereMonth('created_at', $month)
-                ->orderBy('created_at', 'desc')
-                ->first();
-
-            // Extract last sequence number safely
-            $lastNumber = 0;
-            if ($lastProgram && preg_match('/_(\d+)$/', $lastProgram->external_id, $matches)) {
-                $lastNumber = (int) $matches[1];
+        static::creating(function ($program) {
+            // Generate UUID if not provided
+            if (empty($program->program_id)) {
+                $program->program_id = (string) Str::uuid();
             }
 
-            $nextNumber = $lastNumber + 1;
+            // Generate a unique external ID if not provided
+            if (empty($program->external_id)) {
 
-            $program->external_id = sprintf(
-                "PRG_%s_%s_%03d",
-                $year,
-                $month,
-                $nextNumber
-            );
-        }
+                $year = now()->format('Y');
+                $month = now()->format('m');
 
-    });
-}
+                // FIX: Get the MAXIMUM sequence number, not just the last one
+                $lastProgram = Program::where('external_id', 'like', "PRG_{$year}_{$month}_%")
+                    ->orderByRaw('CAST(SUBSTRING(external_id FROM \'[0-9]+$\') AS INTEGER) DESC')
+                    ->first();
 
+                // Extract last sequence number safely
+                $lastNumber = 0;
+                if ($lastProgram && $lastProgram->external_id && preg_match('/_(\d+)$/', $lastProgram->external_id, $matches)) {
+                    $lastNumber = (int) $matches[1];
+                }
+
+                $nextNumber = $lastNumber + 1;
+
+                $program->external_id = sprintf(
+                    "PRG_%s_%s_%03d",
+                    $year,
+                    $month,
+                    $nextNumber
+                );
+            }
+        });
+    }
 
     /**
      * Relation to ProjectCenters (if needed)

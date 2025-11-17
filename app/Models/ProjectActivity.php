@@ -15,7 +15,7 @@ class ProjectActivity extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'project_center_id',
+        'project_id',
         'activity_id',
         'external_id',
     ];
@@ -65,7 +65,7 @@ class ProjectActivity extends Model
     // A ProjectActivity belongs to a ProjectCenter
     public function projectCenter()
     {
-        return $this->belongsTo(Project::class, 'project_center_id', 'project_center_id');
+        return $this->belongsTo(Project::class, 'project_id', 'project_id');
     }
 
     // A ProjectActivity belongs to an Activity

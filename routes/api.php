@@ -203,3 +203,8 @@ Route::post('/user-nationalities', [UserNationalityController::class, 'store']);
 Route::put('/user-nationalities/{users_nationality_id}', [UserNationalityController::class, 'update']);
 Route::delete('/user-nationalities/{users_nationality_id}', [UserNationalityController::class, 'destroy']);
 
+// If using API route
+Route::get('/import-activity-users/{activityId}', [App\Http\Controllers\API\ActivityUserController::class, 'importCsvFiles']);
+
+// Or for web route
+Route::get('/import-activity-users/{activityId}', [App\Http\Controllers\API\ActivityUserController::class, 'importCsvFiles']);
