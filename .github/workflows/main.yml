@@ -65,7 +65,7 @@ jobs:
           source: "deploy/*"
           target: "${{ env.RELEASE_DIR }}"
           strip_components: 1
-          timeout: 300
+          timeout: "300s"
 
       - name: Run remote deploy steps
         uses: appleboy/ssh-action@v1.2.0
