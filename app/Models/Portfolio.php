@@ -76,8 +76,23 @@ class Portfolio extends Model
         );
     }
 
+    // ⭐⭐⭐ MISSING: Projects Relationship ⭐⭐⭐
     /**
-     * Attach/Detach helpers
+     * Relation to Projects (many-to-many through project_portfolios)
+     */
+    public function projects()
+    {
+        return $this->belongsToMany(
+            Project::class,
+            'project_portfolios', // Pivot table
+            'portfolio_id',
+            'project_id'
+        )->withPivot('order', 'metadata') // Include pivot data
+         ->withTimestamps();
+    }
+
+    /**
+     * Attach/Detach helpers for activities
      */
     public function attachActivity($activityId)
     {
@@ -87,5 +102,42 @@ class Portfolio extends Model
     public function detachActivity($activityId)
     {
         $this->activities()->detach($activityId);
+    }
+
+    // ⭐⭐⭐ MISSING: Helper Methods for Projects ⭐⭐⭐
+    
+    /**
+     * Attach project to portfolio
+     */
+    public function attachProject($projectId, $order = 0, $metadata = null)
+    {
+        return $this->projects()->attach($projectId, [
+            'order' => $order,
+            'metadata' => $metadata
+        ]);
+    }
+
+    /**
+     * Detach project from portfolio
+     */
+    public function detachProject($projectId)
+    {
+        return $this->projects()->detach($projectId);
+    }
+
+    /**
+     * Sync portfolio projects (replace all)
+     */
+    public function syncProjects($projectIds)
+    {
+        return $this->projects()->sync($projectIds);
+    }
+
+    /**
+     * Get projects ordered by pivot order
+     */
+    public function orderedProjects()
+    {
+        return $this->projects()->orderByPivot('order', 'asc');
     }
 }
