@@ -29,6 +29,12 @@ class User extends Model
         'employment_status',
         'passport_number',
         'register_place',
+        'type', // <- added new column
+    ];
+
+    // Cast dob to a Carbon instance
+    protected $casts = [
+        'dob' => 'date',
     ];
 
     protected static function boot()

@@ -11,27 +11,26 @@ return new class extends Migration
      */
     public function up(): void
     {
-       
         // Users table
         Schema::create('users', function (Blueprint $table) {
-    $table->uuid('user_id')->primary();
-    $table->string('identification_id')->nullable();
-    $table->string('first_name');
-    $table->string('middle_name')->nullable();
-    $table->string('mother_name')->nullable();
-    $table->string('last_name');
-    $table->string('gender')->nullable();          
-    $table->date('dob')->nullable();   
-    $table->string('register_number')->nullable();
-    $table->string('phone_number')->nullable();
-    $table->string('marital_status')->nullable();  
-    $table->string('employment_status')->nullable(); 
-    $table->string('passport_number')->nullable(); 
-    $table->string('register_place')->nullable();
+            $table->uuid('user_id')->primary();
+            $table->string('identification_id')->nullable()->index();
+            $table->string('first_name')->index();
+            $table->string('middle_name')->nullable()->index();
+            $table->string('mother_name')->nullable();
+            $table->string('last_name')->index();
+            $table->string('gender')->nullable()->index();          
+            $table->date('dob')->nullable()->index();   
+            $table->string('register_number')->nullable();
+            $table->string('phone_number')->nullable()->index();
+            $table->string('marital_status')->nullable()->index();  
+            $table->string('employment_status')->nullable()->index(); 
+            $table->string('passport_number')->nullable(); 
+            $table->string('register_place')->nullable();
+            $table->string('type')->nullable()->index(); // NEW COLUMN
 
-    $table->timestamps();
-});
-
+            $table->timestamps();
+        });
 
         // Password reset tokens table
         Schema::create('password_reset_tokens', function (Blueprint $table) {

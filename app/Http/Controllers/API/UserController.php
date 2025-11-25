@@ -1,317 +1,176 @@
 <?php
 
-namespace App\Http\Controllers\API;
+namespace App\Http\Controllers\API; // Note: This namespace suggests API, but the methods return views.
+                                    // I will treat it as a standard Web Controller for this response.
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
-/**
- * @OA\Info(
- *      version="1.0.0",
- *      title="Hariri Foundation API",
- *      description="API documentation for Users Management",
- *      @OA\Contact(email="support@haririfoundation.com")
- * )
- *
- * @OA\Tag(
- *     name="Users",
- *     description="API Endpoints of Users"
- * )
- */
 class UserController extends Controller
 {
     /**
-     * @OA\Get(
-     *     path="/api/users",
-     *     summary="Get all users or a specific user by UUID",
-     *     tags={"Users"},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="query",
-     *         description="Optional user UUID to fetch a specific user",
-     *         required=false,
-     *         @OA\Schema(type="string", format="uuid")
-     *     ),
-     *     @OA\Response(response=200, description="Users retrieved successfully"),
-     *     @OA\Response(response=404, description="User not found")
-     * )
+     * Display a listing of the users with professional filtering.
+     * The logic here supports the filters added in the enhanced index.blade.php.
      */
-
-
-    
-
-    public function index(Request $request)
+   public function index(Request $request)
 {
-    try {
-        if ($request->has('id')) {
-            $user = User::where('user_id', $request->id)->first();
-            if (!$user) {
-                return response()->json(['message' => 'User not found'], 404);
-            }
-            return response()->json($user);
-        }
+    $query = User::query();
 
-        // Pagination logic
-        $perPage = $request->query('per_page', 50); // Default .. per page
-        $users = User::paginate($perPage);
-
-        return response()->json([
-            'data' => $users->items(), // actual user records
-            'pagination' => [
-                'current_page' => $users->currentPage(),
-                'last_page' => $users->lastPage(),
-                'per_page' => $users->perPage(),
-                'total' => $users->total(),
-            ],
-            'message' => 'Users retrieved successfully'
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'message' => 'An unexpected error occurred',
-            'error' => $e->getMessage()
-        ], 500);
+    // Add back the filter logic that was missing:
+    if ($request->filled('name')) {
+        $name = $request->name;
+        $query->where(function ($q) use ($name) {
+            $q->where('first_name', 'ilike', "%$name%")
+              ->orWhere('middle_name', 'ilike', "%$name%")
+              ->orWhere('last_name', 'ilike', "%$name%");
+        });
     }
+
+    if ($request->filled('gender')) {
+        $query->where('gender', $request->gender);
+    }
+
+    if ($request->filled('marital_status')) {
+        $query->where('marital_status', $request->marital_status);
+    }
+
+    if ($request->filled('employment_status')) {
+        $query->where('employment_status', $request->employment_status);
+    }
+
+    if ($request->filled('type')) {
+        $query->where('type', $request->type);
+    }
+
+    if ($request->filled('phone_number')) {
+        $query->where('phone_number', 'like', "%{$request->phone_number}%");
+    }
+
+    if ($request->filled('dob_from')) {
+        $query->whereDate('dob', '>=', $request->dob_from);
+    }
+
+    if ($request->filled('dob_to')) {
+        $query->whereDate('dob', '<=', $request->dob_to);
+    }
+
+    $users = $query->orderBy('last_name', 'asc')->paginate(20)->withQueryString();
+
+    // Check if any search/filter was applied
+    $hasSearch = $request->anyFilled(['name', 'gender', 'marital_status', 'employment_status', 'type', 'phone_number', 'dob_from', 'dob_to']);
+
+    return view('users.index', compact('users', 'hasSearch'));
 }
-/*public function index(Request $request)
+    /**
+     * Show the form for creating a new user.
+     */
+    public function create()
     {
-        try {
-            if ($request->has('id')) {
-                $user = User::where('user_id', $request->id)->first();
-                if (!$user) {
-                    return response()->json(['message' => 'User not found'], 404);
-                }
-                return response()->json($user);
-            }
-
-            $users = User::all();
-            return response()->json([
-                'data' => $users,
-                'message' => 'Users retrieved successfully'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An unexpected error occurred',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }*/
-
+        return view('users.create');
+    }
 
     /**
-     * @OA\Post(
-     *     path="/api/users",
-     *     summary="Create a user (no update if exists)",
-     *     tags={"Users"},
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"first_name","last_name","dob","phone_number"},
-     *             @OA\Property(property="identification_id", type="string", example="ID123456"),
-     *             @OA\Property(property="first_name", type="string", example="John"),
-     *             @OA\Property(property="middle_name", type="string", example="M."),
-     *             @OA\Property(property="last_name", type="string", example="Doe"),
-     *             @OA\Property(property="mother_name", type="string", example="Jane"),
-     *             @OA\Property(property="gender", type="string", example="Male"),
-     *             @OA\Property(property="dob", type="string", format="date", example="1990-01-01"),
-     *             @OA\Property(property="register_number", type="string", example="R123456"),
-     *             @OA\Property(property="phone_number", type="string", example="+96170000000"),
-     *             @OA\Property(property="marital_status", type="string", example="Single"),
-     *             @OA\Property(property="employment_status", type="string", example="Employed"),
-     *             @OA\Property(property="passport_number", type="string", example="P987654")
-     *         )
-     *     ),
-     *     @OA\Response(response=201, description="User created successfully"),
-     *     @OA\Response(response=409, description="User already exists"),
-     *     @OA\Response(response=422, description="Validation failed"),
-     *     @OA\Response(response=500, description="Unexpected error")
-     * )
+     * Store a newly created user in storage.
+     * Note: UUID is generated in the User Model's boot method.
      */
     public function store(Request $request)
     {
-        try {
-           $validator = Validator::make($request->all(), [
-    'identification_id' => 'nullable|string|max:255',
-    'passport_number' => 'nullable|string|max:50',
-    'first_name' => 'nullable|string|max:255',
-    'middle_name' => 'nullable|string|max:255',
-    'last_name' => 'nullable|string|max:255',
-    'mother_name' => 'nullable|string|max:255',
-    'gender' => 'nullable|string|max:50',
-    'dob' => 'nullable|date',
-    'register_number' => 'nullable|string|max:255',
-    'register_place' => 'nullable|string|max:255',
-    'phone_number' => 'nullable|string|max:20',
-    'marital_status' => 'nullable|string|max:50',
-    'employment_status' => 'nullable|string|max:255',
-]);
+        // Define a comprehensive set of validation rules
+        $rules = [
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'mother_name' => 'nullable|string|max:255',
+            'dob' => 'nullable|date',
+            'phone_number' => 'nullable|string|max:20',
+            'gender' => ['nullable', Rule::in(['Male', 'Female'])], // Enforce specific values
+            'marital_status' => 'nullable|string|max:50',
+            'employment_status' => 'nullable|string|max:50',
+            'type' => 'nullable|string|max:50',
+            
+            // Allow identification fields to be nullable, but unique if present
+            'identification_id' => 'nullable|string|max:50|unique:users,identification_id',
+            'passport_number' => 'nullable|string|max:50|unique:users,passport_number',
+            'register_number' => 'nullable|string|max:50',
+            'register_place' => 'nullable|string|max:255',
+        ];
 
+        // The custom creation logic in the Model will throw a ValidationException 
+        // if the required combination of fields (identification_id OR passport_number OR name/dob/phone OR register details) is missing.
+        $request->validate($rules);
+        
+        // Use the Model's create method and let the boot method handle the UUID generation.
+        User::create($request->all());
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            // Check if user exists
-            $existingUser = User::where('identification_id', $request->identification_id)
-                ->orWhere(function ($q) use ($request) {
-                    $q->where('dob', $request->dob)
-                      ->where('phone_number', $request->phone_number);
-                })
-                ->first();
-
-            if ($existingUser) {
-                return response()->json([
-                    'message' => 'User already exists'
-                ], 409); // Conflict
-            }
-
-            // Create new user
-            $newUser = User::create([
-                'user_id' => Str::uuid(),
-                'identification_id' => $request->identification_id,
-                'first_name' => $request->first_name,
-                'middle_name' => $request->middle_name,
-                'last_name' => $request->last_name,
-                'mother_name' => $request->mother_name,
-                'gender' => $request->gender,
-                'dob' => $request->dob,
-                'register_number' => $request->register_number,
-                'phone_number' => $request->phone_number,
-                'marital_status' => $request->marital_status,
-                'employment_status' => $request->employment_status,
-                'passport_number' => $request->passport_number,
-            ]);
-
-            return response()->json([
-                'data' => $newUser,
-                'message' => 'User created successfully'
-            ], 201);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An unexpected error occurred',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        return redirect()->route('users.index')->with('success', 'User created successfully.');
     }
 
     /**
-     * @OA\Put(
-     *     path="/api/users/{id}",
-     *     summary="Update an existing user",
-     *     tags={"Users"},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         description="User UUID to update",
-     *         required=true,
-     *         @OA\Schema(type="string", format="uuid")
-     *     ),
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             @OA\Property(property="identification_id", type="string"),
-     *             @OA\Property(property="first_name", type="string"),
-     *             @OA\Property(property="middle_name", type="string"),
-     *             @OA\Property(property="last_name", type="string"),
-     *             @OA\Property(property="mother_name", type="string"),
-     *             @OA\Property(property="gender", type="string"),
-     *             @OA\Property(property="dob", type="string", format="date"),
-     *             @OA\Property(property="register_number", type="string"),
-     *             @OA\Property(property="phone_number", type="string"),
-     *             @OA\Property(property="marital_status", type="string"),
-     *             @OA\Property(property="employment_status", type="string"),
-     *             @OA\Property(property="passport_number", type="string")
-     *         )
-     *     ),
-     *     @OA\Response(response=200, description="User updated successfully"),
-     *     @OA\Response(response=404, description="User not found"),
-     *     @OA\Response(response=422, description="Validation failed"),
-     *     @OA\Response(response=500, description="Unexpected error")
-     * )
+     * Show the form for editing the specified user.
      */
-    public function update(Request $request, $id)
+    public function edit($user_id)
     {
-        try {
-            $user = User::where('user_id', $id)->first();
-            if (!$user) {
-                return response()->json(['message' => 'User not found'], 404);
-            }
-
-            $validated = $request->validate([
-                'identification_id' => 'sometimes|string|max:255',
-                'first_name' => 'sometimes|string|max:255',
-                'middle_name' => 'sometimes|string|max:255',
-                'last_name' => 'sometimes|string|max:255',
-                'mother_name' => 'sometimes|string|max:255',
-                'gender' => 'sometimes|string|max:50',
-                'dob' => 'sometimes|date',
-                'register_number' => 'sometimes|string|max:255',
-                'phone_number' => 'sometimes|string|max:20',
-                'marital_status' => 'sometimes|string|max:50',
-                'employment_status' => 'sometimes|string|max:255',
-                'passport_number' => 'sometimes|string|max:50',
-            ]);
-
-            $user->update($validated);
-
-            return response()->json([
-                'data' => $user,
-                'message' => 'User updated successfully'
-            ]);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An unexpected error occurred',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        $user = User::where('user_id', $user_id)->firstOrFail();
+        return view('users.edit', compact('user'));
     }
 
     /**
-     * @OA\Delete(
-     *     path="/api/users/{id}",
-     *     summary="Delete a user by UUID",
-     *     tags={"Users"},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         description="User UUID to delete",
-     *         required=true,
-     *         @OA\Schema(type="string", format="uuid")
-     *     ),
-     *     @OA\Response(response=200, description="User deleted successfully"),
-     *     @OA\Response(response=404, description="User not found"),
-     *     @OA\Response(response=500, description="Unexpected error")
-     * )
+     * Update the specified user in storage.
      */
-    public function destroy($id)
+    public function update(Request $request, $user_id)
     {
-        try {
-            $user = User::where('user_id', $id)->first();
-            if (!$user) {
-                return response()->json(['message' => 'User not found'], 404);
-            }
+        $user = User::where('user_id', $user_id)->firstOrFail();
 
-            $user->delete();
+        // Define update rules, ignoring uniqueness checks for the current user's data
+        $rules = [
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'dob' => 'nullable|date',
+            'phone_number' => 'nullable|string|max:20',
+            'gender' => ['nullable', Rule::in(['Male', 'Female'])],
+            'type' => 'nullable|string|max:50',
+            
+            'identification_id' => [
+                'nullable',
+                'string',
+                'max:50',
+                Rule::unique('users', 'identification_id')->ignore($user->user_id, 'user_id'),
+            ],
+            'passport_number' => [
+                'nullable',
+                'string',
+                'max:50',
+                Rule::unique('users', 'passport_number')->ignore($user->user_id, 'user_id'),
+            ],
+        ];
 
-            return response()->json(['message' => 'User deleted successfully']);
+        $request->validate($rules);
 
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An unexpected error occurred',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        // Use fill/update
+        $user->fill($request->all())->save();
+
+        return redirect()->route('users.index')->with('success', 'User updated successfully.');
     }
+
+    /**
+     * Remove the specified user from storage.
+     */
+    public function destroy($user_id)
+    {
+        $user = User::where('user_id', $user_id)->firstOrFail();
+        $user->delete();
+
+        return redirect()->route('users.index')->with('success', 'User deleted successfully.');
+    }
+    public function dashboard()
+{
+    // Example: show total users
+    $totalUsers = \App\Models\User::count();
+
+    return view('users.dashboard', compact('totalUsers'));
+}
+
 }
