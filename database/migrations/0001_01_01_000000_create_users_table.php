@@ -21,14 +21,14 @@ return new class extends Migration
             $table->string('last_name')->index();
             $table->string('gender')->nullable()->index();          
             $table->date('dob')->nullable()->index();   
+            $table->string('email')->nullable()->index();
             $table->string('register_number')->nullable();
             $table->string('phone_number')->nullable()->index();
             $table->string('marital_status')->nullable()->index();  
             $table->string('employment_status')->nullable()->index(); 
             $table->string('passport_number')->nullable(); 
             $table->string('register_place')->nullable();
-            $table->string('type')->nullable()->index(); // NEW COLUMN
-
+            $table->string('type')->nullable()->index();
             $table->timestamps();
         });
 
@@ -61,7 +61,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Drop sessions first because it references users
         Schema::dropIfExists('sessions');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('users');

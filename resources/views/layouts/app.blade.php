@@ -191,17 +191,7 @@
 
     {{-- Top Navbar --}}
     <nav class="navbar navbar-expand-lg navbar-light shadow-sm fixed-top top-navbar">
-        <div class="container-fluid">
-            <form class="d-flex me-auto" action="{{ route('users.index') }}" method="GET">
-                <div class="input-group" style="max-width: 400px;">
-                    <span class="input-group-text bg-white border-end-0">
-                        <i class="bi bi-search text-muted"></i>
-                    </span>
-                    <input name="name" class="form-control border-start-0 ps-0" type="search" 
-                           placeholder="Search users by name..." value="{{ request('name') }}"
-                           style="border-radius: 0 8px 8px 0;">
-                </div>
-            </form>
+        
 
             <ul class="navbar-nav flex-row align-items-center ms-auto">
                 <li class="nav-item me-3 position-relative">
@@ -253,7 +243,7 @@
             <div class="container-fluid">
                 <div class="row align-items-center">
                     <div class="col-md-6">
-                        <span class="text-muted small">© {{ date('Y') }} FlowDash User Management System. All rights reserved.</span>
+                        <span class="text-muted small">© {{ date('Y') }} Hariri Foundation  Management System. All rights reserved.</span>
                     </div>
                     <div class="col-md-6 text-md-end">
                         <span class="text-muted small">v1.0.0 • Built with <i class="bi bi-heart-fill text-danger"></i></span>

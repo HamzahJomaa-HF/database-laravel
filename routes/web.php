@@ -32,3 +32,7 @@ Route::get('/users/export/excel', [UserController::class, 'exportExcel'])->name(
 Route::get('/users/import', [UserController::class, 'showImportForm'])->name('users.import.form');
 Route::post('/users/import', [UserController::class, 'import'])->name('users.import');
 Route::get('/users/import/template', [UserController::class, 'downloadTemplate'])->name('users.import.template');
+
+// Bulk actions
+Route::delete('/users/bulk-delete', [UserController::class, 'bulkDelete'])->name('users.bulk-delete');
+Route::delete('/users/delete-all', [UserController::class, 'deleteAll'])->name('users.delete-all');

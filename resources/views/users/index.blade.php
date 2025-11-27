@@ -25,6 +25,11 @@
                         <i class="bi bi-file-earmark-excel me-2"></i> Export Data
                     </a>
 
+                    <a href="{{ route('users.import.form') }}" 
+                       class="btn btn-outline-secondary btn-sm d-flex align-items-center">
+                        <i class="bi bi-cloud-upload me-2"></i> Import Users
+                    </a>
+
                     <a href="{{ route('users.create') }}"
                        class="btn btn-primary btn-sm d-flex align-items-center">
                         <i class="bi bi-person-plus me-2"></i> Add User
@@ -33,141 +38,158 @@
             </div>
         </div>
     </div>
+{{-- ========================================================= --}}
+{{-- FILTERS PANEL --}}
+{{-- ========================================================= --}}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
 
-    
-    {{-- ========================================================= --}}
-    {{-- FILTERS PANEL --}}
-    {{-- ========================================================= --}}
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card border-0 shadow-sm">
+            {{-- Header --}}
+            <div class="card-header bg-white pt-3 pb-2 border-bottom">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h5 class="fw-semibold text-dark mb-0 d-flex align-items-center">
+                        <i class="bi bi-funnel me-2 text-primary"></i>Search & Filter Users
+                    </h5>
 
-                {{-- Header --}}
-                <div class="card-header bg-white pt-3 pb-2 border-bottom">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <h5 class="fw-semibold text-dark mb-0 d-flex align-items-center">
-                            <i class="bi bi-funnel me-2 text-primary"></i>Search & Filter Users
-                        </h5>
-
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="badge bg-primary-subtle text-primary">{{ $users->total() }} users</span>
-                            @if($hasSearch)
-                                <span class="badge bg-warning-subtle text-warning">Filters Active</span>
-                            @endif
-                        </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-primary-subtle text-primary">{{ $users->total() }} users</span>
+                        @if($hasSearch)
+                            <span class="badge bg-warning-subtle text-warning">Filters Active</span>
+                        @endif
                     </div>
                 </div>
+            </div>
 
-                {{-- Body --}}
-                <div class="card-body pt-3 pb-3">
+            {{-- Body --}}
+            <div class="card-body pt-3 pb-3">
 
-                    {{-- FILTER FORM --}}
-                    <form method="GET" class="row g-3 align-items-end">
-                        {{-- Name --}}
-                        <div class="col-xxl-2 col-xl-3 col-lg-4 col-md-6">
-                            <label class="form-label small text-muted fw-semibold mb-1">Name Search</label>
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-light border-end-0">
-                                    <i class="bi bi-person text-muted"></i>
-                                </span>
-                                <input type="text" name="name" value="{{ request('name') }}"
-                                       class="form-control border-start-0"
-                                       placeholder="First, Middle, or Last name">
+                {{-- FILTER FORM --}}
+                <form method="GET" class="row g-3 align-items-end">
+                    
+                    {{-- First Row: Input Fields --}}
+                    <div class="col-xxl-8 col-xl-8 col-lg-8 col-md-12">
+                        <div class="row g-3">
+                            {{-- Name --}}
+                            <div class="col-xxl-6 col-xl-6 col-lg-6 col-md-6 col-sm-6">
+                                <label class="form-label small text-muted fw-semibold mb-1">Name Search</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        <i class="bi bi-person text-muted"></i>
+                                    </span>
+                                    <input type="text" name="name" value="{{ request('name') }}"
+                                           class="form-control border-start-0"
+                                           placeholder="Name">
+                                </div>
                             </div>
-                        </div>
 
-                        {{-- Gender --}}
-                        <div class="col-xxl-2 col-xl-3 col-lg-4 col-md-6">
-                            <label class="form-label small text-muted fw-semibold mb-1">Gender</label>
-                            <select name="gender" class="form-select form-select-sm">
-                                <option value="">All Genders</option>
-                                <option value="Male" {{ request('gender') == 'Male' ? 'selected' : '' }}>Male</option>
-                                <option value="Female" {{ request('gender') == 'Female' ? 'selected' : '' }}>Female</option>
-                            </select>
-                        </div>
-
-                        {{-- Marital --}}
-                        <div class="col-xxl-2 col-xl-3 col-lg-4 col-md-6">
-                            <label class="form-label small text-muted fw-semibold mb-1">Marital Status</label>
-                            <select name="marital_status" class="form-select form-select-sm">
-                                <option value="">All Statuses</option>
-                                <option value="Single" {{ request('marital_status') == 'Single' ? 'selected' : '' }}>Single</option>
-                                <option value="Married" {{ request('marital_status') == 'Married' ? 'selected' : '' }}>Married</option>
-                                <option value="Divorced" {{ request('marital_status') == 'Divorced' ? 'selected' : '' }}>Divorced</option>
-                                <option value="Widowed" {{ request('marital_status') == 'Widowed' ? 'selected' : '' }}>Widowed</option>
-                            </select>
-                        </div>
-
-                        {{-- Phone --}}
-                        <div class="col-xxl-2 col-xl-3 col-lg-4 col-md-6">
-                            <label class="form-label small text-muted fw-semibold mb-1">Phone Number</label>
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-light border-end-0">
-                                    <i class="bi bi-telephone text-muted"></i>
-                                </span>
-                                <input type="text" name="phone_number" value="{{ request('phone_number') }}"
-                                       class="form-control border-start-0" placeholder="Phone number">
+                            {{-- Phone --}}
+                            <div class="col-xxl-6 col-xl-6 col-lg-6 col-md-6 col-sm-6">
+                                <label class="form-label small text-muted fw-semibold mb-1">Phone Number</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        <i class="bi bi-telephone text-muted"></i>
+                                    </span>
+                                    <input type="text" name="phone_number" value="{{ request('phone_number') }}"
+                                           class="form-control border-start-0" placeholder="Phone number">
+                                </div>
                             </div>
-                        </div>
 
-                        {{-- Buttons --}}
-                        <div class="col-xxl-4 col-xl-12 col-lg-8 d-flex justify-content-end flex-wrap gap-2">
-                            <button class="btn btn-primary btn-sm d-flex align-items-center">
-                                <i class="bi bi-funnel me-2"></i>Apply Filters
-                            </button>
+                            {{-- Second Row: Dropdowns --}}
+                            {{-- Gender --}}
+                            <div class="col-xxl-3 col-xl-3 col-lg-3 col-md-6 col-sm-6">
+                                <label class="form-label small text-muted fw-semibold mb-1">Gender</label>
+                                <select name="gender" class="form-select form-select-sm">
+                                    <option value="">All Genders</option>
+                                    <option value="Male" {{ request('gender') == 'Male' ? 'selected' : '' }}>Male</option>
+                                    <option value="Female" {{ request('gender') == 'Female' ? 'selected' : '' }}>Female</option>
+                                </select>
+                            </div>
 
-                            @if($hasSearch)
-                                <a href="{{ route('users.index') }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center">
-                                    <i class="bi bi-arrow-clockwise me-2"></i>Reset
-                                </a>
-                            @endif
+                            {{-- Marital --}}
+                            <div class="col-xxl-3 col-xl-3 col-lg-3 col-md-6 col-sm-6">
+                                <label class="form-label small text-muted fw-semibold mb-1">Marital Status</label>
+                                <select name="marital_status" class="form-select form-select-sm">
+                                    <option value="">All Statuses</option>
+                                    <option value="Single" {{ request('marital_status') == 'Single' ? 'selected' : '' }}>Single</option>
+                                    <option value="Married" {{ request('marital_status') == 'Married' ? 'selected' : '' }}>Married</option>
+                                    <option value="Divorced" {{ request('marital_status') == 'Divorced' ? 'selected' : '' }}>Divorced</option>
+                                    <option value="Widowed" {{ request('marital_status') == 'Widowed' ? 'selected' : '' }}>Widowed</option>
+                                </select>
+                            </div>
 
-                            <a href="{{ route('users.export.excel', request()->query()) }}"
-                               class="btn btn-outline-secondary btn-sm d-flex align-items-center d-lg-none">
-                                <i class="bi bi-download me-2"></i>Export
-                            </a>
-                            <a href="{{ route('users.import.form') }}" 
-   class="btn btn-outline-secondary btn-sm d-flex align-items-center">
-    <i class="bi bi-cloud-upload me-2"></i> Import Users
-</a>
-                        </div>
-                    </form>
+                            {{-- Employment Status --}}
+                            <div class="col-xxl-3 col-xl-3 col-lg-3 col-md-6 col-sm-6">
+                                <label class="form-label small text-muted fw-semibold mb-1">Employment Status</label>
+                                <select name="employment_status" class="form-select form-select-sm">
+                                    <option value="">All Statuses</option>
+                                    <option value="Employed" {{ request('employment_status') == 'Employed' ? 'selected' : '' }}>Employed</option>
+                                    <option value="Unemployed" {{ request('employment_status') == 'Unemployed' ? 'selected' : '' }}>Unemployed</option>
+                                    <option value="Student" {{ request('employment_status') == 'Student' ? 'selected' : '' }}>Student</option>
+                                    <option value="Retired" {{ request('employment_status') == 'Retired' ? 'selected' : '' }}>Retired</option>
+                                </select>
+                            </div>
 
-                    {{-- ACTIVE FILTERS --}}
-                    @if($hasSearch)
-                    <div class="mt-3 pt-3 border-top">
-                        <div class="d-flex flex-wrap align-items-center gap-2">
-                            <span class="fw-semibold text-muted small">Active Filters:</span>
-                            <div class="d-flex flex-wrap gap-2">
-                                @php
-                                $filters = [
-                                    'name' => ['icon' => 'bi-person', 'label' => 'Name'],
-                                    'gender' => ['icon' => 'bi-gender-ambiguous', 'label' => 'Gender'],
-                                    'marital_status' => ['icon' => 'bi-heart', 'label' => 'Marital'],
-                                    'phone_number' => ['icon' => 'bi-telephone', 'label' => 'Phone']
-                                ];
-                                @endphp
-
-                                @foreach($filters as $key => $meta)
-                                    @if(request($key))
-                                        <span class="badge bg-primary-subtle border border-primary-subtle text-primary p-2 d-flex align-items-center">
-                                            <i class="bi {{ $meta['icon'] }} me-1"></i>
-                                            {{ $meta['label'] }}: <strong class="ms-1">{{ request($key) }}</strong>
-                                            <a href="{{ remove_filter_url($key) }}" class="text-primary ms-2">
-                                                <i class="bi bi-x"></i>
-                                            </a>
-                                        </span>
-                                    @endif
-                                @endforeach
+                            {{-- Role Type --}}
+                            <div class="col-xxl-3 col-xl-3 col-lg-3 col-md-6 col-sm-6">
+                                <label class="form-label small text-muted fw-semibold mb-1">Role Type</label>
+                                <select name="type" class="form-select form-select-sm">
+                                    <option value="">All Roles</option>
+                                    <option value="Beneficiary" {{ request('type') == 'Beneficiary' ? 'selected' : '' }}>Beneficiary</option>
+                                    <option value="Stakeholder" {{ request('type') == 'Stakeholder' ? 'selected' : '' }}>Stakeholder</option>
+                                </select>
                             </div>
                         </div>
                     </div>
-                    @endif
+
+                    {{-- Buttons - Always on the side --}}
+                    <div class="col-xxl-4 col-xl-4 col-lg-4 col-md-12 d-flex justify-content-end align-items-end flex-wrap gap-2">
+                        <button class="btn btn-primary btn-sm d-flex align-items-center">
+                            <i class="bi bi-funnel me-2"></i>Apply Filters
+                        </button>
+
+                        <a href="{{ route('users.index') }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center">
+                            <i class="bi bi-arrow-clockwise me-2"></i>Reset
+                        </a>
+                    </div>
+                </form>
+
+                {{-- ACTIVE FILTERS --}}
+                @if($hasSearch)
+                <div class="mt-3 pt-3 border-top">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <span class="fw-semibold text-muted small">Active Filters:</span>
+                        <div class="d-flex flex-wrap gap-2">
+                            @php
+                            $filters = [
+                                'name' => ['icon' => 'bi-person', 'label' => 'Name'],
+                                'gender' => ['icon' => 'bi-gender-ambiguous', 'label' => 'Gender'],
+                                'marital_status' => ['icon' => 'bi-heart', 'label' => 'Marital'],
+                                'employment_status' => ['icon' => 'bi-briefcase', 'label' => 'Employment'],
+                                'type' => ['icon' => 'bi-person-badge', 'label' => 'Role'],
+                                'phone_number' => ['icon' => 'bi-telephone', 'label' => 'Phone']
+                            ];
+                            @endphp
+
+                            @foreach($filters as $key => $meta)
+                                @if(request($key))
+                                    <span class="badge bg-primary-subtle border border-primary-subtle text-primary p-2 d-flex align-items-center">
+                                        <i class="bi {{ $meta['icon'] }} me-1"></i>
+                                        {{ $meta['label'] }}: <strong class="ms-1">{{ request($key) }}</strong>
+                                       <a href="{{ request()->fullUrlWithQuery([$key => null]) }}" class="text-primary ms-2">
+                                            <i class="bi bi-x"></i>
+                                        </a>
+                                    </span>
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
                 </div>
+                @endif
             </div>
         </div>
     </div>
-
+</div>
     {{-- ========================================================= --}}
     {{-- USERS TABLE --}}
     {{-- ========================================================= --}}
@@ -272,36 +294,20 @@
                                         @endif
                                     </td>
 
-                                    {{-- STATUS --}}
-                                    <td class="small">
-                                        <div class="d-flex flex-column gap-1">
-                                            {{-- USER TYPE --}}
-                                            <span class="badge fw-semibold py-2
-                                                @class([
-                                                    'bg-danger' => $user->type == 'Admin',
-                                                    'bg-primary' => $user->type == 'Employee',
-                                                    'bg-success' => $user->type == 'Customer',
-                                                    'bg-warning text-dark' => $user->type == 'Partner',
-                                                    'bg-secondary' => !in_array($user->type, ['Admin','Employee','Customer','Partner']),
-                                                ])
-                                            ">
-                                                {{ $user->type ?? 'Stakeholder' }}
-                                            </span>
+                                   {{-- STATUS --}}
+<td class="small">
+    <div class="d-flex flex-column gap-1">
+        {{-- USER TYPE --}}
+        <span class="fw-semibold text-dark">
+            {{ $user->type ?? 'Stakeholder' }}
+        </span>
 
-                                            {{-- EMPLOYMENT --}}
-                                            <span class="badge fw-semibold py-2
-                                                @class([
-                                                    'bg-success bg-opacity-75' => $user->employment_status == 'Employed',
-                                                    'bg-danger bg-opacity-75' => $user->employment_status == 'Unemployed',
-                                                    'bg-info' => $user->employment_status == 'Student',
-                                                    'bg-secondary' => $user->employment_status == 'Retired',
-                                                    'bg-light text-dark border border-secondary' => !in_array($user->employment_status, ['Employed','Unemployed','Student','Retired']),
-                                                ])
-                                            ">
-                                                {{ $user->employment_status ?? 'Not specified' }}
-                                            </span>
-                                        </div>
-                                    </td>
+        {{-- EMPLOYMENT --}}
+        <span class="fw-semibold text-dark">
+            {{ $user->employment_status ?? 'Not specified' }}
+        </span>
+    </div>
+</td>
 
                                     {{-- ACTIONS --}}
                                     <td class="text-center">
@@ -312,8 +318,6 @@
                                                title="Edit User" data-bs-toggle="tooltip">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
-
-                                            
 
                                             {{-- Delete --}}
                                             <form method="POST" action="{{ route('users.destroy', $user->user_id ) }}"
@@ -380,11 +384,14 @@
                         <div class="d-flex align-items-center flex-wrap gap-3">
                             <span id="selectedCount" class="fw-semibold text-dark small">0 users selected</span>
                             <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary btn-sm d-flex align-items-center">
+                                <button class="btn btn-outline-primary btn-sm d-flex align-items-center" id="exportSelected">
                                     <i class="bi bi-file-earmark-arrow-up me-2"></i> Export Selected
                                 </button>
-                                <button class="btn btn-outline-danger btn-sm d-flex align-items-center">
+                                <button class="btn btn-outline-danger btn-sm d-flex align-items-center" id="deleteSelected">
                                     <i class="bi bi-trash me-2"></i> Delete Selected
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm d-flex align-items-center" id="deleteAllUsers">
+                                    <i class="bi bi-trash-fill me-2"></i> Delete All Users
                                 </button>
                             </div>
                         </div>
@@ -436,12 +443,8 @@
 
 @endsection
 
-{{-- ========================================================= --}}
-{{-- STYLES --}}
-{{-- ========================================================= --}}
 @section('styles')
 <style>
-    /* Consistent Card Styling */
     .card {
         border-radius: 8px;
         border: 1px solid #e9ecef;
@@ -463,7 +466,6 @@
         padding: 1.25rem;
     }
 
-    /* Professional Button System */
     .btn {
         border-radius: 6px;
         font-weight: 500;
@@ -484,7 +486,6 @@
         font-size: 0.8125rem;
     }
 
-    /* Primary Button */
     .btn-primary {
         background: #4361ee;
         border-color: #4361ee;
@@ -498,7 +499,6 @@
         box-shadow: 0 2px 4px rgba(67, 97, 238, 0.3);
     }
 
-    /* Outline Buttons */
     .btn-outline-primary {
         background: transparent;
         border-color: #4361ee;
@@ -538,7 +538,6 @@
         transform: translateY(-1px);
     }
 
-    /* Button Group Styling */
     .btn-group {
         border-radius: 6px;
         overflow: hidden;
@@ -557,11 +556,6 @@
     .btn-group .btn:last-child {
         border-top-right-radius: 6px;
         border-bottom-right-radius: 6px;
-    }
-
-    /* Table Styling */
-    .table {
-        margin: 0;
     }
 
     .table th {
@@ -585,13 +579,11 @@
         background-color: #f8f9fa;
     }
 
-    /* Avatar */
     .avatar-sm {
         width: 44px;
         height: 44px;
     }
 
-    /* Badges */
     .badge {
         font-size: 0.75rem;
         padding: 0.4em 0.65em;
@@ -609,17 +601,6 @@
         color: #856404 !important;
     }
 
-    /* Stats Box */
-    .stat-box {
-        border-right: 1px solid #e9ecef;
-        padding: 0.5rem 0;
-    }
-
-    .stat-box:last-child {
-        border-right: none;
-    }
-
-    /* Input Groups */
     .input-group-sm {
         border-radius: 6px;
     }
@@ -635,7 +616,6 @@
         border-color: #e9ecef;
     }
 
-    /* Bulk Actions Bar */
     .fixed-bottom-bar {
         position: fixed;
         bottom: 0;
@@ -649,7 +629,6 @@
         border-radius: 8px 8px 0 0;
     }
 
-    /* Responsive */
     @media (max-width: 768px) {
         .card-body {
             padding: 1rem;
@@ -672,9 +651,6 @@
 </style>
 @endsection
 
-{{-- ========================================================= --}}
-{{-- SCRIPTS --}}
-{{-- ========================================================= --}}
 @section('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -702,6 +678,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const bar = document.getElementById('bulkActionsBar');
     const countLabel = document.getElementById('selectedCount');
     const clearSel = document.getElementById('clearSelection');
+    const deleteSelected = document.getElementById('deleteSelected');
+    const deleteAllUsers = document.getElementById('deleteAllUsers');
+    const exportSelected = document.getElementById('exportSelected');
 
     function updateBar() {
         const visible = [...checkboxes].filter(cb => cb.closest('.user-row').style.display !== 'none');
@@ -740,6 +719,96 @@ document.addEventListener('DOMContentLoaded', () => {
             checkboxes.forEach(cb => cb.checked = false);
             if (selectAll) selectAll.checked = false;
             updateBar();
+        });
+    }
+
+    // Delete Selected Users
+    if (deleteSelected) {
+        deleteSelected.addEventListener('click', () => {
+            const selectedIds = [...checkboxes]
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+
+            if (selectedIds.length === 0) {
+                alert('Please select at least one user to delete.');
+                return;
+            }
+
+            if (confirm(`Are you sure you want to delete ${selectedIds.length} selected user(s)?`)) {
+                // Create form and submit
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '{{ route("users.bulk-delete") }}';
+                
+                const csrfToken = document.createElement('input');
+                csrfToken.type = 'hidden';
+                csrfToken.name = '_token';
+                csrfToken.value = '{{ csrf_token() }}';
+                form.appendChild(csrfToken);
+
+                const methodInput = document.createElement('input');
+                methodInput.type = 'hidden';
+                methodInput.name = '_method';
+                methodInput.value = 'DELETE';
+                form.appendChild(methodInput);
+
+                selectedIds.forEach(id => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'user_ids[]';
+                    input.value = id;
+                    form.appendChild(input);
+                });
+
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    }
+
+    // Delete All Users
+    if (deleteAllUsers) {
+        deleteAllUsers.addEventListener('click', () => {
+            if (confirm('Are you sure you want to delete ALL users? This action cannot be undone!')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '{{ route("users.delete-all") }}';
+                
+                const csrfToken = document.createElement('input');
+                csrfToken.type = 'hidden';
+                csrfToken.name = '_token';
+                csrfToken.value = '{{ csrf_token() }}';
+                form.appendChild(csrfToken);
+
+                const methodInput = document.createElement('input');
+                methodInput.type = 'hidden';
+                methodInput.name = '_method';
+                methodInput.value = 'DELETE';
+                form.appendChild(methodInput);
+
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    }
+
+    // Export Selected Users
+    if (exportSelected) {
+        exportSelected.addEventListener('click', () => {
+            const selectedIds = [...checkboxes]
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+
+            if (selectedIds.length === 0) {
+                alert('Please select at least one user to export.');
+                return;
+            }
+
+            // Create URL with selected IDs
+            const params = new URLSearchParams();
+            selectedIds.forEach(id => params.append('user_ids[]', id));
+            
+            window.location.href = `{{ route("users.export.excel") }}?${params.toString()}`;
         });
     }
 

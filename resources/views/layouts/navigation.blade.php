@@ -6,8 +6,9 @@
                 <i class="bi bi-people-fill text-primary fs-4"></i>
             </div>
             <div>
-                <div class="text-uppercase fw-bold fs-3 text-white">Hariri Foundation</div>
-                <div class="text-white-50 small">Management System</div>
+                <div class="text-uppercase fw-bold fs-5 text-white">Hariri</div>
+                <div class="text-uppercase fw-bold fs-5 text-white">Foundation</div>
+                <div class="text-white-50 small mt-1">Management System</div>
             </div>
         </div>
     </div>
@@ -45,9 +46,14 @@
                             <i class="bi bi-person-plus me-2"></i> Add New User
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('users.import.form') ? 'active' : '' }}" 
+                           href="{{ route('users.import.form') }}">
+                            <i class="bi bi-cloud-upload me-2"></i> Import Users
+                        </a>
+                    </li>
                     
-                    {{-- User Analytics --}}
-                  
+                    
                         <a class="nav-link {{ request()->routeIs('users.statistics') ? 'active' : '' }}" 
                            href="{{ route('users.statistics') }}">
                             <i class="bi bi-bar-chart me-2"></i> User Statistics
@@ -91,6 +97,11 @@
                             <i class="bi bi-plus-circle me-2"></i> Create Program
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="bi bi-cloud-upload me-2"></i> Import Programs
+                        </a>
+                    </li>
                     
                     {{-- Program Analytics --}}
                     <li class="nav-item sub-header">Analytics</li>
@@ -128,6 +139,11 @@
                     <li class="nav-item">
                         <a class="nav-link" href="#">
                             <i class="bi bi-plus-circle me-2"></i> New Project
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="bi bi-cloud-upload me-2"></i> Import Projects
                         </a>
                     </li>
                     
@@ -169,6 +185,11 @@
                             <i class="bi bi-plus-circle me-2"></i> Schedule Activity
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="bi bi-cloud-upload me-2"></i> Import Activities
+                        </a>
+                    </li>
                     
                     {{-- Activity Analytics --}}
                     <li class="nav-item sub-header">Analytics</li>
@@ -205,6 +226,11 @@
                 <i class="bi bi-graph-up-arrow me-2"></i> Performance Overview
             </a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="bi bi-arrow-left-right me-2"></i> Data Integration
+            </a>
+        </li>
     </ul>
 
     {{-- Administration --}}
@@ -225,6 +251,11 @@
                 <i class="bi bi-database me-2"></i> Data Management
             </a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="bi bi-upload me-2"></i> Bulk Operations
+            </a>
+        </li>
     </ul>
     
     {{-- Help Section --}}
@@ -237,6 +268,9 @@
                 <div class="d-grid gap-2">
                     <a href="#" class="btn btn-warning btn-sm">
                         <i class="bi bi-headset me-1"></i> Contact Support
+                    </a>
+                    <a href="#" class="btn btn-outline-light btn-sm">
+                        <i class="bi bi-book me-1"></i> Documentation
                     </a>
                 </div>
             </div>
@@ -288,4 +322,35 @@
     transition: transform 0.2s ease-in-out;
     font-size: 0.75rem;
 }
+
+/* Better brand display */
+.navbar-brand .text-uppercase {
+    line-height: 1.1;
+}
 </style>
+
+<script>
+// Add collapse icon rotation
+document.addEventListener('DOMContentLoaded', function() {
+    const collapseLinks = document.querySelectorAll('[data-bs-toggle="collapse"]');
+    
+    collapseLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            const icon = this.querySelector('.collapse-icon');
+            if (icon) {
+                icon.style.transform = icon.style.transform === 'rotate(180deg)' ? 'rotate(0deg)' : 'rotate(180deg)';
+            }
+        });
+        
+        // Set initial state for open collapses
+        const targetId = link.getAttribute('href');
+        const targetCollapse = document.querySelector(targetId);
+        if (targetCollapse && targetCollapse.classList.contains('show')) {
+            const icon = link.querySelector('.collapse-icon');
+            if (icon) {
+                icon.style.transform = 'rotate(180deg)';
+            }
+        }
+    });
+});
+</script>

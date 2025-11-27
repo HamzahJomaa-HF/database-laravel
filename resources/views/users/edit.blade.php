@@ -236,6 +236,24 @@
                                     </div>
 
                                     <div class="col-md-6">
+                                        <label for="email" class="form-label fw-semibold">
+                                            Email <span class="text-danger">*</span>
+                                        </label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light border-end-0">
+                                                <i class="bi bi-envelope-at text-muted"></i>
+                                            </span>
+                                            <input type="email" name="email" id="email"
+                                                   class="form-control @error('email') is-invalid @enderror"
+                                                   value="{{ old('email', $user->email) }}"
+                                                   placeholder="Enter email address" required>
+                                        </div>
+                                        @error('email')
+                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6">
                                         <label for="gender" class="form-label fw-semibold">Gender</label>
                                         <select name="gender" id="gender" class="form-select @error('gender') is-invalid @enderror">
                                             <option value="">Select Gender</option>
@@ -275,6 +293,82 @@
                                                    placeholder="+961 00 000 000">
                                         </div>
                                         @error('phone_number')
+                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Nationalities Section --}}
+                        <div class="section-card mb-4">
+                            <div class="section-header">
+                                <i class="bi bi-globe me-2"></i>
+                                <h6 class="mb-0 fw-semibold">Nationalities</h6>
+                                <span class="text-muted small">Select one or more nationalities</span>
+                            </div>
+                            <div class="section-body">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <label class="form-label fw-semibold">Select Nationalities</label>
+                                        <div class="multi-select-container">
+                                            <select name="nationalities[]" id="nationalities" class="form-select multi-select" multiple size="5">
+                                                @foreach($nationalities as $nationality)
+                                                    <option value="{{ $nationality->nationality_id }}" 
+                                                        {{ in_array($nationality->nationality_id, old('nationalities', $user->nationalities->pluck('nationality_id')->toArray())) ? 'selected' : '' }}>
+                                                        {{ $nationality->name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                            <div class="multi-select-info mt-2">
+                                                <small class="text-muted">
+                                                    <i class="bi bi-info-circle me-1"></i>
+                                                    Hold <kbd>Ctrl</kbd> (Windows) or <kbd>Cmd</kbd> (Mac) to select multiple options
+                                                </small>
+                                            </div>
+                                        </div>
+                                        @error('nationalities')
+                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
+                                        @error('nationalities.*')
+                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Diplomas Section --}}
+                        <div class="section-card mb-4">
+                            <div class="section-header">
+                                <i class="bi bi-mortarboard me-2"></i>
+                                <h6 class="mb-0 fw-semibold">Educational Qualifications</h6>
+                                <span class="text-muted small">Select one or more education levels</span>
+                            </div>
+                            <div class="section-body">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <label class="form-label fw-semibold">Select Education Levels</label>
+                                        <div class="multi-select-container">
+                                            <select name="diplomas[]" id="diplomas" class="form-select multi-select" multiple size="5">
+                                                @foreach($diplomas as $diploma)
+                                                    <option value="{{ $diploma->diploma_id }}" 
+                                                        {{ in_array($diploma->diploma_id, old('diplomas', $user->diplomas->pluck('diploma_id')->toArray())) ? 'selected' : '' }}>
+                                                        {{ $diploma->diploma_name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                            <div class="multi-select-info mt-2">
+                                                <small class="text-muted">
+                                                    <i class="bi bi-info-circle me-1"></i>
+                                                    Hold <kbd>Ctrl</kbd> (Windows) or <kbd>Cmd</kbd> (Mac) to select multiple options
+                                                </small>
+                                            </div>
+                                        </div>
+                                        @error('diplomas')
+                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
+                                        @error('diplomas.*')
                                             <div class="invalid-feedback d-block">{{ $message }}</div>
                                         @enderror
                                     </div>
@@ -345,16 +439,6 @@
                                 <span class="text-muted small">Optional identification information</span>
                             </div>
                             <div class="section-body">
-                                <div class="alert alert-info mb-4">
-                                    <div class="d-flex">
-                                        <i class="bi bi-info-circle-fill me-2"></i>
-                                        <div>
-                                            <h6 class="alert-heading mb-1">Identification Information</h6>
-                                            <p class="mb-0">Update identification details. All fields are optional but recommended for complete records.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <label for="identification_id" class="form-label fw-semibold">National ID</label>
@@ -533,6 +617,74 @@
     .avatar-placeholder {
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
+
+    /* Multi-select styling */
+    .multi-select-container {
+        position: relative;
+    }
+
+    .multi-select {
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 0.5rem;
+        transition: all 0.3s ease;
+        background: white;
+    }
+
+    .multi-select:focus {
+        border-color: #4361ee;
+        box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.25);
+    }
+
+    .multi-select option {
+        padding: 0.5rem 0.75rem;
+        margin: 2px 0;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+    }
+
+    .multi-select option:hover {
+        background-color: #4361ee !important;
+        color: white;
+    }
+
+    .multi-select option:checked {
+        background-color: #4361ee;
+        color: white;
+        font-weight: 600;
+    }
+
+    .multi-select-info {
+        background: #f8f9fa;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        border-left: 3px solid #4361ee;
+    }
+
+    .multi-select-info kbd {
+        background: #4361ee;
+        color: white;
+        padding: 0.1rem 0.3rem;
+        border-radius: 3px;
+        font-size: 0.75rem;
+    }
+
+    /* Selected items counter */
+    .selected-counter {
+        position: absolute;
+        top: -8px;
+        right: 10px;
+        background: #4361ee;
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        font-size: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+    }
 </style>
 @endsection
 
@@ -565,25 +717,66 @@
             });
         });
         
-       // Lebanese phone number formatting (optional)
-const phoneInput = document.getElementById('phone_number');
-phoneInput.addEventListener('input', function(e) {
-    let value = e.target.value.replace(/\D/g, '');
-    
-    // If user starts with 961, format as Lebanese number
-    if (value.startsWith('961')) {
-        value = value.substring(3); // Remove 961
-        if (value.length > 0) {
-            value = '+961 ' + value.substring(0, 2) + ' ' + value.substring(2, 5) + ' ' + value.substring(5, 8);
+        // Lebanese phone number formatting (optional)
+        const phoneInput = document.getElementById('phone_number');
+        phoneInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            
+            // If user starts with 961, format as Lebanese number
+            if (value.startsWith('961')) {
+                value = value.substring(3); // Remove 961
+                if (value.length > 0) {
+                    value = '+961 ' + value.substring(0, 2) + ' ' + value.substring(2, 5) + ' ' + value.substring(5, 8);
+                }
+            }
+            // If user starts with numbers directly, assume it's Lebanese mobile
+            else if (value.length > 0 && !value.startsWith('1')) {
+                value = '+961 ' + value.substring(0, 2) + ' ' + value.substring(2, 5) + ' ' + value.substring(5, 8);
+            }
+            
+            e.target.value = value;
+        });
+
+        // Enhanced multi-select functionality
+        const nationalitiesSelect = document.getElementById('nationalities');
+        const diplomasSelect = document.getElementById('diplomas');
+
+        // Add visual feedback for multi-select
+        function enhanceMultiSelect(selectElement) {
+            // Create selected counter
+            const counter = document.createElement('div');
+            counter.className = 'selected-counter';
+            updateCounter(selectElement, counter);
+            
+            selectElement.parentNode.style.position = 'relative';
+            selectElement.parentNode.appendChild(counter);
+            
+            // Update counter on change
+            selectElement.addEventListener('change', function() {
+                updateCounter(this, counter);
+            });
+            
+            // Add hover effects
+            selectElement.addEventListener('mouseenter', function() {
+                this.style.borderColor = '#4361ee';
+            });
+            
+            selectElement.addEventListener('mouseleave', function() {
+                if (!this.matches(':focus')) {
+                    this.style.borderColor = '#e9ecef';
+                }
+            });
         }
-    }
-    // If user starts with numbers directly, assume it's Lebanese mobile
-    else if (value.length > 0 && !value.startsWith('1')) {
-        value = '+961 ' + value.substring(0, 2) + ' ' + value.substring(2, 5) + ' ' + value.substring(5, 8);
-    }
-    
-    e.target.value = value;
-});
+
+        function updateCounter(selectElement, counter) {
+            const selectedCount = Array.from(selectElement.selectedOptions).length;
+            counter.textContent = selectedCount;
+            counter.style.display = selectedCount > 0 ? 'flex' : 'none';
+        }
+
+        // Initialize enhanced multi-selects
+        enhanceMultiSelect(nationalitiesSelect);
+        enhanceMultiSelect(diplomasSelect);
 
         // Show changes made
         const originalFormData = new FormData(form);

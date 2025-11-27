@@ -22,6 +22,7 @@ class User extends Model
         'last_name',
         'gender',
         'dob',
+        'email',
         'register_number',
         'phone_number',
         'marital_status',
@@ -40,17 +41,14 @@ class User extends Model
         parent::boot();
 
         static::creating(function ($user) {
-            // Generate UUID if not already set
             if (empty($user->user_id)) {
                 $user->user_id = (string) Str::uuid();
             }
 
-            // Set default type to Stakeholder if not provided
             if (empty($user->type)) {
                 $user->type = 'Stakeholder';
             }
 
-            // REMOVE the complex validation logic below - only require first_name and last_name
             if (empty($user->first_name) || empty($user->last_name)) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
                     'first_name' => 'First name is required.',
@@ -73,6 +71,15 @@ class User extends Model
 
     public function diplomas()
     {
-        return $this->belongsToMany(Diploma::class, 'users_diploma', 'user_id', 'diploma_id');
+        return $this->belongsToMany(Diploma::class, 'users_diploma', 'user_id', 'diploma_id')
+                    ->withPivot('created_at', 'updated_at')
+                    ->withTimestamps();
+    }
+
+    public function nationalities()
+    {
+        return $this->belongsToMany(Nationality::class, 'users_nationality', 'user_id', 'nationality_id')
+                    ->withPivot('created_at', 'updated_at')
+                    ->withTimestamps();
     }
 }
