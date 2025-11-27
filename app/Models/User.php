@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 
 class User extends Model
 {
@@ -29,10 +28,9 @@ class User extends Model
         'employment_status',
         'passport_number',
         'register_place',
-        'type', // <- added new column
+        'type',
     ];
 
-    // Cast dob to a Carbon instance
     protected $casts = [
         'dob' => 'date',
     ];
@@ -47,30 +45,16 @@ class User extends Model
                 $user->user_id = (string) Str::uuid();
             }
 
-            // Check the creation logic
-            $condition1 = !empty($user->identification_id);
-            $condition2 = !empty($user->passport_number);
-            $condition3 = (
-                !empty($user->dob) &&
-                !empty($user->phone_number) &&
-                !empty($user->first_name) &&
-                !empty($user->middle_name) &&
-                !empty($user->last_name)
-            );
-            $condition4 = (
-                !empty($user->register_number) &&
-                !empty($user->register_place) &&
-                !empty($user->first_name) &&
-                !empty($user->middle_name) &&
-                !empty($user->last_name) &&
-                !empty($user->dob)
-            );
+            // Set default type to Stakeholder if not provided
+            if (empty($user->type)) {
+                $user->type = 'Stakeholder';
+            }
 
-            if (!($condition1 || $condition2 || $condition3 || $condition4)) {
-                throw ValidationException::withMessages([
-                    'user' => 'User creation requires either identification_id, passport_number, 
-                    (dob, phone_number, first_name, middle_name, last_name), 
-                    or (register_number, register_place, first_name, middle_name, last_name, dob).'
+            // REMOVE the complex validation logic below - only require first_name and last_name
+            if (empty($user->first_name) || empty($user->last_name)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'first_name' => 'First name is required.',
+                    'last_name' => 'Last name is required.'
                 ]);
             }
         });

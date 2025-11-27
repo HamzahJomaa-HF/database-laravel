@@ -16,7 +16,19 @@ Route::put('/users/{user_id}', [UserController::class, 'update'])->name('users.u
 Route::delete('/users/{user_id}', [UserController::class, 'destroy'])->name('users.destroy'); // Changed to user_id
 Route::get('/users/dashboard', [UserController::class, 'dashboard'])->name('users.dashboard');
 
+// WEB Analytics routes (return views)
+Route::get('/users/dashboard', [UserController::class, 'dashboard'])->name('users.dashboard');
+Route::get('/users/statistics', [UserController::class, 'statistics'])->name('users.statistics');
+Route::get('/users/reports', [UserController::class, 'reports'])->name('users.reports');
 // Auth routes
 Route::middleware(['auth:sanctum', 'verified'])->get('/dashboard', function () {
     return view('dashboard');
 })->name('dashboard');
+
+// Export route
+Route::get('/users/export/excel', [UserController::class, 'exportExcel'])->name('users.export.excel');
+
+// import functionality
+Route::get('/users/import', [UserController::class, 'showImportForm'])->name('users.import.form');
+Route::post('/users/import', [UserController::class, 'import'])->name('users.import');
+Route::get('/users/import/template', [UserController::class, 'downloadTemplate'])->name('users.import.template');
