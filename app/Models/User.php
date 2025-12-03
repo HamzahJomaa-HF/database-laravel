@@ -16,24 +16,24 @@ class User extends Authenticatable
     protected $keyType = 'string';
 
     protected $fillable = [
-        // Required Fields (X)
+        // Required Fields
         'prefix',
         'is_high_profile',
         'scope',
-        'community_of_practice',
+        'default_cop_id', // Foreign key to cops table
         'first_name',
-        'last_name', // Using last_name instead of family_name
+        'last_name',
         'gender',
         'position_1',
         'organization_1',
         'organization_type_1',
         'status_1',
         'address',
-        'mobile_phone',
+        'phone_number', // CHANGED: from mobile_phone to phone_number
         
         // Optional Fields
         'sector',
-        'middle_name', // Using middle_name instead of father_name
+        'middle_name',
         'dob',
         'office_phone',
         'extension_number',
@@ -50,7 +50,7 @@ class User extends Authenticatable
         'identification_id',
         'mother_name',
         'register_number',
-        'phone_number',
+        // REMOVED: 'phone_number', (duplicate)
         'marital_status',
         'employment_status',
         'passport_number',
@@ -69,13 +69,12 @@ class User extends Authenticatable
         'updated_at' => 'datetime',
     ];
 
-    // Add these for scope ENUM values
+    // Constants for ENUM values
     public const SCOPE_INTERNATIONAL = 'International';
     public const SCOPE_REGIONAL = 'Regional';
     public const SCOPE_NATIONAL = 'National';
     public const SCOPE_LOCAL = 'Local';
 
-    // Organization types
     public const ORG_TYPE_PUBLIC = 'Public Sector';
     public const ORG_TYPE_PRIVATE = 'Private Sector';
     public const ORG_TYPE_ACADEMIA = 'Academia';
@@ -85,12 +84,10 @@ class User extends Authenticatable
     public const ORG_TYPE_NGOS = 'NGOs';
     public const ORG_TYPE_ACTIVIST = 'Activist';
 
-    // Gender options
     public const GENDER_MALE = 'Male';
     public const GENDER_FEMALE = 'Female';
     public const GENDER_OTHER = 'Other';
 
-    // User types (for backward compatibility)
     public const TYPE_STAKEHOLDER = 'Stakeholder';
     public const TYPE_EMPLOYEE = 'Employee';
     public const TYPE_ADMIN = 'Admin';
@@ -112,87 +109,16 @@ class User extends Authenticatable
                 $user->is_high_profile = false;
             }
 
-            // Validate required fields
-            $requiredFields = [
-                'scope' => 'Scope',
-                'community_of_practice' => 'Community of Practice',
-                'first_name' => 'First Name',
-                'last_name' => 'Last Name', // Changed from family_name
-                'gender' => 'Gender',
-                'position_1' => 'Position 1',
-                'organization_1' => 'Organization 1',
-                'organization_type_1' => 'Type of Organization 1',
-                'status_1' => 'Status 1',
-                'address' => 'Address',
-                'mobile_phone' => 'Mobile Phone',
-            ];
-
-            $errors = [];
-            foreach ($requiredFields as $field => $fieldName) {
-                if (empty($user->$field)) {
-                    $errors[$field] = "{$fieldName} is required.";
-                }
+            // Set default type if not provided
+            if (empty($user->type)) {
+                $user->type = self::TYPE_STAKEHOLDER;
             }
-
-            // Validate ENUM fields
-            if ($user->scope && !in_array($user->scope, [
-                self::SCOPE_INTERNATIONAL,
-                self::SCOPE_REGIONAL,
-                self::SCOPE_NATIONAL,
-                self::SCOPE_LOCAL
-            ])) {
-                $errors['scope'] = 'Invalid scope value.';
-            }
-
-            if ($user->gender && !in_array($user->gender, [
-                self::GENDER_MALE,
-                self::GENDER_FEMALE,
-                self::GENDER_OTHER
-            ])) {
-                $errors['gender'] = 'Invalid gender value.';
-            }
-
-            if ($user->organization_type_1 && !in_array($user->organization_type_1, [
-                self::ORG_TYPE_PUBLIC,
-                self::ORG_TYPE_PRIVATE,
-                self::ORG_TYPE_ACADEMIA,
-                self::ORG_TYPE_UN,
-                self::ORG_TYPE_INGOS,
-                self::ORG_TYPE_CIVIL_SOCIETY,
-                self::ORG_TYPE_NGOS,
-                self::ORG_TYPE_ACTIVIST
-            ])) {
-                $errors['organization_type_1'] = 'Invalid organization type 1 value.';
-            }
-
-            if ($user->organization_type_2 && !in_array($user->organization_type_2, [
-                self::ORG_TYPE_PUBLIC,
-                self::ORG_TYPE_PRIVATE,
-                self::ORG_TYPE_ACADEMIA,
-                self::ORG_TYPE_UN,
-                self::ORG_TYPE_INGOS,
-                self::ORG_TYPE_CIVIL_SOCIETY,
-                self::ORG_TYPE_NGOS,
-                self::ORG_TYPE_ACTIVIST
-            ])) {
-                $errors['organization_type_2'] = 'Invalid organization type 2 value.';
-            }
-
-            if (!empty($errors)) {
-                throw \Illuminate\Validation\ValidationException::withMessages($errors);
-            }
-
-            // Copy mobile_phone to phone_number for backward compatibility if phone_number is empty
-            if (empty($user->phone_number) && !empty($user->mobile_phone)) {
-                $user->phone_number = $user->mobile_phone;
-            }
+            
+            // REMOVED: mobile_phone to phone_number sync logic
         });
 
         static::updating(function ($user) {
-            // Sync mobile_phone with phone_number for backward compatibility
-            if ($user->isDirty('mobile_phone')) {
-                $user->phone_number = $user->mobile_phone;
-            }
+            // REMOVED: mobile_phone to phone_number sync logic
         });
     }
 
@@ -210,15 +136,18 @@ class User extends Authenticatable
     public function diplomas()
     {
         return $this->belongsToMany(Diploma::class, 'users_diploma', 'user_id', 'diploma_id')
-                    ->withPivot('created_at', 'updated_at')
                     ->withTimestamps();
     }
 
     public function nationalities()
     {
         return $this->belongsToMany(Nationality::class, 'users_nationality', 'user_id', 'nationality_id')
-                    ->withPivot('created_at', 'updated_at')
                     ->withTimestamps();
+    }
+
+    public function defaultCop()
+    {
+        return $this->belongsTo(Cop::class, 'default_cop_id', 'cop_id');
     }
 
     // Accessors
@@ -241,20 +170,21 @@ class User extends Authenticatable
         return implode(' ', $parts);
     }
 
-    public function getFormattedMobilePhoneAttribute()
+    // CHANGED: Renamed from getFormattedMobilePhoneAttribute
+    public function getFormattedPhoneNumberAttribute()
     {
-        if (!$this->mobile_phone) {
+        if (!$this->phone_number) {
             return null;
         }
         
         // Format Lebanese phone numbers
-        $phone = preg_replace('/[^\d+]/', '', $this->mobile_phone);
+        $phone = preg_replace('/[^\d+]/', '', $this->phone_number);
         
         if (preg_match('/^\+961(\d{8})$/', $phone, $matches)) {
             return '+961 ' . substr($matches[1], 0, 2) . ' ' . substr($matches[1], 2, 3) . ' ' . substr($matches[1], 5, 3);
         }
         
-        return $this->mobile_phone;
+        return $this->phone_number;
     }
 
     public function getFormattedOfficePhoneAttribute()
@@ -280,6 +210,12 @@ class User extends Authenticatable
         return $this->dob->age;
     }
 
+    // Accessor for backward compatibility (if you still need community_of_practice)
+    public function getCommunityOfPracticeAttribute()
+    {
+        return $this->defaultCop ? $this->defaultCop->cop_name : null;
+    }
+
     // Scopes for filtering
     public function scopeHighProfile($query)
     {
@@ -291,15 +227,17 @@ class User extends Authenticatable
         return $query->where('scope', $scope);
     }
 
-    public function scopeByCommunity($query, $community)
+    public function scopeByDefaultCop($query, $copId)
     {
-        return $query->where('community_of_practice', $community);
+        return $query->where('default_cop_id', $copId);
     }
 
     public function scopeByOrganizationType($query, $type)
     {
-        return $query->where('organization_type_1', $type)
-                    ->orWhere('organization_type_2', $type);
+        return $query->where(function($q) use ($type) {
+            $q->where('organization_type_1', $type)
+              ->orWhere('organization_type_2', $type);
+        });
     }
 
     public function scopeBySector($query, $sector)
@@ -311,8 +249,8 @@ class User extends Authenticatable
     {
         return $query->where(function ($q) use ($name) {
             $q->where('first_name', 'ilike', "%$name%")
-              ->orWhere('middle_name', 'ilike', "%$name%") // Changed from father_name
-              ->orWhere('last_name', 'ilike', "%$name%") // Changed from family_name
+              ->orWhere('middle_name', 'ilike', "%$name%")
+              ->orWhere('last_name', 'ilike', "%$name%")
               ->orWhere('mother_name', 'ilike', "%$name%");
         });
     }
@@ -333,13 +271,14 @@ class User extends Authenticatable
         });
     }
 
+    // UPDATED: Removed mobile_phone from search
     public function scopeSearchByPhone($query, $phone)
     {
         return $query->where(function ($q) use ($phone) {
-            $q->where('mobile_phone', 'ilike', "%$phone%")
+            $q->where('phone_number', 'ilike', "%$phone%") // CHANGED: from mobile_phone to phone_number
               ->orWhere('office_phone', 'ilike', "%$phone%")
-              ->orWhere('home_phone', 'ilike', "%$phone%")
-              ->orWhere('phone_number', 'ilike', "%$phone%");
+              ->orWhere('home_phone', 'ilike', "%$phone%");
+            // REMOVED: orWhere('phone_number', 'ilike', "%$phone%")
         });
     }
 
@@ -443,6 +382,18 @@ class User extends Authenticatable
         ];
     }
 
+    public static function getUserTypeOptions()
+    {
+        return [
+            self::TYPE_STAKEHOLDER => 'Stakeholder',
+            self::TYPE_EMPLOYEE => 'Employee',
+            self::TYPE_ADMIN => 'Admin',
+            self::TYPE_CUSTOMER => 'Customer',
+            self::TYPE_PARTNER => 'Partner',
+            self::TYPE_BENEFICIARY => 'Beneficiary',
+        ];
+    }
+
     // Authentication methods override
     public function getAuthIdentifierName()
     {
@@ -456,7 +407,6 @@ class User extends Authenticatable
 
     public function getAuthPassword()
     {
-        // If you have a password field
         return $this->password ?? null;
     }
 

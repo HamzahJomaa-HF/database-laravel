@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Diploma;
 use App\Models\Nationality;
+use App\Models\Cop;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -41,8 +43,8 @@ class UserController extends Controller
             $query->where('scope', $request->scope);
         }
 
-        if ($request->filled('community_of_practice')) {
-            $query->where('community_of_practice', $request->community_of_practice);
+        if ($request->filled('default_cop_id')) {
+            $query->where('default_cop_id', $request->default_cop_id);
         }
 
         if ($request->filled('sector')) {
@@ -65,8 +67,9 @@ class UserController extends Controller
             $query->where('position_1', 'ilike', "%{$request->position_1}%");
         }
 
-        if ($request->filled('mobile_phone')) {
-            $query->where('mobile_phone', 'like', "%{$request->mobile_phone}%");
+        // CHANGED: mobile_phone to phone_number
+        if ($request->filled('phone_number')) {
+            $query->where('phone_number', 'like', "%{$request->phone_number}%");
         }
 
         if ($request->filled('email')) {
@@ -86,9 +89,7 @@ class UserController extends Controller
             $query->where('type', $request->type);
         }
 
-        if ($request->filled('phone_number')) {
-            $query->where('phone_number', 'like', "%{$request->phone_number}%");
-        }
+        // REMOVED: Old phone_number filter since we now use it as the main phone field
 
         if ($request->filled('dob_from')) {
             $query->whereDate('dob', '>=', $request->dob_from);
@@ -98,14 +99,17 @@ class UserController extends Controller
             $query->whereDate('dob', '<=', $request->dob_to);
         }
 
-        // Use last_name for sorting
-        $users = $query->orderBy('last_name', 'asc')->paginate(20)->withQueryString();
+        // Eager load the default CoP relationship
+        $users = $query->with('defaultCop')
+            ->orderBy('last_name', 'asc')
+            ->paginate(20)
+            ->withQueryString();
 
         // Check if any search/filter was applied
         $hasSearch = $request->anyFilled([
-            'name', 'gender', 'scope', 'community_of_practice', 'sector', 'is_high_profile',
-            'organization_1', 'organization_type_1', 'position_1', 'mobile_phone', 'email',
-            'marital_status', 'employment_status', 'type', 'phone_number', 'dob_from', 'dob_to'
+            'name', 'gender', 'scope', 'default_cop_id', 'sector', 'is_high_profile',
+            'organization_1', 'organization_type_1', 'position_1', 'phone_number', 'email', // CHANGED: mobile_phone to phone_number
+            'marital_status', 'employment_status', 'type', 'dob_from', 'dob_to'
         ]);
 
         return view('users.index', compact('users', 'hasSearch'));
@@ -118,8 +122,9 @@ class UserController extends Controller
     {
         $diplomas = Diploma::orderBy('diploma_name')->get();
         $nationalities = Nationality::orderBy('name')->get();
+        $cops = Cop::orderBy('cop_name')->get();
         
-        return view('users.create', compact('diplomas', 'nationalities'));
+        return view('users.create', compact('diplomas', 'nationalities', 'cops'));
     }
 
     /**
@@ -132,7 +137,7 @@ class UserController extends Controller
             'prefix' => 'nullable|string|max:50',
             'is_high_profile' => 'required|boolean',
             'scope' => ['required', Rule::in(['International', 'Regional', 'National', 'Local'])],
-            'community_of_practice' => 'required|string|max:255',
+            'default_cop_id' => 'nullable|exists:cops,cop_id',
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'gender' => ['required', Rule::in(['Male', 'Female', 'Other'])],
@@ -144,7 +149,8 @@ class UserController extends Controller
             ],
             'status_1' => 'required|string|max:255',
             'address' => 'required|string',
-            'mobile_phone' => 'required|string|max:20',
+            // CHANGED: mobile_phone to phone_number
+            'phone_number' => 'required|string|max:20',
             
             // Optional fields from new structure
             'sector' => 'nullable|string|max:255',
@@ -166,7 +172,6 @@ class UserController extends Controller
             
             // Keep existing fields for backward compatibility
             'mother_name' => 'nullable|string|max:255',
-            'phone_number' => 'nullable|string|max:20',
             'marital_status' => 'nullable|string|max:50',
             'employment_status' => 'nullable|string|max:50',
             'type' => 'nullable|string|max:50|in:Stakeholder,Employee,Admin,Customer,Partner,Beneficiary',
@@ -187,16 +192,16 @@ class UserController extends Controller
         // Prepare user data
         $userData = $request->only([
             // New required fields
-            'prefix', 'is_high_profile', 'scope', 'community_of_practice',
+            'prefix', 'is_high_profile', 'scope', 'default_cop_id',
             'first_name', 'last_name', 'gender', 'position_1', 'organization_1',
-            'organization_type_1', 'status_1', 'address', 'mobile_phone',
+            'organization_type_1', 'status_1', 'address', 'phone_number', // CHANGED: mobile_phone to phone_number
             
             // New optional fields
             'sector', 'middle_name', 'dob', 'office_phone', 'extension_number',
             'home_phone', 'email', 'position_2', 'organization_2', 'organization_type_2', 'status_2',
             
             // Existing fields
-            'mother_name', 'phone_number', 'marital_status',
+            'mother_name', 'marital_status',
             'employment_status', 'type', 'identification_id', 'passport_number',
             'register_number', 'register_place'
         ]);
@@ -227,14 +232,15 @@ class UserController extends Controller
      */
     public function edit($user_id)
     {
-        $user = User::with(['diplomas', 'nationalities'])
+        $user = User::with(['diplomas', 'nationalities', 'defaultCop'])
                     ->where('user_id', $user_id)
                     ->firstOrFail();
                     
         $diplomas = Diploma::orderBy('diploma_name')->get();
         $nationalities = Nationality::orderBy('name')->get();
+        $cops = Cop::orderBy('cop_name')->get();
         
-        return view('users.edit', compact('user', 'diplomas', 'nationalities'));
+        return view('users.edit', compact('user', 'diplomas', 'nationalities', 'cops'));
     }
 
     /**
@@ -249,7 +255,7 @@ class UserController extends Controller
             'prefix' => 'nullable|string|max:50',
             'is_high_profile' => 'required|boolean',
             'scope' => ['required', Rule::in(['International', 'Regional', 'National', 'Local'])],
-            'community_of_practice' => 'required|string|max:255',
+            'default_cop_id' => 'nullable|exists:cops,cop_id',
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'gender' => ['required', Rule::in(['Male', 'Female', 'Other'])],
@@ -261,7 +267,8 @@ class UserController extends Controller
             ],
             'status_1' => 'required|string|max:255',
             'address' => 'required|string',
-            'mobile_phone' => 'required|string|max:20',
+            // CHANGED: mobile_phone to phone_number
+            'phone_number' => 'required|string|max:20',
             
             // Optional fields from new structure
             'sector' => 'nullable|string|max:255',
@@ -288,7 +295,6 @@ class UserController extends Controller
             
             // Keep existing fields for backward compatibility
             'mother_name' => 'nullable|string|max:255',
-            'phone_number' => 'nullable|string|max:20',
             'marital_status' => 'nullable|string|max:50',
             'employment_status' => 'nullable|string|max:50',
             'type' => 'nullable|string|max:50|in:Stakeholder,Employee,Admin,Customer,Partner,Beneficiary',
@@ -319,16 +325,16 @@ class UserController extends Controller
         // Prepare user data
         $userData = $request->only([
             // New required fields
-            'prefix', 'is_high_profile', 'scope', 'community_of_practice',
+            'prefix', 'is_high_profile', 'scope', 'default_cop_id',
             'first_name', 'last_name', 'gender', 'position_1', 'organization_1',
-            'organization_type_1', 'status_1', 'address', 'mobile_phone',
+            'organization_type_1', 'status_1', 'address', 'phone_number', // CHANGED: mobile_phone to phone_number
             
             // New optional fields
             'sector', 'middle_name', 'dob', 'office_phone', 'extension_number',
             'home_phone', 'email', 'position_2', 'organization_2', 'organization_type_2', 'status_2',
             
             // Existing fields
-            'mother_name', 'phone_number', 'marital_status',
+            'mother_name', 'marital_status',
             'employment_status', 'type', 'identification_id', 'passport_number',
             'register_number', 'register_place'
         ]);
@@ -368,112 +374,125 @@ class UserController extends Controller
      * Display user statistics
      */
     public function statistics()
-{
-    try {
-        $totalUsers = User::count();
-        $newThisWeek = User::where('created_at', '>=', now()->subWeek())->count();
-        $newThisMonth = User::where('created_at', '>=', now()->subMonth())->count();
-        
-        // Calculate weekly growth (for last week vs week before)
-        $lastWeekStart = now()->subWeek()->startOfWeek();
-        $lastWeekEnd = now()->subWeek()->endOfWeek();
-        $twoWeeksAgoStart = now()->subWeeks(2)->startOfWeek();
-        
-        $lastWeekCount = User::whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])->count();
-        $twoWeeksAgoCount = User::whereBetween('created_at', [$twoWeeksAgoStart, $lastWeekStart])->count();
-        
-        $weeklyGrowth = $twoWeeksAgoCount > 0 ? 
-            round((($lastWeekCount - $twoWeeksAgoCount) / $twoWeeksAgoCount) * 100, 1) : 
-            ($lastWeekCount > 0 ? 100 : 0);
-        
-        // Get average daily registrations (last 30 days)
-        $avgDailyRegistrations = User::where('created_at', '>=', now()->subDays(30))->count() / 30;
-        
-        // Get beneficiary and stakeholder counts
-        $beneficiaryCount = User::where('type', 'Beneficiary')->count();
-        $stakeholderCount = User::where('type', 'Stakeholder')->count();
-        
-        // Get gender counts
-        $maleCount = User::where('gender', 'Male')->count();
-        $femaleCount = User::where('gender', 'Female')->count();
-        
-        // Get today's registrations
-        $todayRegistrations = User::whereDate('created_at', today())->count();
-        
-        // Calculate average age
-        $avgAge = User::whereNotNull('dob')
-            ->get()
-            ->filter(function($user) {
-                return $user->dob && $user->dob->age > 0;
-            })
-            ->avg(function($user) {
-                return $user->dob->age;
-            });
-        $avgAge = $avgAge ? round($avgAge) : 0;
-        
-        // Get scope distribution counts
-        $scopeDistribution = User::groupBy('scope')
-            ->select('scope', DB::raw('COUNT(*) as count'))
-            ->get();
-        
-        // Get high profile counts
-        $highProfileCount = User::where('is_high_profile', true)->count();
-        $regularProfileCount = User::where('is_high_profile', false)->count();
-        
-        $stats = [
-            'total_users' => $totalUsers,
-            'new_this_week' => $newThisWeek,
-            'new_this_month' => $newThisMonth,
-            'weekly_growth' => $weeklyGrowth,
-            'avg_daily_registrations' => round($avgDailyRegistrations, 1),
-            'beneficiary_count' => $beneficiaryCount,
-            'stakeholder_count' => $stakeholderCount,
-            'male_count' => $maleCount,
-            'female_count' => $femaleCount,
-            'today_registrations' => $todayRegistrations,
-            'avg_age' => $avgAge,
+    {
+        try {
+            $totalUsers = User::count();
+            $newThisWeek = User::where('created_at', '>=', now()->subWeek())->count();
+            $newThisMonth = User::where('created_at', '>=', now()->subMonth())->count();
             
-            // For charts data
-            'scope_distribution' => $scopeDistribution,
-            'high_profile_count' => $highProfileCount,
-            'regular_profile_count' => $regularProfileCount,
+            // Calculate weekly growth (for last week vs week before)
+            $lastWeekStart = now()->subWeek()->startOfWeek();
+            $lastWeekEnd = now()->subWeek()->endOfWeek();
+            $twoWeeksAgoStart = now()->subWeeks(2)->startOfWeek();
             
-            // Keep existing structure for other parts if needed
-            'gender_distribution' => User::groupBy('gender')
-                ->select('gender', DB::raw('COUNT(*) as count'))
-                ->get(),
-            'scope_distribution_raw' => $scopeDistribution,
-            'community_distribution' => User::groupBy('community_of_practice')
-                ->select('community_of_practice', DB::raw('COUNT(*) as count'))
-                ->get(),
-            'organization_type_distribution' => User::groupBy('organization_type_1')
-                ->select('organization_type_1', DB::raw('COUNT(*) as count'))
-                ->get(),
-            'sector_distribution' => User::groupBy('sector')
-                ->select('sector', DB::raw('COUNT(*) as count'))
-                ->get(),
-            'employment_distribution' => User::groupBy('employment_status')
-                ->select('employment_status', DB::raw('COUNT(*) as count'))
-                ->get(),
-            'type_distribution' => User::groupBy('type')
-                ->select('type', DB::raw('COUNT(*) as count'))
-                ->get(),
-            'marital_status_distribution' => User::groupBy('marital_status')
-                ->select('marital_status', DB::raw('COUNT(*) as count'))
-                ->get(),
-            'registration_trends' => $this->getRegistrationTrends(),
-            'data_health_score' => 75,
-            'user_engagement' => 65,
-            'retention_rate' => 80,
-        ];
+            $lastWeekCount = User::whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])->count();
+            $twoWeeksAgoCount = User::whereBetween('created_at', [$twoWeeksAgoStart, $lastWeekStart])->count();
+            
+            $weeklyGrowth = $twoWeeksAgoCount > 0 ? 
+                round((($lastWeekCount - $twoWeeksAgoCount) / $twoWeeksAgoCount) * 100, 1) : 
+                ($lastWeekCount > 0 ? 100 : 0);
+            
+            // Get average daily registrations (last 30 days)
+            $avgDailyRegistrations = User::where('created_at', '>=', now()->subDays(30))->count() / 30;
+            
+            // Get beneficiary and stakeholder counts
+            $beneficiaryCount = User::where('type', 'Beneficiary')->count();
+            $stakeholderCount = User::where('type', 'Stakeholder')->count();
+            
+            // Get gender counts
+            $maleCount = User::where('gender', 'Male')->count();
+            $femaleCount = User::where('gender', 'Female')->count();
+            
+            // Get today's registrations
+            $todayRegistrations = User::whereDate('created_at', today())->count();
+            
+            // Calculate average age
+            $avgAge = User::whereNotNull('dob')
+                ->get()
+                ->filter(function($user) {
+                    return $user->dob && $user->dob->age > 0;
+                })
+                ->avg(function($user) {
+                    return $user->dob->age;
+                });
+            $avgAge = $avgAge ? round($avgAge) : 0;
+            
+            // Get scope distribution counts
+            $scopeDistribution = User::groupBy('scope')
+                ->select('scope', DB::raw('COUNT(*) as count'))
+                ->get();
+            
+            // Get high profile counts
+            $highProfileCount = User::where('is_high_profile', true)->count();
+            $regularProfileCount = User::where('is_high_profile', false)->count();
+            
+            // Get CoP distribution with CoP names
+            $copDistribution = User::with('defaultCop')
+                ->whereNotNull('default_cop_id')
+                ->get()
+                ->groupBy('default_cop.cop_name')
+                ->map(function($group) {
+                    return $group->count();
+                });
+            
+            // Get distribution by CoP ID for raw data
+            $copIdDistribution = User::groupBy('default_cop_id')
+                ->select('default_cop_id', DB::raw('COUNT(*) as count'))
+                ->get();
 
-        return view('users.statistics', compact('stats'));
+            $stats = [
+                'total_users' => $totalUsers,
+                'new_this_week' => $newThisWeek,
+                'new_this_month' => $newThisMonth,
+                'weekly_growth' => $weeklyGrowth,
+                'avg_daily_registrations' => round($avgDailyRegistrations, 1),
+                'beneficiary_count' => $beneficiaryCount,
+                'stakeholder_count' => $stakeholderCount,
+                'male_count' => $maleCount,
+                'female_count' => $femaleCount,
+                'today_registrations' => $todayRegistrations,
+                'avg_age' => $avgAge,
+                
+                // For charts data
+                'scope_distribution' => $scopeDistribution,
+                'high_profile_count' => $highProfileCount,
+                'regular_profile_count' => $regularProfileCount,
+                'cop_distribution' => $copDistribution,
+                'cop_id_distribution' => $copIdDistribution,
+                
+                // Keep existing structure for other parts if needed
+                'gender_distribution' => User::groupBy('gender')
+                    ->select('gender', DB::raw('COUNT(*) as count'))
+                    ->get(),
+                'scope_distribution_raw' => $scopeDistribution,
+                'organization_type_distribution' => User::groupBy('organization_type_1')
+                    ->select('organization_type_1', DB::raw('COUNT(*) as count'))
+                    ->get(),
+                'sector_distribution' => User::groupBy('sector')
+                    ->select('sector', DB::raw('COUNT(*) as count'))
+                    ->get(),
+                'employment_distribution' => User::groupBy('employment_status')
+                    ->select('employment_status', DB::raw('COUNT(*) as count'))
+                    ->get(),
+                'type_distribution' => User::groupBy('type')
+                    ->select('type', DB::raw('COUNT(*) as count'))
+                    ->get(),
+                'marital_status_distribution' => User::groupBy('marital_status')
+                    ->select('marital_status', DB::raw('COUNT(*) as count'))
+                    ->get(),
+                'registration_trends' => $this->getRegistrationTrends(),
+                'data_health_score' => 75,
+                'user_engagement' => 65,
+                'retention_rate' => 80,
+            ];
 
-    } catch (\Exception $e) {
-        return redirect()->route('users.index')
-            ->with('error', 'Failed to load statistics: ' . $e->getMessage());
+            return view('users.statistics', compact('stats'));
+
+        } catch (\Exception $e) {
+            return redirect()->route('users.index')
+                ->with('error', 'Failed to load statistics: ' . $e->getMessage());
+        }
     }
-}
 
     /**
      * Display user reports
@@ -482,7 +501,7 @@ class UserController extends Controller
     {
         try {
             $reports = [
-                'detailed_users' => User::orderBy('created_at', 'desc')->get(),
+                'detailed_users' => User::with('defaultCop')->orderBy('created_at', 'desc')->get(),
                 'demographic_breakdown' => $this->getDemographicBreakdown(),
                 'registration_patterns' => $this->getRegistrationPatterns(),
                 'export_data' => $this->getExportData(),
@@ -523,8 +542,8 @@ class UserController extends Controller
                 $query->where('scope', $request->scope);
             }
 
-            if ($request->filled('community_of_practice')) {
-                $query->where('community_of_practice', $request->community_of_practice);
+            if ($request->filled('default_cop_id')) {
+                $query->where('default_cop_id', $request->default_cop_id);
             }
 
             if ($request->filled('sector')) {
@@ -547,8 +566,9 @@ class UserController extends Controller
                 $query->where('position_1', 'ilike', "%{$request->position_1}%");
             }
 
-            if ($request->filled('mobile_phone')) {
-                $query->where('mobile_phone', 'like', "%{$request->mobile_phone}%");
+            // CHANGED: mobile_phone to phone_number
+            if ($request->filled('phone_number')) {
+                $query->where('phone_number', 'like', "%{$request->phone_number}%");
             }
 
             // Apply existing filters for backward compatibility
@@ -564,10 +584,6 @@ class UserController extends Controller
                 $query->where('type', $request->type);
             }
 
-            if ($request->filled('phone_number')) {
-                $query->where('phone_number', 'like', "%{$request->phone_number}%");
-            }
-
             if ($request->filled('dob_from')) {
                 $query->whereDate('dob', '>=', $request->dob_from);
             }
@@ -576,7 +592,7 @@ class UserController extends Controller
                 $query->whereDate('dob', '<=', $request->dob_to);
             }
 
-            $users = $query->orderBy('last_name', 'asc')->get();
+            $users = $query->with('defaultCop')->orderBy('last_name', 'asc')->get();
             
             $filename = 'users-export-' . now()->format('Y-m-d-H-i-s') . '.csv';
             
@@ -591,26 +607,31 @@ class UserController extends Controller
                 // Add BOM for UTF-8
                 fwrite($file, "\xEF\xBB\xBF");
                 
-                // Headers with new fields
-                fputcsv($file, [
+                // Headers - Required fields first, then optional
+                $headers = [
+                    // Required fields
                     'User ID',
-                    // New fields
-                    'Prefix',
-                    'High Profile',
-                    'Scope',
-                    'Community of Practice',
-                    'Sector',
                     'First Name',
-                    'Middle Name',
                     'Last Name',
                     'Gender',
-                    'Date of Birth',
                     'Position 1',
                     'Organization 1',
                     'Organization Type 1',
                     'Status 1',
                     'Address',
-                    'Mobile Phone',
+                    'Phone Number', // CHANGED: Mobile Phone to Phone Number
+                    'Is High Profile',
+                    'Scope',
+                    
+                    // Community of Practice (optional but important)
+                    'Community of Practice (ID)',
+                    'Community of Practice (Name)',
+                    
+                    // Other important optional fields
+                    'Prefix',
+                    'Sector',
+                    'Middle Name',
+                    'Date of Birth',
                     'Office Phone',
                     'Extension Number',
                     'Home Phone',
@@ -619,40 +640,48 @@ class UserController extends Controller
                     'Organization 2',
                     'Organization Type 2',
                     'Status 2',
-                    // Existing fields
+                    
+                    // Existing optional fields
                     'Mother Name',
                     'Identification ID',
                     'Passport Number',
                     'Register Number',
                     'Register Place',
-                    'Phone Number',
                     'Marital Status',
                     'Employment Status',
                     'User Type',
-                    'Created Date'
-                ], ',');
+                    'Created Date',
+                    'Updated Date'
+                ];
+                
+                fputcsv($file, $headers, ',');
                 
                 // Data rows
                 foreach ($users as $user) {
-                    fputcsv($file, [
+                    $row = [
+                        // Required fields
                         $user->user_id,
-                        // New fields
-                        $user->prefix ?? '',
-                        $user->is_high_profile ? 'Yes' : 'No',
-                        $user->scope ?? '',
-                        $user->community_of_practice ?? '',
-                        $user->sector ?? '',
                         $user->first_name ?? '',
-                        $user->middle_name ?? '',
                         $user->last_name ?? '',
                         $user->gender ?? '',
-                        $user->dob ? $user->dob->format('Y-m-d') : '',
                         $user->position_1 ?? '',
                         $user->organization_1 ?? '',
                         $user->organization_type_1 ?? '',
                         $user->status_1 ?? '',
                         $user->address ?? '',
-                        $user->mobile_phone ?? '',
+                        $user->phone_number ?? '', // CHANGED: mobile_phone to phone_number
+                        $user->is_high_profile ? 'Yes' : 'No',
+                        $user->scope ?? '',
+                        
+                        // Community of Practice
+                        $user->default_cop_id ?? '',
+                        $user->defaultCop ? $user->defaultCop->cop_name : '',
+                        
+                        // Other important optional fields
+                        $user->prefix ?? '',
+                        $user->sector ?? '',
+                        $user->middle_name ?? '',
+                        $user->dob ? $user->dob->format('Y-m-d') : '',
                         $user->office_phone ?? '',
                         $user->extension_number ?? '',
                         $user->home_phone ?? '',
@@ -661,18 +690,21 @@ class UserController extends Controller
                         $user->organization_2 ?? '',
                         $user->organization_type_2 ?? '',
                         $user->status_2 ?? '',
-                        // Existing fields
+                        
+                        // Existing optional fields
                         $user->mother_name ?? '',
                         $user->identification_id ?? '',
                         $user->passport_number ?? '',
                         $user->register_number ?? '',
                         $user->register_place ?? '',
-                        $user->phone_number ?? '',
                         $user->marital_status ?? '',
                         $user->employment_status ?? '',
                         $user->type ?? '',
-                        $user->created_at->format('Y-m-d H:i:s')
-                    ], ',');
+                        $user->created_at->format('Y-m-d H:i:s'),
+                        $user->updated_at->format('Y-m-d H:i:s')
+                    ];
+                    
+                    fputcsv($file, $row, ',');
                 }
                 
                 fclose($file);
@@ -691,7 +723,8 @@ class UserController extends Controller
      */
     public function showImportForm()
     {
-        return view('users.import');
+        $cops = Cop::orderBy('cop_name')->get();
+        return view('users.import', compact('cops'));
     }
 
     /**
@@ -710,13 +743,13 @@ class UserController extends Controller
             $file = fopen('php://output', 'w');
             fwrite($file, "\xEF\xBB\xBF"); // BOM for UTF-8
             
-            // Template headers with new fields - 15 columns to match your CSV
+            // Template headers - 16 columns including default_cop_id
             fputcsv($file, [
-                // Required fields (15 columns total)
+                // Required fields (16 columns total)
                 'prefix',
                 'is_high_profile',
                 'scope',
-                'community_of_practice',
+                'default_cop_id',
                 'first_name',
                 'last_name',
                 'gender',
@@ -725,18 +758,19 @@ class UserController extends Controller
                 'organization_type_1',
                 'status_1',
                 'address',
-                'mobile_phone',
+                'phone_number', // CHANGED: mobile_phone to phone_number
                 'register_place',
-                'sector'
+                'sector',
+                'email'
             ], ',');
             
-            // Example data row - 15 columns
+            // Example data row - 16 columns
             fputcsv($file, [
                 // Required fields
                 'Dr.',
                 'true',
                 'National',
-                'Healthcare Professionals',
+                '1', // Valid cop_id from your database
                 'John',
                 'Doe',
                 'Male',
@@ -745,9 +779,10 @@ class UserController extends Controller
                 'Public Sector',
                 'Active',
                 'Beirut, Lebanon',
-                '+961 70 123 456',
+                '+961 70 123 456', // This will now map to phone_number
                 'Beirut',
-                'Healthcare'
+                'Healthcare',
+                'john.doe@example.com'
             ], ',');
             
             fclose($file);
@@ -757,7 +792,7 @@ class UserController extends Controller
     }
 
     /**
-     * Process imported users - UPDATED for 15-column CSV
+     * Process imported users - UPDATED for 16-column CSV including default_cop_id
      */
     public function import(Request $request)
     {
@@ -787,7 +822,7 @@ class UserController extends Controller
 
             // Read and validate header row
             $header = fgetcsv($handle);
-            if (!$header || count($header) < 13) { // At least 13 required columns
+            if (!$header || count($header) < 14) { // At least 14 required columns
                 throw new \Exception('Invalid CSV format. Please use the provided template.');
             }
 
@@ -807,17 +842,17 @@ class UserController extends Controller
                     }
 
                     // Ensure we have enough columns
-                    if (count($data) < 13) {
-                        throw new \Exception('Row has insufficient columns. Expected at least 13, got ' . count($data));
+                    if (count($data) < 14) {
+                        throw new \Exception('Row has insufficient columns. Expected at least 14, got ' . count($data));
                     }
 
-                    // Map CSV columns to database fields (15 columns expected)
+                    // Map CSV columns to database fields (16 columns expected)
                     $cleanedData = $this->cleanImportData([
                         // Required fields
                         'prefix' => $data[0] ?? null,
                         'is_high_profile' => $data[1] ?? false,
                         'scope' => $data[2] ?? null,
-                        'community_of_practice' => $data[3] ?? null,
+                        'default_cop_id' => $data[3] ?? null,
                         'first_name' => $data[4] ?? null,
                         'last_name' => $data[5] ?? null,
                         'gender' => $data[6] ?? null,
@@ -826,11 +861,13 @@ class UserController extends Controller
                         'organization_type_1' => $data[9] ?? null,
                         'status_1' => $data[10] ?? null,
                         'address' => $data[11] ?? null,
-                        'mobile_phone' => $data[12] ?? null,
+                        // CHANGED: mobile_phone to phone_number
+                        'phone_number' => $data[12] ?? null,
                         
-                        // Optional fields (columns 13-14)
+                        // Optional fields (columns 13-15)
                         'register_place' => $data[13] ?? null,
                         'sector' => $data[14] ?? null,
+                        'email' => $data[15] ?? null,
                         
                         // Set defaults for other optional fields
                         'middle_name' => null,
@@ -838,13 +875,11 @@ class UserController extends Controller
                         'office_phone' => null,
                         'extension_number' => null,
                         'home_phone' => null,
-                        'email' => null,
                         'position_2' => null,
                         'organization_2' => null,
                         'organization_type_2' => null,
                         'status_2' => null,
                         'mother_name' => null,
-                        'phone_number' => null,
                         'marital_status' => null,
                         'employment_status' => null,
                         'type' => 'Stakeholder',
@@ -859,14 +894,14 @@ class UserController extends Controller
                         'first_name' => $cleanedData['first_name'],
                         'last_name' => $cleanedData['last_name'],
                         'scope' => $cleanedData['scope'],
+                        'default_cop_id' => $cleanedData['default_cop_id'],
                     ]);
                     
                     // Validate required fields
                     $requiredFields = [
-                        'is_high_profile', 'scope', 'community_of_practice',
-                        'first_name', 'last_name', 'gender',
+                        'is_high_profile', 'scope', 'first_name', 'last_name', 'gender',
                         'position_1', 'organization_1', 'organization_type_1', 'status_1',
-                        'address', 'mobile_phone'
+                        'address', 'phone_number' // CHANGED: mobile_phone to phone_number
                     ];
                     
                     $missingFields = [];
@@ -885,12 +920,20 @@ class UserController extends Controller
                         throw new \Exception("Missing required fields: " . implode(', ', $missingFields));
                     }
 
+                    // Validate default_cop_id if provided
+                    if (!empty($cleanedData['default_cop_id'])) {
+                        $copExists = Cop::where('cop_id', $cleanedData['default_cop_id'])->exists();
+                        if (!$copExists) {
+                            throw new \Exception("Invalid default_cop_id: " . $cleanedData['default_cop_id']);
+                        }
+                    }
+
                     // Create the user
                     $user = User::create($cleanedData);
                     
                     if ($user) {
                         $results['successful']++;
-                        Log::info("Successfully created user ID: {$user->user_id}, Name: {$user->first_name} {$user->last_name}");
+                        Log::info("Successfully created user ID: {$user->user_id}, Name: {$user->first_name} {$user->last_name}, CoP ID: {$user->default_cop_id}");
                     } else {
                         throw new \Exception('Failed to create user record');
                     }
@@ -917,7 +960,7 @@ class UserController extends Controller
     }
 
     /**
-     * Clean import data - IMPROVED with better error handling
+     * Clean import data - UPDATED for cop_id handling
      */
     private function cleanImportData($data)
     {
@@ -959,6 +1002,14 @@ class UserController extends Controller
                 
                 // Ensure it's always a boolean
                 $cleanValue = (bool) $cleanValue;
+            }
+            
+            // Handle default_cop_id - ensure it's an integer if not null
+            if ($key === 'default_cop_id' && $cleanValue !== null) {
+                $cleanValue = (int) $cleanValue;
+                if ($cleanValue <= 0) {
+                    $cleanValue = null;
+                }
             }
             
             // Handle scope formatting
@@ -1077,7 +1128,8 @@ class UserController extends Controller
             }
             
             // Handle phone number formatting
-            if (in_array($key, ['mobile_phone', 'office_phone', 'home_phone', 'phone_number']) && $cleanValue) {
+            // CHANGED: Updated array to include phone_number instead of mobile_phone
+            if (in_array($key, ['phone_number', 'office_phone', 'home_phone']) && $cleanValue) {
                 $original = $cleanValue;
                 // Remove all non-numeric characters except +
                 $cleanValue = preg_replace('/[^\d+]/', '', $cleanValue);
@@ -1128,7 +1180,7 @@ class UserController extends Controller
     }
 
     /**
-     * Get demographic breakdown
+     * Get demographic breakdown - UPDATED for cop_id
      */
     private function getDemographicBreakdown()
     {
@@ -1139,9 +1191,13 @@ class UserController extends Controller
             'by_scope' => User::groupBy('scope')
                 ->select('scope', DB::raw('COUNT(*) as count'))
                 ->get(),
-            'by_community' => User::groupBy('community_of_practice')
-                ->select('community_of_practice', DB::raw('COUNT(*) as count'))
-                ->get(),
+            'by_cop' => User::with('defaultCop')
+                ->whereNotNull('default_cop_id')
+                ->get()
+                ->groupBy('default_cop.cop_name')
+                ->map(function($group) {
+                    return $group->count();
+                }),
             'by_organization_type' => User::groupBy('organization_type_1')
                 ->select('organization_type_1', DB::raw('COUNT(*) as count'))
                 ->get(),
@@ -1149,7 +1205,7 @@ class UserController extends Controller
     }
 
     /**
-     * Get registration patterns
+     * Get registration patterns - UPDATED for cop_id
      */
     private function getRegistrationPatterns()
     {
@@ -1160,15 +1216,18 @@ class UserController extends Controller
             'by_sector' => User::groupBy('sector')
                 ->select('sector', DB::raw('COUNT(*) as count'))
                 ->get(),
+            'by_cop' => User::groupBy('default_cop_id')
+                ->select('default_cop_id', DB::raw('COUNT(*) as count'))
+                ->get(),
         ];
     }
 
     /**
-     * Get export data
+     * Get export data - UPDATED for cop_id
      */
     private function getExportData()
     {
-        return User::orderBy('created_at', 'desc')->limit(100)->get();
+        return User::with('defaultCop')->orderBy('created_at', 'desc')->limit(100)->get();
     }
 
     /**

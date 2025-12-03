@@ -21,6 +21,36 @@
         </div>
     </div>
 
+    {{-- Bulk Actions Section --}}
+    <div class="row mb-4" id="bulkActionsSection" style="display: none;">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-warning border-bottom py-3">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <h5 class="mb-0 fw-semibold">
+                                <i class="bi bi-check-all me-2"></i>Bulk Actions
+                            </h5>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <span class="badge bg-white text-dark" id="selectedCount">0 selected</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <button type="button" class="btn btn-danger" id="deleteSelectedBtn">
+                            <i class="bi bi-trash me-1"></i>Delete Selected
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="clearSelectionBtn">
+                            <i class="bi bi-x-circle me-1"></i>Clear Selection
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Filters Section --}}
     <div class="row mb-4">
         <div class="col-12">
@@ -158,16 +188,31 @@
                         <table class="table table-hover mb-0">
                             <thead class="table-light">
                                 <tr>
+                                    <th style="width: 50px;" class="text-center">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="selectAllCheckbox">
+                                        </div>
+                                    </th>
                                     <th>User Information</th>
                                     <th style="width: 200px;">Contact Details</th>
                                     <th style="width: 150px;">Personal Info</th>
                                     <th style="width: 150px;">Status & Role</th>
-                                    <th style="width: 80px;" class="text-center">Actions</th>
+                                    <th style="width: 100px;" class="text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($users as $user)
                                 <tr class="user-row align-middle">
+                                    {{-- Checkbox for selection --}}
+                                    <td class="text-center">
+                                        <div class="form-check">
+                                            <input class="form-check-input user-checkbox" 
+                                                   type="checkbox" 
+                                                   value="{{ $user->user_id }}"
+                                                   id="user_{{ $user->user_id }}">
+                                        </div>
+                                    </td>
+
                                     {{-- User Information --}}
                                     <td>
                                         <div class="d-flex align-items-center">
@@ -240,32 +285,30 @@
                                     {{-- Actions --}}
                                     <td>
                                         <div class="text-center">
-                                            <div class="dropdown">
-                                                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                    <i class="fas fa-ellipsis-v"></i>
-                                                </button>
-                                                <ul class="dropdown-menu">
-                                                    <li>
-                                                        <a class="dropdown-item" href="{{ route('users.edit', $user->user_id) }}">
-                                                            <i class="bi bi-pencil me-2"></i>Edit
-                                                        </a>
-                                                    </li>
-                                                    <li>
-                                                        <form method="POST" action="{{ route('users.destroy', $user->user_id) }}" class="d-inline">
-                                                            @csrf @method('DELETE')
-                                                            <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Are you sure you want to delete {{ $user->first_name }} {{ $user->last_name }}?');">
-                                                                <i class="bi bi-trash me-2"></i>Delete
-                                                            </button>
-                                                        </form>
-                                                    </li>
-                                                </ul>
+                                            <div class="btn-group" role="group">
+                                                <a href="{{ route('users.edit', $user->user_id) }}" 
+                                                   class="btn btn-sm btn-outline-primary"
+                                                   title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <form method="POST" 
+                                                      action="{{ route('users.destroy', $user->user_id) }}" 
+                                                      class="d-inline"
+                                                      onsubmit="return confirm('Are you sure you want to delete {{ $user->first_name }} {{ $user->last_name }}?');">
+                                                    @csrf @method('DELETE')
+                                                    <button type="submit" 
+                                                            class="btn btn-sm btn-outline-danger"
+                                                            title="Delete">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
                                             </div>
                                         </div>
                                     </td>
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="5" class="py-5 text-center bg-light">
+                                    <td colspan="6" class="py-5 text-center bg-light">
                                         <div class="py-4">
                                             <i class="bi bi-people display-4 text-muted opacity-50 mb-3"></i>
                                             <h5 class="fw-bold text-muted mb-3">No users found</h5>
@@ -304,6 +347,36 @@
                     </div>
                     @endif
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Bulk Delete Confirmation Modal --}}
+<div class="modal fade" id="bulkDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    Confirm Bulk Delete
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <span id="deleteCount" class="fw-bold">0</span> selected user(s)?</p>
+                <p class="text-danger small mb-0">
+                    <i class="bi bi-exclamation-circle me-1"></i>
+                    This action cannot be undone.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ route('users.bulk-delete') }}" id="bulkDeleteForm">
+                    @csrf
+                    <input type="hidden" name="user_ids" id="selectedUserIds">
+                    <button type="submit" class="btn btn-danger">Delete Selected</button>
+                </form>
             </div>
         </div>
     </div>
@@ -434,6 +507,27 @@
         color: white;
     }
     
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+        margin: 1px;
+    }
+    
+    .btn-group .btn {
+        border-radius: 4px;
+        margin: 0 1px;
+    }
+    
+    .btn-group .btn:first-child {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+    
+    .btn-group .btn:last-child {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+    }
+    
     .table th {
         background: #f8f9fa;
         border-bottom: 2px solid #e9ecef;
@@ -443,6 +537,7 @@
         letter-spacing: 0.5px;
         color: #6c757d;
         padding: 1rem 0.75rem;
+        vertical-align: middle;
     }
 
     .table td {
@@ -492,30 +587,45 @@
         transition: height 0.35s ease;
     }
     
-    /* Dropdown styles */
-    .dropdown-toggle::after {
-        display: none;
+    /* Checkbox styling */
+    .form-check-input {
+        width: 1.2em;
+        height: 1.2em;
+        cursor: pointer;
     }
     
-    .dropdown-menu {
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        min-width: 120px;
+    .form-check-input:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
     }
     
-    .dropdown-item {
-        padding: 0.5rem 1rem;
-        font-size: 0.875rem;
+    .form-check-input:focus {
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
     }
     
-    .dropdown-item:hover {
-        background-color: #f8f9fa;
+    /* Selected row styling */
+    tr.selected {
+        background-color: #e7f3ff !important;
     }
     
-    .dropdown-item.text-danger:hover {
-        background-color: #f8d7da;
-        color: #dc3545 !important;
+    tr.selected:hover {
+        background-color: #d4e7ff !important;
+    }
+    
+    /* Bulk actions section */
+    #bulkActionsSection {
+        animation: slideDown 0.3s ease-out;
+    }
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 </style>
 @endsection
@@ -557,6 +667,114 @@ document.addEventListener('DOMContentLoaded', function() {
         const toast = new bootstrap.Toast(toastEl, { delay: 5000 });
         toast.show();
     });
+
+    // Bulk Selection Functionality
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const userCheckboxes = document.querySelectorAll('.user-checkbox');
+    const bulkActionsSection = document.getElementById('bulkActionsSection');
+    const selectedCount = document.getElementById('selectedCount');
+    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+    const clearSelectionBtn = document.getElementById('clearSelectionBtn');
+    const bulkDeleteModal = document.getElementById('bulkDeleteModal');
+    const deleteCount = document.getElementById('deleteCount');
+    const selectedUserIds = document.getElementById('selectedUserIds');
+    const bulkDeleteForm = document.getElementById('bulkDeleteForm');
+    
+    // Update selected count and show/hide bulk actions
+    function updateSelection() {
+        const selectedCheckboxes = Array.from(userCheckboxes).filter(cb => cb.checked);
+        const count = selectedCheckboxes.length;
+        
+        // Update count display
+        selectedCount.textContent = `${count} selected`;
+        deleteCount.textContent = count;
+        
+        // Show/hide bulk actions section
+        if (count > 0) {
+            bulkActionsSection.style.display = 'block';
+            
+            // Update the hidden input with selected user IDs
+            const selectedIds = selectedCheckboxes.map(cb => cb.value);
+            selectedUserIds.value = JSON.stringify(selectedIds);
+        } else {
+            bulkActionsSection.style.display = 'none';
+            selectedUserIds.value = '';
+        }
+        
+        // Update select all checkbox state
+        if (count === 0) {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = false;
+        } else if (count === userCheckboxes.length) {
+            selectAllCheckbox.checked = true;
+            selectAllCheckbox.indeterminate = false;
+        } else {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = true;
+        }
+        
+        // Add/remove selected class from rows
+        userCheckboxes.forEach(cb => {
+            const row = cb.closest('tr');
+            if (cb.checked) {
+                row.classList.add('selected');
+            } else {
+                row.classList.remove('selected');
+            }
+        });
+    }
+    
+    // Select all checkbox handler
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            const isChecked = this.checked;
+            userCheckboxes.forEach(cb => {
+                cb.checked = isChecked;
+                cb.dispatchEvent(new Event('change'));
+            });
+            updateSelection();
+        });
+    }
+    
+    // Individual checkbox handlers
+    userCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelection);
+    });
+    
+    // Clear selection button
+    if (clearSelectionBtn) {
+        clearSelectionBtn.addEventListener('click', function() {
+            userCheckboxes.forEach(cb => {
+                cb.checked = false;
+                cb.dispatchEvent(new Event('change'));
+            });
+            updateSelection();
+        });
+    }
+    
+    // Delete selected button
+    if (deleteSelectedBtn) {
+        deleteSelectedBtn.addEventListener('click', function() {
+            const count = Array.from(userCheckboxes).filter(cb => cb.checked).length;
+            if (count > 0) {
+                const modal = new bootstrap.Modal(bulkDeleteModal);
+                modal.show();
+            }
+        });
+    }
+    
+    // Initialize selection state
+    updateSelection();
+    
+    // Handle bulk delete form submission
+    if (bulkDeleteForm) {
+        bulkDeleteForm.addEventListener('submit', function(e) {
+            // The form will submit normally, no need for extra handling
+            // Just show loading state if needed
+            deleteSelectedBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Deleting...';
+            deleteSelectedBtn.disabled = true;
+        });
+    }
 });
 </script>
 @endsection

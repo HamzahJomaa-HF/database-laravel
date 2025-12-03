@@ -38,3 +38,27 @@ Route::delete('/users/bulk-delete', [UserController::class, 'bulkDelete'])->name
 Route::delete('/users/delete-all', [UserController::class, 'deleteAll'])->name('users.delete-all');
 
 
+
+
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\RegisterController;
+
+// Public routes - NO middleware needed
+Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [LoginController::class, 'login'])->name('login.submit');
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+Route::post('/resend-otp', [LoginController::class, 'resendOtp'])->name('resend.otp');
+
+Route::get('/register', [RegisterController::class, 'showRegisterForm'])->name('register');
+Route::post('/register', [RegisterController::class, 'register'])->name('register.submit');
+
+// Protected routes - Require authentication
+Route::middleware(['auth.system'])->group(function () {
+    Route::get('/dashboard', function () {
+        // Simple dashboard view
+        $user = auth()->guard('system')->user();
+        return view('dashboard', ['user' => $user]);
+    })->name('dashboard');
+    
+    // Add more protected routes here if needed
+});
