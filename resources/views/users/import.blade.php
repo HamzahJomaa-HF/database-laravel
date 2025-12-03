@@ -22,7 +22,7 @@
                     <p class="text-muted mb-0">Bulk import users from CSV file</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <a href="{{ route('users.index') }}" class="btn btn-outline-secondary btn-sm">
+                    <a href="{{ route('users.index') }}" class="btn btn-outline-secondary">
                         <i class="bi bi-arrow-left me-1"></i> Back to Users
                     </a>
                 </div>

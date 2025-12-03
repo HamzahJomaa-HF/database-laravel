@@ -22,13 +22,14 @@ class UserController extends Controller
     {
         $query = User::query();
 
-        // Add back the filter logic that was missing:
+        // Add filter logic for new fields
         if ($request->filled('name')) {
             $name = $request->name;
             $query->where(function ($q) use ($name) {
                 $q->where('first_name', 'ilike', "%$name%")
                   ->orWhere('middle_name', 'ilike', "%$name%")
-                  ->orWhere('last_name', 'ilike', "%$name%");
+                  ->orWhere('last_name', 'ilike', "%$name%")
+                  ->orWhere('mother_name', 'ilike', "%$name%");
             });
         }
 
@@ -36,6 +37,43 @@ class UserController extends Controller
             $query->where('gender', $request->gender);
         }
 
+        if ($request->filled('scope')) {
+            $query->where('scope', $request->scope);
+        }
+
+        if ($request->filled('community_of_practice')) {
+            $query->where('community_of_practice', $request->community_of_practice);
+        }
+
+        if ($request->filled('sector')) {
+            $query->where('sector', $request->sector);
+        }
+
+        if ($request->filled('is_high_profile')) {
+            $query->where('is_high_profile', filter_var($request->is_high_profile, FILTER_VALIDATE_BOOLEAN));
+        }
+
+        if ($request->filled('organization_1')) {
+            $query->where('organization_1', 'ilike', "%{$request->organization_1}%");
+        }
+
+        if ($request->filled('organization_type_1')) {
+            $query->where('organization_type_1', $request->organization_type_1);
+        }
+
+        if ($request->filled('position_1')) {
+            $query->where('position_1', 'ilike', "%{$request->position_1}%");
+        }
+
+        if ($request->filled('mobile_phone')) {
+            $query->where('mobile_phone', 'like', "%{$request->mobile_phone}%");
+        }
+
+        if ($request->filled('email')) {
+            $query->where('email', 'ilike', "%{$request->email}%");
+        }
+
+        // Keep backward compatible filters
         if ($request->filled('marital_status')) {
             $query->where('marital_status', $request->marital_status);
         }
@@ -60,10 +98,15 @@ class UserController extends Controller
             $query->whereDate('dob', '<=', $request->dob_to);
         }
 
+        // Use last_name for sorting
         $users = $query->orderBy('last_name', 'asc')->paginate(20)->withQueryString();
 
         // Check if any search/filter was applied
-        $hasSearch = $request->anyFilled(['name', 'gender', 'marital_status', 'employment_status', 'type', 'phone_number', 'dob_from', 'dob_to']);
+        $hasSearch = $request->anyFilled([
+            'name', 'gender', 'scope', 'community_of_practice', 'sector', 'is_high_profile',
+            'organization_1', 'organization_type_1', 'position_1', 'mobile_phone', 'email',
+            'marital_status', 'employment_status', 'type', 'phone_number', 'dob_from', 'dob_to'
+        ]);
 
         return view('users.index', compact('users', 'hasSearch'));
     }
@@ -82,66 +125,103 @@ class UserController extends Controller
     /**
      * Store a newly created user in storage.
      */
-    /**
- * Store a newly created user in storage.
- */
-public function store(Request $request)
-{
-    $rules = [
-        'first_name' => 'required|string|max:255',
-        'last_name' => 'required|string|max:255',
-        'middle_name' => 'nullable|string|max:255',
-        'mother_name' => 'nullable|string|max:255',
-        'dob' => 'nullable|date',
-        'phone_number' => 'nullable|string|max:20',
-        'email' => 'nullable|email|max:255|unique:users,email',
-        'gender' => ['nullable', Rule::in(['Male', 'Female'])],
-        'marital_status' => 'nullable|string|max:50',
-        'employment_status' => 'nullable|string|max:50',
-        'type' => 'nullable|string|max:50|in:Stakeholder,Employee,Admin,Customer,Partner,Beneficiary',
+    public function store(Request $request)
+    {
+        $rules = [
+            // Required fields from new structure
+            'prefix' => 'nullable|string|max:50',
+            'is_high_profile' => 'required|boolean',
+            'scope' => ['required', Rule::in(['International', 'Regional', 'National', 'Local'])],
+            'community_of_practice' => 'required|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'gender' => ['required', Rule::in(['Male', 'Female', 'Other'])],
+            'position_1' => 'required|string|max:255',
+            'organization_1' => 'required|string|max:255',
+            'organization_type_1' => [
+                'required',
+                Rule::in(['Public Sector', 'Private Sector', 'Academia', 'UN', 'INGOs', 'Civil Society', 'NGOs', 'Activist'])
+            ],
+            'status_1' => 'required|string|max:255',
+            'address' => 'required|string',
+            'mobile_phone' => 'required|string|max:20',
+            
+            // Optional fields from new structure
+            'sector' => 'nullable|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'dob' => 'nullable|date',
+            'office_phone' => 'nullable|string|max:20',
+            'extension_number' => 'nullable|string|max:20',
+            'home_phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255|unique:users,email',
+            
+            // Optional secondary position fields
+            'position_2' => 'nullable|string|max:255',
+            'organization_2' => 'nullable|string|max:255',
+            'organization_type_2' => [
+                'nullable',
+                Rule::in(['Public Sector', 'Private Sector', 'Academia', 'UN', 'INGOs', 'Civil Society', 'NGOs', 'Activist'])
+            ],
+            'status_2' => 'nullable|string|max:255',
+            
+            // Keep existing fields for backward compatibility
+            'mother_name' => 'nullable|string|max:255',
+            'phone_number' => 'nullable|string|max:20',
+            'marital_status' => 'nullable|string|max:50',
+            'employment_status' => 'nullable|string|max:50',
+            'type' => 'nullable|string|max:50|in:Stakeholder,Employee,Admin,Customer,Partner,Beneficiary',
+            'identification_id' => 'nullable|string|max:50|unique:users,identification_id',
+            'passport_number' => 'nullable|string|max:50|unique:users,passport_number',
+            'register_number' => 'nullable|string|max:50',
+            'register_place' => 'nullable|string|max:255',
+            
+            // Diploma and Nationality fields
+            'diplomas' => 'nullable|array',
+            'diplomas.*' => 'exists:diploma,diploma_id',
+            'nationalities' => 'nullable|array',
+            'nationalities.*' => 'exists:nationality,nationality_id',
+        ];
+
+        $request->validate($rules);
         
-        // Make identification fields optional
-        'identification_id' => 'nullable|string|max:50|unique:users,identification_id',
-        'passport_number' => 'nullable|string|max:50|unique:users,passport_number',
-        'register_number' => 'nullable|string|max:50',
-        'register_place' => 'nullable|string|max:255',
+        // Prepare user data
+        $userData = $request->only([
+            // New required fields
+            'prefix', 'is_high_profile', 'scope', 'community_of_practice',
+            'first_name', 'last_name', 'gender', 'position_1', 'organization_1',
+            'organization_type_1', 'status_1', 'address', 'mobile_phone',
+            
+            // New optional fields
+            'sector', 'middle_name', 'dob', 'office_phone', 'extension_number',
+            'home_phone', 'email', 'position_2', 'organization_2', 'organization_type_2', 'status_2',
+            
+            // Existing fields
+            'mother_name', 'phone_number', 'marital_status',
+            'employment_status', 'type', 'identification_id', 'passport_number',
+            'register_number', 'register_place'
+        ]);
+
+        // Set default type if not provided
+        if (empty($userData['type'])) {
+            $userData['type'] = 'Stakeholder';
+        }
         
-        // Diploma and Nationality fields - use existing diploma IDs
-        'diplomas' => 'nullable|array',
-        'diplomas.*' => 'exists:diploma,diploma_id',
-        'nationalities' => 'nullable|array',
-        'nationalities.*' => 'exists:nationality,nationality_id',
-    ];
+        // Create user
+        $user = User::create($userData);
+        
+        // Sync diplomas with existing diploma records
+        if ($request->has('diplomas')) {
+            $user->diplomas()->sync($request->diplomas);
+        }
+        
+        // Sync nationalities with existing nationality records
+        if ($request->has('nationalities')) {
+            $user->nationalities()->sync($request->nationalities);
+        }
 
-    $request->validate($rules);
-    
-    // Set default type if not provided
-    $userData = $request->only([
-        'first_name', 'last_name', 'middle_name', 'mother_name', 
-        'dob', 'phone_number', 'email', 'gender', 'marital_status', 
-        'employment_status', 'type', 'identification_id', 'passport_number', 
-        'register_number', 'register_place'
-    ]);
-
-    if (empty($userData['type'])) {
-        $userData['type'] = 'Stakeholder';
-    }
-    
-    // Create user
-    $user = User::create($userData);
-    
-    // Sync diplomas with existing diploma records
-    if ($request->has('diplomas')) {
-        $user->diplomas()->sync($request->diplomas);
-    }
-    
-    // Sync nationalities with existing nationality records
-    if ($request->has('nationalities')) {
-        $user->nationalities()->sync($request->nationalities);
+        return redirect()->route('users.index')->with('success', 'User created successfully.');
     }
 
-    return redirect()->route('users.index')->with('success', 'User created successfully.');
-}
     /**
      * Show the form for editing the specified user.
      */
@@ -165,23 +245,53 @@ public function store(Request $request)
         $user = User::where('user_id', $user_id)->firstOrFail();
 
         $rules = [
+            // Required fields from new structure
+            'prefix' => 'nullable|string|max:50',
+            'is_high_profile' => 'required|boolean',
+            'scope' => ['required', Rule::in(['International', 'Regional', 'National', 'Local'])],
+            'community_of_practice' => 'required|string|max:255',
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
+            'gender' => ['required', Rule::in(['Male', 'Female', 'Other'])],
+            'position_1' => 'required|string|max:255',
+            'organization_1' => 'required|string|max:255',
+            'organization_type_1' => [
+                'required',
+                Rule::in(['Public Sector', 'Private Sector', 'Academia', 'UN', 'INGOs', 'Civil Society', 'NGOs', 'Activist'])
+            ],
+            'status_1' => 'required|string|max:255',
+            'address' => 'required|string',
+            'mobile_phone' => 'required|string|max:20',
+            
+            // Optional fields from new structure
+            'sector' => 'nullable|string|max:255',
             'middle_name' => 'nullable|string|max:255',
-            'mother_name' => 'nullable|string|max:255',
             'dob' => 'nullable|date',
-            'phone_number' => 'nullable|string|max:20',
+            'office_phone' => 'nullable|string|max:20',
+            'extension_number' => 'nullable|string|max:20',
+            'home_phone' => 'nullable|string|max:20',
             'email' => [
                 'nullable',
                 'email',
                 'max:255',
                 Rule::unique('users', 'email')->ignore($user->user_id, 'user_id'),
             ],
-            'gender' => ['nullable', Rule::in(['Male', 'Female'])],
+            
+            // Optional secondary position fields
+            'position_2' => 'nullable|string|max:255',
+            'organization_2' => 'nullable|string|max:255',
+            'organization_type_2' => [
+                'nullable',
+                Rule::in(['Public Sector', 'Private Sector', 'Academia', 'UN', 'INGOs', 'Civil Society', 'NGOs', 'Activist'])
+            ],
+            'status_2' => 'nullable|string|max:255',
+            
+            // Keep existing fields for backward compatibility
+            'mother_name' => 'nullable|string|max:255',
+            'phone_number' => 'nullable|string|max:20',
             'marital_status' => 'nullable|string|max:50',
             'employment_status' => 'nullable|string|max:50',
             'type' => 'nullable|string|max:50|in:Stakeholder,Employee,Admin,Customer,Partner,Beneficiary',
-            
             'identification_id' => [
                 'nullable',
                 'string',
@@ -197,7 +307,7 @@ public function store(Request $request)
             'register_number' => 'nullable|string|max:50',
             'register_place' => 'nullable|string|max:255',
             
-            // Diploma and Nationality fields - use existing diploma IDs
+            // Diploma and Nationality fields
             'diplomas' => 'nullable|array',
             'diplomas.*' => 'exists:diploma,diploma_id',
             'nationalities' => 'nullable|array',
@@ -206,10 +316,20 @@ public function store(Request $request)
 
         $request->validate($rules);
 
+        // Prepare user data
         $userData = $request->only([
-            'first_name', 'last_name', 'middle_name', 'mother_name', 
-            'dob', 'phone_number', 'email', 'gender', 'marital_status', 
-            'employment_status', 'type', 'identification_id', 'passport_number', 
+            // New required fields
+            'prefix', 'is_high_profile', 'scope', 'community_of_practice',
+            'first_name', 'last_name', 'gender', 'position_1', 'organization_1',
+            'organization_type_1', 'status_1', 'address', 'mobile_phone',
+            
+            // New optional fields
+            'sector', 'middle_name', 'dob', 'office_phone', 'extension_number',
+            'home_phone', 'email', 'position_2', 'organization_2', 'organization_type_2', 'status_2',
+            
+            // Existing fields
+            'mother_name', 'phone_number', 'marital_status',
+            'employment_status', 'type', 'identification_id', 'passport_number',
             'register_number', 'register_place'
         ]);
 
@@ -247,21 +367,90 @@ public function store(Request $request)
     /**
      * Display user statistics
      */
-    /**
- * Display user statistics (Simplified version)
- */
-public function statistics()
+    public function statistics()
 {
     try {
         $totalUsers = User::count();
         $newThisWeek = User::where('created_at', '>=', now()->subWeek())->count();
         $newThisMonth = User::where('created_at', '>=', now()->subMonth())->count();
         
-        // Add default values for new fields to prevent errors
+        // Calculate weekly growth (for last week vs week before)
+        $lastWeekStart = now()->subWeek()->startOfWeek();
+        $lastWeekEnd = now()->subWeek()->endOfWeek();
+        $twoWeeksAgoStart = now()->subWeeks(2)->startOfWeek();
+        
+        $lastWeekCount = User::whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])->count();
+        $twoWeeksAgoCount = User::whereBetween('created_at', [$twoWeeksAgoStart, $lastWeekStart])->count();
+        
+        $weeklyGrowth = $twoWeeksAgoCount > 0 ? 
+            round((($lastWeekCount - $twoWeeksAgoCount) / $twoWeeksAgoCount) * 100, 1) : 
+            ($lastWeekCount > 0 ? 100 : 0);
+        
+        // Get average daily registrations (last 30 days)
+        $avgDailyRegistrations = User::where('created_at', '>=', now()->subDays(30))->count() / 30;
+        
+        // Get beneficiary and stakeholder counts
+        $beneficiaryCount = User::where('type', 'Beneficiary')->count();
+        $stakeholderCount = User::where('type', 'Stakeholder')->count();
+        
+        // Get gender counts
+        $maleCount = User::where('gender', 'Male')->count();
+        $femaleCount = User::where('gender', 'Female')->count();
+        
+        // Get today's registrations
+        $todayRegistrations = User::whereDate('created_at', today())->count();
+        
+        // Calculate average age
+        $avgAge = User::whereNotNull('dob')
+            ->get()
+            ->filter(function($user) {
+                return $user->dob && $user->dob->age > 0;
+            })
+            ->avg(function($user) {
+                return $user->dob->age;
+            });
+        $avgAge = $avgAge ? round($avgAge) : 0;
+        
+        // Get scope distribution counts
+        $scopeDistribution = User::groupBy('scope')
+            ->select('scope', DB::raw('COUNT(*) as count'))
+            ->get();
+        
+        // Get high profile counts
+        $highProfileCount = User::where('is_high_profile', true)->count();
+        $regularProfileCount = User::where('is_high_profile', false)->count();
+        
         $stats = [
             'total_users' => $totalUsers,
+            'new_this_week' => $newThisWeek,
+            'new_this_month' => $newThisMonth,
+            'weekly_growth' => $weeklyGrowth,
+            'avg_daily_registrations' => round($avgDailyRegistrations, 1),
+            'beneficiary_count' => $beneficiaryCount,
+            'stakeholder_count' => $stakeholderCount,
+            'male_count' => $maleCount,
+            'female_count' => $femaleCount,
+            'today_registrations' => $todayRegistrations,
+            'avg_age' => $avgAge,
+            
+            // For charts data
+            'scope_distribution' => $scopeDistribution,
+            'high_profile_count' => $highProfileCount,
+            'regular_profile_count' => $regularProfileCount,
+            
+            // Keep existing structure for other parts if needed
             'gender_distribution' => User::groupBy('gender')
                 ->select('gender', DB::raw('COUNT(*) as count'))
+                ->get(),
+            'scope_distribution_raw' => $scopeDistribution,
+            'community_distribution' => User::groupBy('community_of_practice')
+                ->select('community_of_practice', DB::raw('COUNT(*) as count'))
+                ->get(),
+            'organization_type_distribution' => User::groupBy('organization_type_1')
+                ->select('organization_type_1', DB::raw('COUNT(*) as count'))
+                ->get(),
+            'sector_distribution' => User::groupBy('sector')
+                ->select('sector', DB::raw('COUNT(*) as count'))
                 ->get(),
             'employment_distribution' => User::groupBy('employment_status')
                 ->select('employment_status', DB::raw('COUNT(*) as count'))
@@ -273,21 +462,9 @@ public function statistics()
                 ->select('marital_status', DB::raw('COUNT(*) as count'))
                 ->get(),
             'registration_trends' => $this->getRegistrationTrends(),
-            'new_this_week' => $newThisWeek,
-            'new_this_month' => $newThisMonth,
-            'avg_daily_registrations' => $this->getAverageRegistrationsPerDay(),
-            // Add default values for new fields
-            'weekly_growth' => 0,
-            'monthly_growth' => 0,
-            'registration_velocity' => $this->getAverageRegistrationsPerDay(),
             'data_health_score' => 75,
             'user_engagement' => 65,
             'retention_rate' => 80,
-            'yearly_growth' => collect([]),
-            'peak_registration_times' => collect([]),
-            'beneficiary_ratio' => 0,
-            'active_ratio' => 0,
-            'completion_ratio' => 0,
         ];
 
         return view('users.statistics', compact('stats'));
@@ -297,6 +474,7 @@ public function statistics()
             ->with('error', 'Failed to load statistics: ' . $e->getMessage());
     }
 }
+
     /**
      * Display user reports
      */
@@ -326,13 +504,14 @@ public function statistics()
         try {
             $query = User::query();
 
-            // Apply the same filters as your index method
+            // Apply filters (same as index method)
             if ($request->filled('name')) {
                 $name = $request->name;
                 $query->where(function ($q) use ($name) {
                     $q->where('first_name', 'ilike', "%$name%")
                       ->orWhere('middle_name', 'ilike', "%$name%")
-                      ->orWhere('last_name', 'ilike', "%$name%");
+                      ->orWhere('last_name', 'ilike', "%$name%")
+                      ->orWhere('mother_name', 'ilike', "%$name%");
                 });
             }
 
@@ -340,6 +519,39 @@ public function statistics()
                 $query->where('gender', $request->gender);
             }
 
+            if ($request->filled('scope')) {
+                $query->where('scope', $request->scope);
+            }
+
+            if ($request->filled('community_of_practice')) {
+                $query->where('community_of_practice', $request->community_of_practice);
+            }
+
+            if ($request->filled('sector')) {
+                $query->where('sector', $request->sector);
+            }
+
+            if ($request->filled('is_high_profile')) {
+                $query->where('is_high_profile', filter_var($request->is_high_profile, FILTER_VALIDATE_BOOLEAN));
+            }
+
+            if ($request->filled('organization_1')) {
+                $query->where('organization_1', 'ilike', "%{$request->organization_1}%");
+            }
+
+            if ($request->filled('organization_type_1')) {
+                $query->where('organization_type_1', $request->organization_type_1);
+            }
+
+            if ($request->filled('position_1')) {
+                $query->where('position_1', 'ilike', "%{$request->position_1}%");
+            }
+
+            if ($request->filled('mobile_phone')) {
+                $query->where('mobile_phone', 'like', "%{$request->mobile_phone}%");
+            }
+
+            // Apply existing filters for backward compatibility
             if ($request->filled('marital_status')) {
                 $query->where('marital_status', $request->marital_status);
             }
@@ -376,27 +588,47 @@ public function statistics()
             $callback = function() use ($users) {
                 $file = fopen('php://output', 'w');
                 
-                // Add BOM for UTF-8 to handle special characters
+                // Add BOM for UTF-8
                 fwrite($file, "\xEF\xBB\xBF");
                 
-                // Headers
+                // Headers with new fields
                 fputcsv($file, [
                     'User ID',
-                    'First Name', 
-                    'Middle Name', 
-                    'Last Name', 
+                    // New fields
+                    'Prefix',
+                    'High Profile',
+                    'Scope',
+                    'Community of Practice',
+                    'Sector',
+                    'First Name',
+                    'Middle Name',
+                    'Last Name',
                     'Gender',
-                    'Date of Birth', 
-                    'Phone Number', 
+                    'Date of Birth',
+                    'Position 1',
+                    'Organization 1',
+                    'Organization Type 1',
+                    'Status 1',
+                    'Address',
+                    'Mobile Phone',
+                    'Office Phone',
+                    'Extension Number',
+                    'Home Phone',
                     'Email',
-                    'Marital Status',
-                    'Employment Status', 
-                    'User Type',
+                    'Position 2',
+                    'Organization 2',
+                    'Organization Type 2',
+                    'Status 2',
+                    // Existing fields
+                    'Mother Name',
                     'Identification ID',
                     'Passport Number',
                     'Register Number',
                     'Register Place',
-                    'Mother Name',
+                    'Phone Number',
+                    'Marital Status',
+                    'Employment Status',
+                    'User Type',
                     'Created Date'
                 ], ',');
                 
@@ -404,21 +636,41 @@ public function statistics()
                 foreach ($users as $user) {
                     fputcsv($file, [
                         $user->user_id,
+                        // New fields
+                        $user->prefix ?? '',
+                        $user->is_high_profile ? 'Yes' : 'No',
+                        $user->scope ?? '',
+                        $user->community_of_practice ?? '',
+                        $user->sector ?? '',
                         $user->first_name ?? '',
                         $user->middle_name ?? '',
                         $user->last_name ?? '',
                         $user->gender ?? '',
                         $user->dob ? $user->dob->format('Y-m-d') : '',
-                        $user->phone_number ?? '',
+                        $user->position_1 ?? '',
+                        $user->organization_1 ?? '',
+                        $user->organization_type_1 ?? '',
+                        $user->status_1 ?? '',
+                        $user->address ?? '',
+                        $user->mobile_phone ?? '',
+                        $user->office_phone ?? '',
+                        $user->extension_number ?? '',
+                        $user->home_phone ?? '',
                         $user->email ?? '',
-                        $user->marital_status ?? '',
-                        $user->employment_status ?? '',
-                        $user->type ?? '',
+                        $user->position_2 ?? '',
+                        $user->organization_2 ?? '',
+                        $user->organization_type_2 ?? '',
+                        $user->status_2 ?? '',
+                        // Existing fields
+                        $user->mother_name ?? '',
                         $user->identification_id ?? '',
                         $user->passport_number ?? '',
                         $user->register_number ?? '',
                         $user->register_place ?? '',
-                        $user->mother_name ?? '',
+                        $user->phone_number ?? '',
+                        $user->marital_status ?? '',
+                        $user->employment_status ?? '',
+                        $user->type ?? '',
                         $user->created_at->format('Y-m-d H:i:s')
                     ], ',');
                 }
@@ -458,58 +710,44 @@ public function statistics()
             $file = fopen('php://output', 'w');
             fwrite($file, "\xEF\xBB\xBF"); // BOM for UTF-8
             
-            // Template headers - MUST match the import mapping exactly
+            // Template headers with new fields - 15 columns to match your CSV
             fputcsv($file, [
-                'first_name', 
-                'last_name', 
-                'middle_name', 
-                'dob',
-                'phone_number', 
+                // Required fields (15 columns total)
+                'prefix',
+                'is_high_profile',
+                'scope',
+                'community_of_practice',
+                'first_name',
+                'last_name',
                 'gender',
-                'marital_status',
-                'employment_status', 
-                'type',
-                'mother_name',
-                'identification_id',
-                'passport_number',
-                'register_number',
-                'register_place'
+                'position_1',
+                'organization_1',
+                'organization_type_1',
+                'status_1',
+                'address',
+                'mobile_phone',
+                'register_place',
+                'sector'
             ], ',');
             
-            // Example data row with CORRECT formatting
+            // Example data row - 15 columns
             fputcsv($file, [
+                // Required fields
+                'Dr.',
+                'true',
+                'National',
+                'Healthcare Professionals',
                 'John',
                 'Doe',
-                'Smith',
-                '1990-05-15', // Must be YYYY-MM-DD
-                '+961 70 123 456',
                 'Male',
-                'Married',
-                'Employed',
-                'Stakeholder',
-                'Mary Doe',
-                'ID123456',
-                'P1234567',
-                'REG001',
-                'Beirut'
-            ], ',');
-            
-            // Second example with different data
-            fputcsv($file, [
-                'Sarah',
-                'Smith',
-                '',
-                '1985-12-20',
-                '+961 71 987 654',
-                'Female',
-                'Single',
-                'Student',
-                'Beneficiary',
-                'Jane Smith',
-                '',
-                'P7654321',
-                'REG002',
-                'Tripoli'
+                'Senior Doctor',
+                'Beirut Medical Center',
+                'Public Sector',
+                'Active',
+                'Beirut, Lebanon',
+                '+961 70 123 456',
+                'Beirut',
+                'Healthcare'
             ], ',');
             
             fclose($file);
@@ -519,7 +757,7 @@ public function statistics()
     }
 
     /**
-     * Process imported users
+     * Process imported users - UPDATED for 15-column CSV
      */
     public function import(Request $request)
     {
@@ -547,17 +785,19 @@ public function statistics()
                 throw new \Exception('Cannot open file');
             }
 
-            // Skip header row
+            // Read and validate header row
             $header = fgetcsv($handle);
-            Log::info('CSV Header:', $header ?: ['No header found']);
+            if (!$header || count($header) < 13) { // At least 13 required columns
+                throw new \Exception('Invalid CSV format. Please use the provided template.');
+            }
+
+            Log::info('CSV Header found with ' . count($header) . ' columns');
             
             $rowNumber = 1;
             
             while (($data = fgetcsv($handle)) !== FALSE) {
                 $results['total']++;
                 $rowNumber++;
-                
-                Log::info("Processing row {$rowNumber}:", $data);
                 
                 try {
                     // Skip empty rows
@@ -566,29 +806,83 @@ public function statistics()
                         continue;
                     }
 
-                    // Map CSV columns to database fields CORRECTLY
+                    // Ensure we have enough columns
+                    if (count($data) < 13) {
+                        throw new \Exception('Row has insufficient columns. Expected at least 13, got ' . count($data));
+                    }
+
+                    // Map CSV columns to database fields (15 columns expected)
                     $cleanedData = $this->cleanImportData([
-                        'first_name' => $data[0] ?? null,
-                        'last_name' => $data[1] ?? null,
-                        'middle_name' => $data[2] ?? null,
-                        'dob' => $data[3] ?? null,
-                        'phone_number' => $data[4] ?? null,
-                        'gender' => $data[5] ?? null,
-                        'marital_status' => $data[6] ?? null,
-                        'employment_status' => $data[7] ?? null,
-                        'type' => $data[8] ?? 'Stakeholder',
-                        'mother_name' => $data[9] ?? null,
-                        'identification_id' => $data[10] ?? null,
-                        'passport_number' => $data[11] ?? null,
-                        'register_number' => $data[12] ?? null,
+                        // Required fields
+                        'prefix' => $data[0] ?? null,
+                        'is_high_profile' => $data[1] ?? false,
+                        'scope' => $data[2] ?? null,
+                        'community_of_practice' => $data[3] ?? null,
+                        'first_name' => $data[4] ?? null,
+                        'last_name' => $data[5] ?? null,
+                        'gender' => $data[6] ?? null,
+                        'position_1' => $data[7] ?? null,
+                        'organization_1' => $data[8] ?? null,
+                        'organization_type_1' => $data[9] ?? null,
+                        'status_1' => $data[10] ?? null,
+                        'address' => $data[11] ?? null,
+                        'mobile_phone' => $data[12] ?? null,
+                        
+                        // Optional fields (columns 13-14)
                         'register_place' => $data[13] ?? null,
+                        'sector' => $data[14] ?? null,
+                        
+                        // Set defaults for other optional fields
+                        'middle_name' => null,
+                        'dob' => null,
+                        'office_phone' => null,
+                        'extension_number' => null,
+                        'home_phone' => null,
+                        'email' => null,
+                        'position_2' => null,
+                        'organization_2' => null,
+                        'organization_type_2' => null,
+                        'status_2' => null,
+                        'mother_name' => null,
+                        'phone_number' => null,
+                        'marital_status' => null,
+                        'employment_status' => null,
+                        'type' => 'Stakeholder',
+                        'identification_id' => null,
+                        'passport_number' => null,
+                        'register_number' => null,
                     ]);
                     
-                    Log::info("Cleaned data for row {$rowNumber}:", $cleanedData);
+                    // Log cleaned data for debugging
+                    Log::info("Row {$rowNumber} cleaned data:", [
+                        'is_high_profile' => $cleanedData['is_high_profile'] ? 'TRUE' : 'FALSE',
+                        'first_name' => $cleanedData['first_name'],
+                        'last_name' => $cleanedData['last_name'],
+                        'scope' => $cleanedData['scope'],
+                    ]);
                     
                     // Validate required fields
-                    if (empty($cleanedData['first_name']) || empty($cleanedData['last_name'])) {
-                        throw new \Exception('First name and last name are required');
+                    $requiredFields = [
+                        'is_high_profile', 'scope', 'community_of_practice',
+                        'first_name', 'last_name', 'gender',
+                        'position_1', 'organization_1', 'organization_type_1', 'status_1',
+                        'address', 'mobile_phone'
+                    ];
+                    
+                    $missingFields = [];
+                    foreach ($requiredFields as $field) {
+                        if ($field === 'is_high_profile') {
+                            // Boolean field, just check if it's set
+                            if (!isset($cleanedData[$field])) {
+                                $missingFields[] = $field;
+                            }
+                        } elseif (empty($cleanedData[$field])) {
+                            $missingFields[] = $field;
+                        }
+                    }
+                    
+                    if (!empty($missingFields)) {
+                        throw new \Exception("Missing required fields: " . implode(', ', $missingFields));
                     }
 
                     // Create the user
@@ -596,7 +890,7 @@ public function statistics()
                     
                     if ($user) {
                         $results['successful']++;
-                        Log::info("Successfully created user: {$user->user_id}");
+                        Log::info("Successfully created user ID: {$user->user_id}, Name: {$user->first_name} {$user->last_name}");
                     } else {
                         throw new \Exception('Failed to create user record');
                     }
@@ -623,14 +917,14 @@ public function statistics()
     }
 
     /**
-     * Clean import data with better date handling
+     * Clean import data - IMPROVED with better error handling
      */
     private function cleanImportData($data)
     {
         $cleaned = [];
         
         foreach ($data as $key => $value) {
-            // Handle null values
+            // Handle null/empty values
             if ($value === null || $value === '') {
                 $cleaned[$key] = null;
                 continue;
@@ -643,38 +937,132 @@ public function statistics()
                 $cleanValue = null;
             }
             
-            // Handle date format - improved for various formats
-            if ($key === 'dob' && $cleanValue) {
-                try {
-                    // Remove any quotes or extra spaces
-                    $cleanValue = trim($cleanValue, '"\' ');
-                    
-                    // Handle different date formats
-                    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $cleanValue)) {
-                        // Already in YYYY-MM-DD format
-                        $cleanValue = Carbon::parse($cleanValue)->format('Y-m-d');
-                    } elseif (preg_match('/^\d{1,2}\/\d{1,2}\/\d{4}$/', $cleanValue)) {
-                        // Handle MM/DD/YYYY format
-                        $dateParts = explode('/', $cleanValue);
-                        $cleanValue = Carbon::createFromDate($dateParts[2], $dateParts[0], $dateParts[1])->format('Y-m-d');
-                    } elseif (preg_match('/^\d{1,2}-\d{1,2}-\d{4}$/', $cleanValue)) {
-                        // Handle MM-DD-YYYY format
-                        $dateParts = explode('-', $cleanValue);
-                        $cleanValue = Carbon::createFromDate($dateParts[2], $dateParts[0], $dateParts[1])->format('Y-m-d');
+            // Handle boolean for is_high_profile
+            if ($key === 'is_high_profile') {
+                if (is_string($cleanValue)) {
+                    $upperValue = strtoupper($cleanValue);
+                    if ($upperValue === 'TRUE' || $upperValue === 'YES' || $upperValue === '1' || $upperValue === 'T') {
+                        $cleanValue = true;
+                    } elseif ($upperValue === 'FALSE' || $upperValue === 'NO' || $upperValue === '0' || $upperValue === 'F') {
+                        $cleanValue = false;
                     } else {
-                        // Try to parse any other format
-                        $cleanValue = Carbon::parse($cleanValue)->format('Y-m-d');
+                        // Try to convert any other string
+                        $cleanValue = filter_var($cleanValue, FILTER_VALIDATE_BOOLEAN);
+                        if ($cleanValue === false && $cleanValue !== true) {
+                            // filter_var returns false for non-boolean strings, so we need to check
+                            $cleanValue = false; // Default to false
+                        }
                     }
-                } catch (\Exception $e) {
-                    Log::warning("Invalid date format for {$key}: {$cleanValue} - Error: " . $e->getMessage());
-                    $cleanValue = null;
+                } elseif (is_numeric($cleanValue)) {
+                    $cleanValue = (bool) $cleanValue;
+                }
+                
+                // Ensure it's always a boolean
+                $cleanValue = (bool) $cleanValue;
+            }
+            
+            // Handle scope formatting
+            if ($key === 'scope' && $cleanValue) {
+                $original = $cleanValue;
+                $cleanValue = trim($cleanValue);
+                $cleanValue = ucfirst(strtolower($cleanValue));
+                
+                // Fix common typos
+                $scopeMap = [
+                    'int' => 'International',
+                    'internat' => 'International',
+                    'international' => 'International',
+                    'reg' => 'Regional',
+                    'regional' => 'Regional',
+                    'nat' => 'National',
+                    'national' => 'National',
+                    'loc' => 'Local',
+                    'local' => 'Local',
+                ];
+                
+                $lowerValue = strtolower($cleanValue);
+                if (isset($scopeMap[$lowerValue])) {
+                    $cleanValue = $scopeMap[$lowerValue];
+                }
+                
+                if (!in_array($cleanValue, ['International', 'Regional', 'National', 'Local'])) {
+                    Log::warning("Invalid scope value '{$original}', defaulting to 'National'");
+                    $cleanValue = 'National';
+                }
+            }
+            
+            // Handle organization type formatting
+            if (in_array($key, ['organization_type_1', 'organization_type_2']) && $cleanValue) {
+                $original = $cleanValue;
+                $cleanValue = trim($cleanValue);
+                $cleanValue = ucwords(strtolower($cleanValue));
+                
+                // Fix common variations
+                $orgMap = [
+                    'public sector' => 'Public Sector',
+                    'public' => 'Public Sector',
+                    'private sector' => 'Private Sector',
+                    'private' => 'Private Sector',
+                    'academia' => 'Academia',
+                    'academic' => 'Academia',
+                    'un' => 'UN',
+                    'united nations' => 'UN',
+                    'ingos' => 'INGOs',
+                    'ingo' => 'INGOs',
+                    'civil society' => 'Civil Society',
+                    'civil' => 'Civil Society',
+                    'ngos' => 'NGOs',
+                    'ngo' => 'NGOs',
+                    'activist' => 'Activist',
+                    'advocacy' => 'Activist',
+                ];
+                
+                $lowerValue = strtolower($cleanValue);
+                if (isset($orgMap[$lowerValue])) {
+                    $cleanValue = $orgMap[$lowerValue];
+                }
+                
+                $allowedTypes = ['Public Sector', 'Private Sector', 'Academia', 'UN', 'INGOs', 'Civil Society', 'NGOs', 'Activist'];
+                if (!in_array($cleanValue, $allowedTypes)) {
+                    Log::warning("Invalid organization type '{$original}', defaulting to 'Private Sector'");
+                    $cleanValue = 'Private Sector';
                 }
             }
             
             // Handle gender formatting
             if ($key === 'gender' && $cleanValue) {
-                $cleanValue = ucfirst(strtolower(trim($cleanValue)));
-                if (!in_array($cleanValue, ['Male', 'Female'])) {
+                $original = $cleanValue;
+                $cleanValue = trim($cleanValue);
+                $cleanValue = ucfirst(strtolower($cleanValue));
+                
+                // Fix common variations
+                $genderMap = [
+                    'm' => 'Male',
+                    'male' => 'Male',
+                    'f' => 'Female',
+                    'female' => 'Female',
+                    'o' => 'Other',
+                    'other' => 'Other',
+                ];
+                
+                $lowerValue = strtolower($cleanValue);
+                if (isset($genderMap[$lowerValue])) {
+                    $cleanValue = $genderMap[$lowerValue];
+                }
+                
+                if (!in_array($cleanValue, ['Male', 'Female', 'Other'])) {
+                    Log::warning("Invalid gender value '{$original}', defaulting to 'Male'");
+                    $cleanValue = 'Male';
+                }
+            }
+            
+            // Handle date format
+            if ($key === 'dob' && $cleanValue) {
+                try {
+                    $cleanValue = trim($cleanValue, '"\' ');
+                    $cleanValue = Carbon::parse($cleanValue)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    Log::warning("Invalid date format for {$key}: {$cleanValue}");
                     $cleanValue = null;
                 }
             }
@@ -684,65 +1072,23 @@ public function statistics()
                 $cleanValue = ucfirst(strtolower(trim($cleanValue)));
                 $allowedTypes = ['Stakeholder', 'Employee', 'Admin', 'Customer', 'Partner', 'Beneficiary'];
                 if (!in_array($cleanValue, $allowedTypes)) {
-                    $cleanValue = 'Stakeholder'; // Default value
+                    $cleanValue = 'Stakeholder';
                 }
             }
             
-            // Handle employment status formatting
-            if ($key === 'employment_status' && $cleanValue) {
-                $cleanValue = ucfirst(strtolower(trim($cleanValue)));
-                $allowedStatuses = ['Employed', 'Unemployed', 'Student', 'Retired', 'Self-employed'];
-                if (!in_array($cleanValue, $allowedStatuses)) {
-                    // Try to match common variations
-                    $statusMap = [
-                        'self-employed' => 'Self-employed',
-                        'self employed' => 'Self-employed',
-                        'selfemployed' => 'Self-employed',
-                        'employed' => 'Employed',
-                        'unemployed' => 'Unemployed',
-                        'student' => 'Student',
-                        'retired' => 'Retired',
-                    ];
-                    $cleanValue = $statusMap[strtolower($cleanValue)] ?? $cleanValue;
-                }
-            }
-            
-            // Handle marital status formatting
-            if ($key === 'marital_status' && $cleanValue) {
-                $cleanValue = ucfirst(strtolower(trim($cleanValue)));
-                $allowedStatuses = ['Single', 'Married', 'Divorced', 'Widowed', 'Separated'];
-                if (!in_array($cleanValue, $allowedStatuses)) {
-                    // Try to match common variations
-                    $statusMap = [
-                        'single' => 'Single',
-                        'married' => 'Married',
-                        'divorced' => 'Divorced',
-                        'widowed' => 'Widowed',
-                        'separated' => 'Separated',
-                    ];
-                    $cleanValue = $statusMap[strtolower($cleanValue)] ?? $cleanValue;
-                }
-            }
-            
-            // Handle phone number formatting for Lebanon
-            if ($key === 'phone_number' && $cleanValue) {
-                // Remove any non-digit characters except +
+            // Handle phone number formatting
+            if (in_array($key, ['mobile_phone', 'office_phone', 'home_phone', 'phone_number']) && $cleanValue) {
+                $original = $cleanValue;
+                // Remove all non-numeric characters except +
                 $cleanValue = preg_replace('/[^\d+]/', '', $cleanValue);
                 
-                // If it starts with 03, 70, 71, 76, 78, 79, 81, format as Lebanese number
-                if (preg_match('/^(03|70|71|76|78|79|81)\d{6}$/', $cleanValue)) {
-                    $cleanValue = '+961 ' . substr($cleanValue, 1, 2) . ' ' . substr($cleanValue, 3, 3) . ' ' . substr($cleanValue, 6, 3);
-                }
-                // If it's 8 digits without country code, assume it's Lebanese
-                elseif (preg_match('/^\d{8}$/', $cleanValue) && in_array(substr($cleanValue, 0, 2), ['03', '70', '71', '76', '78', '79', '81'])) {
-                    $cleanValue = '+961 ' . substr($cleanValue, 0, 2) . ' ' . substr($cleanValue, 2, 3) . ' ' . substr($cleanValue, 5, 3);
-                }
-                // If it already has +961, ensure proper formatting
-                elseif (str_starts_with($cleanValue, '+961') && strlen($cleanValue) > 4) {
-                    $numberPart = substr($cleanValue, 4);
-                    if (preg_match('/^\d{8}$/', $numberPart)) {
-                        $cleanValue = '+961 ' . substr($numberPart, 0, 2) . ' ' . substr($numberPart, 2, 3) . ' ' . substr($numberPart, 5, 3);
-                    }
+                // Format Lebanese numbers
+                if (preg_match('/^(03|70|71|76|78|79|81)(\d{6})$/', $cleanValue, $matches)) {
+                    $cleanValue = '+961 ' . $matches[1] . ' ' . substr($matches[2], 0, 3) . ' ' . substr($matches[2], 3, 3);
+                } elseif (preg_match('/^\+?961(3|70|71|76|78|79|81)(\d{6})$/', $cleanValue, $matches)) {
+                    $cleanValue = '+961 ' . $matches[1] . ' ' . substr($matches[2], 0, 3) . ' ' . substr($matches[2], 3, 3);
+                } elseif (preg_match('/^(\d{8})$/', $cleanValue) && in_array(substr($cleanValue, 0, 2), ['03', '70', '71', '76', '78', '79', '81'])) {
+                    $cleanValue = '+961 ' . substr($cleanValue, 1, 2) . ' ' . substr($cleanValue, 3, 3) . ' ' . substr($cleanValue, 6, 2);
                 }
             }
             
@@ -790,29 +1136,32 @@ public function statistics()
             'by_gender' => User::groupBy('gender')
                 ->select('gender', DB::raw('COUNT(*) as count'))
                 ->get(),
-            'by_marital_status' => User::groupBy('marital_status')
-                ->select('marital_status', DB::raw('COUNT(*) as count'))
+            'by_scope' => User::groupBy('scope')
+                ->select('scope', DB::raw('COUNT(*) as count'))
                 ->get(),
-            'by_employment' => User::groupBy('employment_status')
-                ->select('employment_status', DB::raw('COUNT(*) as count'))
+            'by_community' => User::groupBy('community_of_practice')
+                ->select('community_of_practice', DB::raw('COUNT(*) as count'))
+                ->get(),
+            'by_organization_type' => User::groupBy('organization_type_1')
+                ->select('organization_type_1', DB::raw('COUNT(*) as count'))
                 ->get(),
         ];
     }
 
     /**
-     * Get registration patterns (Database-agnostic version)
+     * Get registration patterns
      */
-    /**
- * Get registration patterns (Only type breakdown)
- */
-private function getRegistrationPatterns()
-{
-    return [
-        'by_type' => User::groupBy('type')
-            ->select('type', DB::raw('COUNT(*) as count'))
-            ->get(),
-    ];
-}
+    private function getRegistrationPatterns()
+    {
+        return [
+            'by_type' => User::groupBy('type')
+                ->select('type', DB::raw('COUNT(*) as count'))
+                ->get(),
+            'by_sector' => User::groupBy('sector')
+                ->select('sector', DB::raw('COUNT(*) as count'))
+                ->get(),
+        ];
+    }
 
     /**
      * Get export data

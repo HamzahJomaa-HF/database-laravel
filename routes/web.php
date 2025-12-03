@@ -36,3 +36,5 @@ Route::get('/users/import/template', [UserController::class, 'downloadTemplate']
 // Bulk actions
 Route::delete('/users/bulk-delete', [UserController::class, 'bulkDelete'])->name('users.bulk-delete');
 Route::delete('/users/delete-all', [UserController::class, 'deleteAll'])->name('users.delete-all');
+
+

@@ -117,6 +117,7 @@
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
         
+        
         .btn {
             border-radius: 8px;
             font-weight: 600;
@@ -178,6 +179,62 @@
         .fade-in {
             animation: fadeIn 0.5s ease-in-out;
         }
+
+        /* Search bar styling */
+        .search-container {
+            width: 300px;
+            margin-left: 3.5rem;
+        }
+        
+        .search-input-group {
+            position: relative;
+        }
+        
+        .search-input {
+            padding-left: 2.5rem;
+            padding-right: 2.5rem;
+            border-radius: 20px;
+            background-color: #f1f3f9;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+         .navbar .search-input::placeholder {
+        color: #6c757d !important;
+        opacity: 0.7 !important;
+     }
+
+        
+        .search-input:focus {
+            background-color: #fff;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+            border-color: var(--primary-color);
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            z-index: 10;
+        }
+        
+        .search-clear {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            cursor: pointer;
+            z-index: 10;
+            background: none;
+            border: none;
+            display: none;
+        }
+        
+        .search-clear:hover {
+            color: #ef476f;
+        }
     </style>
 
     @yield('styles')
@@ -191,43 +248,48 @@
 
     {{-- Top Navbar --}}
     <nav class="navbar navbar-expand-lg navbar-light shadow-sm fixed-top top-navbar">
-        
+        <div class="container-fluid">
+            <div class="d-flex align-items-center w-100">
+               
 
-            <ul class="navbar-nav flex-row align-items-center ms-auto">
-                <li class="nav-item me-3 position-relative">
-                    <a class="nav-link text-muted position-relative" href="#">
-                        <i class="bi bi-bell fs-5"></i>
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
-                            3
-                        </span>
-                    </a>
-                </li>
-                <li class="nav-item me-3">
-                    <a class="nav-link text-muted" href="#">
-                        <i class="bi bi-gear fs-5"></i>
-                    </a>
-                </li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                        <div class="me-2 text-end d-none d-md-block">
-                            <div class="fw-semibold text-dark" style="font-size: 0.9rem;">Adrian D.</div>
-                            <div class="text-muted small">Administrator</div>
-                        </div>
-                        <div class="position-relative">
-                            <img src="https://placehold.co/40x40/4361ee/FFFFFF?text=AD" class="rounded-circle border border-2 border-white shadow" alt="User Avatar">
-                            <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-2 border-white rounded-circle">
-                                <span class="visually-hidden">Online</span>
-                            </span>
-                        </div>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 200px;">
-                        <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>My Profile</a></li>
-                        <li><a class="dropdown-item" href="#"><i class="bi bi-lock me-2"></i>Account Settings</a></li>
-                        <li><hr class="dropdown-divider my-2"></li>
-                        <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                <div class="ms-auto d-flex align-items-center">
+                    <ul class="navbar-nav flex-row align-items-center">
+                        <li class="nav-item me-3 position-relative">
+                            <a class="nav-link text-muted position-relative" href="#">
+                                <i class="bi bi-bell fs-5"></i>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                                    3
+                                </span>
+                            </a>
+                        </li>
+                        <li class="nav-item me-3">
+                            <a class="nav-link text-muted" href="#">
+                                <i class="bi bi-gear fs-5"></i>
+                            </a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                                <div class="me-2 text-end d-none d-md-block">
+                                    <div class="fw-semibold text-dark" style="font-size: 0.9rem;">Adrian D.</div>
+                                    <div class="text-muted small">Administrator</div>
+                                </div>
+                                <div class="position-relative">
+                                    <img src="https://placehold.co/40x40/4361ee/FFFFFF?text=AD" class="rounded-circle border border-2 border-white shadow" alt="User Avatar">
+                                    <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-2 border-white rounded-circle">
+                                        <span class="visually-hidden">Online</span>
+                                    </span>
+                                </div>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 200px;">
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>My Profile</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-lock me-2"></i>Account Settings</a></li>
+                                <li><hr class="dropdown-divider my-2"></li>
+                                <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                            </ul>
+                        </li>
                     </ul>
-                </li>
-            </ul>
+                </div>
+            </div>
         </div>
     </nav>
 
@@ -235,6 +297,7 @@
     <div class="main-wrapper">
         <main role="main" class="flex-grow-1 p-4 fade-in">
             <div class="container-fluid px-4"> 
+                {{-- THIS IS WHERE YOUR IMPORT AND STATISTICS PAGES WILL LOAD --}}
                 @yield('content')
             </div>
         </main>
@@ -243,7 +306,7 @@
             <div class="container-fluid">
                 <div class="row align-items-center">
                     <div class="col-md-6">
-                        <span class="text-muted small">© {{ date('Y') }} Hariri Foundation  Management System. All rights reserved.</span>
+                        <span class="text-muted small">© {{ date('Y') }} Hariri Foundation Management System. All rights reserved.</span>
                     </div>
                     <div class="col-md-6 text-md-end">
                         <span class="text-muted small">v1.0.0 • Built with <i class="bi bi-heart-fill text-danger"></i></span>
@@ -256,6 +319,43 @@
     {{-- Bootstrap JS --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
+    {{-- Search functionality --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.querySelector('.search-input');
+            const searchClear = document.querySelector('.search-clear');
+            
+            // Show/hide clear button based on input
+            searchInput.addEventListener('input', function() {
+                if (this.value.length > 0) {
+                    searchClear.style.display = 'block';
+                } else {
+                    searchClear.style.display = 'none';
+                }
+            });
+            
+            // Clear search input
+            searchClear.addEventListener('click', function() {
+                searchInput.value = '';
+                searchInput.focus();
+                this.style.display = 'none';
+            });
+            
+            // Search functionality (example)
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    const query = this.value.trim();
+                    if (query) {
+                        // Here you would implement your search logic
+                        console.log('Searching for:', query);
+                        // Example: window.location.href = `/search?q=${encodeURIComponent(query)}`;
+                    }
+                }
+            });
+        });
+    </script>
+
+    {{-- THIS IS WHERE YOUR IMPORT AND STATISTICS PAGES WILL LOAD THEIR SCRIPTS --}}
     @yield('scripts')
 </body>
 </html>

@@ -47,22 +47,15 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('users.import.form') ? 'active' : '' }}" 
-                           href="{{ route('users.import.form') }}">
-                            <i class="bi bi-cloud-upload me-2"></i> Import Users
-                        </a>
-                    </li>
-                    
-                    
                         <a class="nav-link {{ request()->routeIs('users.statistics') ? 'active' : '' }}" 
                            href="{{ route('users.statistics') }}">
                             <i class="bi bi-bar-chart me-2"></i> User Statistics
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('users.reports') ? 'active' : '' }}" 
-                           href="{{ route('users.reports') }}">
-                            <i class="bi bi-file-earmark-text me-2"></i> User Reports
+                        <a class="nav-link {{ request()->routeIs('users.import.form') ? 'active' : '' }}" 
+                           href="{{ route('users.import.form') }}">
+                            <i class="bi bi-cloud-upload me-2"></i> Import Users
                         </a>
                     </li>
                     <li class="nav-item">
@@ -94,17 +87,9 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">
-                            <i class="bi bi-plus-circle me-2"></i> Create Program
+                            <i class="bi bi-plus-circle me-2"></i> Add New Program
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="bi bi-cloud-upload me-2"></i> Import Programs
-                        </a>
-                    </li>
-                    
-                    {{-- Program Analytics --}}
-                    <li class="nav-item sub-header">Analytics</li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">
                             <i class="bi bi-bar-chart me-2"></i> Program Statistics
@@ -112,7 +97,12 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">
-                            <i class="bi bi-file-earmark-text me-2"></i> Program Reports
+                            <i class="bi bi-cloud-upload me-2"></i> Import Programs
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="bi bi-download me-2"></i> Export Programs
                         </a>
                     </li>
                 </ul>
@@ -138,17 +128,9 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">
-                            <i class="bi bi-plus-circle me-2"></i> New Project
+                            <i class="bi bi-plus-circle me-2"></i> Add New Project
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="bi bi-cloud-upload me-2"></i> Import Projects
-                        </a>
-                    </li>
-                    
-                    {{-- Project Analytics --}}
-                    <li class="nav-item sub-header">Analytics</li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">
                             <i class="bi bi-bar-chart me-2"></i> Project Statistics
@@ -156,7 +138,12 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">
-                            <i class="bi bi-file-earmark-text me-2"></i> Project Reports
+                            <i class="bi bi-cloud-upload me-2"></i> Import Projects
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="bi bi-download me-2"></i> Export Projects
                         </a>
                     </li>
                 </ul>
@@ -182,17 +169,9 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">
-                            <i class="bi bi-plus-circle me-2"></i> Schedule Activity
+                            <i class="bi bi-plus-circle me-2"></i> Add New Activity
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="bi bi-cloud-upload me-2"></i> Import Activities
-                        </a>
-                    </li>
-                    
-                    {{-- Activity Analytics --}}
-                    <li class="nav-item sub-header">Analytics</li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">
                             <i class="bi bi-bar-chart me-2"></i> Activity Statistics
@@ -200,7 +179,12 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">
-                            <i class="bi bi-file-earmark-text me-2"></i> Activity Reports
+                            <i class="bi bi-cloud-upload me-2"></i> Import Activities
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="bi bi-download me-2"></i> Export Activities
                         </a>
                     </li>
                 </ul>
@@ -258,19 +242,16 @@
         </li>
     </ul>
     
-    {{-- Help Section --}}
+    {{-- Help Section (Modified) --}}
     <div class="mt-auto p-3">
         <div class="card bg-dark border-0">
             <div class="card-body text-center p-3">
                 <i class="bi bi-question-circle fs-2 text-warning mb-2"></i>
-                <h6 class="text-white mb-2">Need Assistance?</h6>
-                <p class="text-white-50 small mb-3">Our support team is ready to help</p>
+                <h6 class="text-white mb-2">Documentation</h6>
+                <p class="text-white-50 small mb-3">Access user guides and manuals</p>
                 <div class="d-grid gap-2">
-                    <a href="#" class="btn btn-warning btn-sm">
-                        <i class="bi bi-headset me-1"></i> Contact Support
-                    </a>
                     <a href="#" class="btn btn-outline-light btn-sm">
-                        <i class="bi bi-book me-1"></i> Documentation
+                        <i class="bi bi-book me-1"></i> User Guide
                     </a>
                 </div>
             </div>

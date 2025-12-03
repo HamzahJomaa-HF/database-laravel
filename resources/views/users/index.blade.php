@@ -13,12 +13,6 @@
                     <p class="text-muted mb-0">Manage and organize your user directory efficiently</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-outline-secondary">
-                        <i class="bi bi-file-earmark-excel me-1"></i>Export Data
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary">
-                        <i class="bi bi-cloud-upload me-1"></i>Import Users
-                    </button>
                     <a href="{{ route('users.create') }}" class="btn btn-primary">
                         <i class="bi bi-person-plus me-1"></i>Add User
                     </a>
@@ -52,7 +46,7 @@
                         <form method="GET">
                             <div class="row g-3">
                                 {{-- Name --}}
-                                <div class="col-md-6">
+                                <div class="col-md-3">
                                     <label for="inlineFormFilterBy" class="form-label fw-semibold">Name Search</label>
                                     <input type="text" 
                                            name="name" 
@@ -63,7 +57,7 @@
                                 </div>
 
                                 {{-- Phone --}}
-                                <div class="col-md-6">
+                                <div class="col-md-3">
                                     <label for="inlineFormPhone" class="form-label fw-semibold">Phone Number</label>
                                     <input type="text" 
                                            name="phone_number" 
@@ -75,42 +69,22 @@
 
                                 {{-- Dropdowns --}}
                                 <div class="col-md-3">
-                                    <label for="inlineFormGender" class="form-label fw-semibold">Gender</label>
-                                    <select id="inlineFormGender" name="gender" class="form-control">
-                                        <option value="">All Genders</option>
-                                        <option value="Male" {{ request('gender') == 'Male' ? 'selected' : '' }}>Male</option>
-                                        <option value="Female" {{ request('gender') == 'Female' ? 'selected' : '' }}>Female</option>
+                                    <label for="inlineFormRole" class="form-label fw-semibold">Role Type</label>
+                                    <select id="inlineFormRole" name="type" class="form-control">
+                                        <option value="">All Roles</option>
+                                        <option value="Beneficiary" {{ request('type') == 'Beneficiary' ? 'selected' : '' }}>Beneficiary</option>
+                                        <option value="Stakeholder" {{ request('type') == 'Stakeholder' ? 'selected' : '' }}>Stakeholder</option>
                                     </select>
                                 </div>
 
                                 <div class="col-md-3">
-                                    <label for="inlineFormMarital" class="form-label fw-semibold">Marital Status</label>
-                                    <select id="inlineFormMarital" name="marital_status" class="form-control">
-                                        <option value="">All Statuses</option>
-                                        <option value="Single" {{ request('marital_status') == 'Single' ? 'selected' : '' }}>Single</option>
-                                        <option value="Married" {{ request('marital_status') == 'Married' ? 'selected' : '' }}>Married</option>
-                                        <option value="Divorced" {{ request('marital_status') == 'Divorced' ? 'selected' : '' }}>Divorced</option>
-                                        <option value="Widowed" {{ request('marital_status') == 'Widowed' ? 'selected' : '' }}>Widowed</option>
-                                    </select>
-                                </div>
-
-                                <div class="col-md-3">
-                                    <label for="inlineFormEmployment" class="form-label fw-semibold">Employment Status</label>
+                                    <label for="inlineFormEmployment" class="form-label fw-semibold">Status</label>
                                     <select id="inlineFormEmployment" name="employment_status" class="form-control">
                                         <option value="">All Statuses</option>
                                         <option value="Employed" {{ request('employment_status') == 'Employed' ? 'selected' : '' }}>Employed</option>
                                         <option value="Unemployed" {{ request('employment_status') == 'Unemployed' ? 'selected' : '' }}>Unemployed</option>
                                         <option value="Student" {{ request('employment_status') == 'Student' ? 'selected' : '' }}>Student</option>
                                         <option value="Retired" {{ request('employment_status') == 'Retired' ? 'selected' : '' }}>Retired</option>
-                                    </select>
-                                </div>
-
-                                <div class="col-md-3">
-                                    <label for="inlineFormRole" class="form-label fw-semibold">Role Type</label>
-                                    <select id="inlineFormRole" name="type" class="form-control">
-                                        <option value="">All Roles</option>
-                                        <option value="Beneficiary" {{ request('type') == 'Beneficiary' ? 'selected' : '' }}>Beneficiary</option>
-                                        <option value="Stakeholder" {{ request('type') == 'Stakeholder' ? 'selected' : '' }}>Stakeholder</option>
                                     </select>
                                 </div>
 
@@ -137,11 +111,9 @@
                                     @php
                                     $filters = [
                                         'name' => ['icon' => 'bi-person', 'label' => 'Name'],
-                                        'gender' => ['icon' => 'bi-gender-ambiguous', 'label' => 'Gender'],
-                                        'marital_status' => ['icon' => 'bi-heart', 'label' => 'Marital'],
-                                        'employment_status' => ['icon' => 'bi-briefcase', 'label' => 'Employment'],
                                         'type' => ['icon' => 'bi-person-badge', 'label' => 'Role'],
-                                        'phone_number' => ['icon' => 'bi-telephone', 'label' => 'Phone']
+                                        'phone_number' => ['icon' => 'bi-telephone', 'label' => 'Phone'],
+                                        'employment_status' => ['icon' => 'bi-briefcase', 'label' => 'Status']
                                     ];
                                     @endphp
 
@@ -186,28 +158,16 @@
                         <table class="table table-hover mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width: 40px;">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="selectAllCheckbox">
-                                        </div>
-                                    </th>
                                     <th>User Information</th>
                                     <th style="width: 200px;">Contact Details</th>
                                     <th style="width: 150px;">Personal Info</th>
                                     <th style="width: 150px;">Status & Role</th>
-                                    <th style="width: 150px;" class="text-center">Actions</th>
+                                    <th style="width: 80px;" class="text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($users as $user)
                                 <tr class="user-row align-middle">
-                                    {{-- Checkbox --}}
-                                    <td>
-                                        <div class="form-check">
-                                            <input class="form-check-input user-checkbox" type="checkbox" value="{{ $user->user_id }}">
-                                        </div>
-                                    </td>
-
                                     {{-- User Information --}}
                                     <td>
                                         <div class="d-flex align-items-center">
@@ -279,29 +239,33 @@
 
                                     {{-- Actions --}}
                                     <td>
-                                        <div class="d-flex justify-content-center gap-1">
-                                            <a href="{{ route('users.edit', $user->user_id) }}" 
-                                               class="btn btn-sm btn-outline-primary d-flex align-items-center"
-                                               title="Edit User">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            <form method="POST" 
-                                                  action="{{ route('users.destroy', $user->user_id) }}"
-                                                  onsubmit="return confirm('Are you sure you want to delete {{ $user->first_name }} {{ $user->last_name }}?');"
-                                                  class="d-inline">
-                                                @csrf @method('DELETE')
-                                                <button type="submit" 
-                                                        class="btn btn-sm btn-outline-danger d-flex align-items-center"
-                                                        title="Delete User">
-                                                    <i class="bi bi-trash"></i>
+                                        <div class="text-center">
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                    <i class="fas fa-ellipsis-v"></i>
                                                 </button>
-                                            </form>
+                                                <ul class="dropdown-menu">
+                                                    <li>
+                                                        <a class="dropdown-item" href="{{ route('users.edit', $user->user_id) }}">
+                                                            <i class="bi bi-pencil me-2"></i>Edit
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <form method="POST" action="{{ route('users.destroy', $user->user_id) }}" class="d-inline">
+                                                            @csrf @method('DELETE')
+                                                            <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Are you sure you want to delete {{ $user->first_name }} {{ $user->last_name }}?');">
+                                                                <i class="bi bi-trash me-2"></i>Delete
+                                                            </button>
+                                                        </form>
+                                                    </li>
+                                                </ul>
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="6" class="py-5 text-center bg-light">
+                                    <td colspan="5" class="py-5 text-center bg-light">
                                         <div class="py-4">
                                             <i class="bi bi-people display-4 text-muted opacity-50 mb-3"></i>
                                             <h5 class="fw-bold text-muted mb-3">No users found</h5>
@@ -339,32 +303,6 @@
                         </div>
                     </div>
                     @endif
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {{-- BULK ACTION BAR --}}
-    <div class="row mt-4 fixed-bottom-bar d-none" id="bulkActionsBar">
-        <div class="col-12">
-            <div class="card bg-light border shadow-lg mx-auto mb-3" style="max-width: 800px;">
-                <div class="card-body py-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center flex-wrap gap-3">
-                            <span id="selectedCount" class="fw-semibold text-dark">0 users selected</span>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-outline-primary btn-sm d-flex align-items-center" id="exportSelected">
-                                    <i class="bi bi-file-earmark-excel me-2"></i>Export Selected
-                                </button>
-                                <button class="btn btn-outline-danger btn-sm d-flex align-items-center" id="deleteSelected">
-                                    <i class="bi bi-trash me-2"></i>Delete Selected
-                                </button>
-                            </div>
-                        </div>
-                        <button class="btn btn-sm btn-outline-secondary d-flex align-items-center" id="clearSelection">
-                            <i class="bi bi-x-lg me-1"></i>Clear
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>
@@ -442,9 +380,9 @@
     }
     
     .form-control:focus, .form-select:focus {
-    border-color: #0a58ca;
-    box-shadow: 0 0 0 0.2rem rgba(10, 88, 202, 0.25);
-}
+        border-color: #0a58ca;
+        box-shadow: 0 0 0 0.2rem rgba(10, 88, 202, 0.25);
+    }
     
     .btn {
         border-radius: 6px;
@@ -524,33 +462,6 @@
         border-radius: 6px;
     }
 
-    .form-check-input {
-        border-radius: 4px;
-        border: 1px solid #dee2e6;
-    }
-
-    .form-check-input:checked {
-        background-color: #0a58ca;
-        border-color: #0a58ca;
-    }
-
-    .fixed-bottom-bar {
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 90%;
-        max-width: 800px;
-        pointer-events: none;
-        z-index: 1000;
-    }
-
-    .fixed-bottom-bar .card {
-        pointer-events: all;
-        border-radius: 8px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    }
-
     .avatar {
         display: flex;
         align-items: center;
@@ -579,6 +490,32 @@
         height: 0;
         overflow: hidden;
         transition: height 0.35s ease;
+    }
+    
+    /* Dropdown styles */
+    .dropdown-toggle::after {
+        display: none;
+    }
+    
+    .dropdown-menu {
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        min-width: 120px;
+    }
+    
+    .dropdown-item {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
+    
+    .dropdown-item:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .dropdown-item.text-danger:hover {
+        background-color: #f8d7da;
+        color: #dc3545 !important;
     }
 </style>
 @endsection
@@ -613,127 +550,6 @@ document.addEventListener('DOMContentLoaded', function() {
             bsCollapse.show();
         @endif
     }
-
-    // Bulk selection functionality
-    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-    const userCheckboxes = document.querySelectorAll('.user-checkbox');
-    const bulkActionsBar = document.getElementById('bulkActionsBar');
-    const selectedCount = document.getElementById('selectedCount');
-    const clearSelection = document.getElementById('clearSelection');
-    const deleteSelected = document.getElementById('deleteSelected');
-    const exportSelected = document.getElementById('exportSelected');
-
-    function updateBulkActions() {
-        const selected = Array.from(userCheckboxes).filter(checkbox => checkbox.checked).length;
-        
-        if (selected > 0) {
-            bulkActionsBar.classList.remove('d-none');
-            selectedCount.textContent = `${selected} user${selected !== 1 ? 's' : ''} selected`;
-        } else {
-            bulkActionsBar.classList.add('d-none');
-        }
-
-        // Update select all checkbox state
-        if (selectAllCheckbox) {
-            selectAllCheckbox.checked = selected > 0;
-            selectAllCheckbox.indeterminate = selected > 0 && selected < userCheckboxes.length;
-        }
-    }
-
-    // Select all functionality
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', function() {
-            userCheckboxes.forEach(checkbox => {
-                checkbox.checked = this.checked;
-            });
-            updateBulkActions();
-        });
-    }
-
-    // Individual checkbox functionality
-    userCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', updateBulkActions);
-    });
-
-    // Clear selection
-    if (clearSelection) {
-        clearSelection.addEventListener('click', function() {
-            userCheckboxes.forEach(checkbox => {
-                checkbox.checked = false;
-            });
-            if (selectAllCheckbox) {
-                selectAllCheckbox.checked = false;
-                selectAllCheckbox.indeterminate = false;
-            }
-            updateBulkActions();
-        });
-    }
-
-    // Delete selected users
-    if (deleteSelected) {
-        deleteSelected.addEventListener('click', function() {
-            const selectedIds = Array.from(userCheckboxes)
-                .filter(checkbox => checkbox.checked)
-                .map(checkbox => checkbox.value);
-
-            if (selectedIds.length === 0) {
-                alert('Please select at least one user to delete.');
-                return;
-            }
-
-            if (confirm(`Are you sure you want to delete ${selectedIds.length} selected user(s)? This action cannot be undone.`)) {
-                // Submit form for bulk deletion
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '{{ route("users.bulk-delete") }}';
-                
-                const csrfToken = document.createElement('input');
-                csrfToken.type = 'hidden';
-                csrfToken.name = '_token';
-                csrfToken.value = '{{ csrf_token() }}';
-                form.appendChild(csrfToken);
-
-                const methodInput = document.createElement('input');
-                methodInput.type = 'hidden';
-                methodInput.name = '_method';
-                methodInput.value = 'DELETE';
-                form.appendChild(methodInput);
-
-                selectedIds.forEach(id => {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = 'user_ids[]';
-                    input.value = id;
-                    form.appendChild(input);
-                });
-
-                document.body.appendChild(form);
-                form.submit();
-            }
-        });
-    }
-
-    // Export selected users
-    if (exportSelected) {
-        exportSelected.addEventListener('click', function() {
-            const selectedIds = Array.from(userCheckboxes)
-                .filter(checkbox => checkbox.checked)
-                .map(checkbox => checkbox.value);
-
-            if (selectedIds.length === 0) {
-                alert('Please select at least one user to export.');
-                return;
-            }
-
-            const params = new URLSearchParams();
-            selectedIds.forEach(id => params.append('user_ids[]', id));
-            
-            window.location.href = `{{ route("users.export.excel") }}?${params.toString()}`;
-        });
-    }
-
-    // Initialize bulk actions
-    updateBulkActions();
 
     // Auto-hide toasts after delay
     const toasts = document.querySelectorAll('.toast');
