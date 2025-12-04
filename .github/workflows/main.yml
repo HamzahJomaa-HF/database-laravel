@@ -52,13 +52,7 @@ jobs:
             mkdir -p deploy/public/build
             rsync -a public/build/ deploy/public/build/
           fi
-
-      # NEW: Fix permissions so tar inside scp-action can read everything
-      - name: Fix deploy folder permissions
-        run: |
-          sudo chown -R "$USER:$USER" deploy
-          sudo chmod -R u+rwX deploy
-
+    
       - name: Copy files to VM (release path)
         uses: appleboy/scp-action@v0.1.7
         with:
