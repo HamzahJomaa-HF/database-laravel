@@ -10,7 +10,8 @@ return new class extends Migration {
            $table->uuid('activity_id')->primary();
             $table->string('external_id')->unique(); 
             $table->string('folder_name')->nullable()->after('name');
-            $table->string('activity_title');
+            $table->string('activity_title_en')->nullable();
+            $table->string('activity_title_ar')->nullable();
             $table->string('activity_type')->nullable();
             $table->text('content_network')->nullable();
             $table->date('start_date')->nullable();

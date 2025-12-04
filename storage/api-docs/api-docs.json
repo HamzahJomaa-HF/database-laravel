@@ -49,16 +49,21 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "activity_title",
+                                    "activity_title_en",
+                                    "activity_title_ar",
                                     "activity_type",
                                     "content_network",
                                     "start_date",
                                     "end_date"
                                 ],
                                 "properties": {
-                                    "activity_title": {
+                                    "activity_title_en": {
                                         "type": "string",
                                         "example": "Workshop on AI"
+                                    },
+                                    "activity_title_ar": {
+                                        "type": "string",
+                                        "example": "ورشة عمل حول الذكاء الاصطناعي"
                                     },
                                     "folder_name": {
                                         "type": "string",
@@ -133,9 +138,13 @@
                         "application/json": {
                             "schema": {
                                 "properties": {
-                                    "activity_title": {
+                                    "activity_title_en": {
                                         "type": "string",
                                         "example": "Updated Workshop Title"
+                                    },
+                                    "activity_title_ar": {
+                                        "type": "string",
+                                        "example": "عنوان الورشة المحدث"
                                     },
                                     "folder_name": {
                                         "type": "string",
@@ -256,10 +265,6 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "required": [
-                                    "user_id",
-                                    "activity_id"
-                                ],
                                 "properties": {
                                     "user_id": {
                                         "type": "string"
@@ -306,7 +311,7 @@
                 "tags": [
                     "ActivityUsers"
                 ],
-                "summary": "Upload a file with a type",
+                "summary": "Upload a file",
                 "description": "Upload a file (without specifying an ActivityUser ID)",
                 "operationId": "cf85135765eb848ab53d4a480604847d",
                 "requestBody": {
@@ -315,8 +320,7 @@
                         "multipart/form-data": {
                             "schema": {
                                 "required": [
-                                    "file",
-                                    "type"
+                                    "file"
                                 ],
                                 "properties": {
                                     "file": {
@@ -324,8 +328,16 @@
                                         "type": "string",
                                         "format": "binary"
                                     },
-                                    "type": {
-                                        "description": "Type of the file",
+                                    "activity_id": {
+                                        "description": "UUID of the activity (optional)",
+                                        "type": "string"
+                                    },
+                                    "activity_title": {
+                                        "description": "Title for new activity (if activity_id not provided)",
+                                        "type": "string"
+                                    },
+                                    "activity_type": {
+                                        "description": "Type for new activity",
                                         "type": "string"
                                     }
                                 },
@@ -344,10 +356,19 @@
                                         "success": {
                                             "type": "boolean"
                                         },
-                                        "file_url": {
+                                        "message": {
                                             "type": "string"
                                         },
-                                        "type": {
+                                        "summary": {
+                                            "type": "object"
+                                        },
+                                        "errors": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "activity_id": {
                                             "type": "string"
                                         }
                                     },

@@ -65,8 +65,9 @@ class ActivityController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"activity_title", "activity_type", "content_network", "start_date", "end_date"},
-     *             @OA\Property(property="activity_title", type="string", example="Workshop on AI"),
+     *             required={"activity_title_en", "activity_title_ar", "activity_type", "content_network", "start_date", "end_date"},
+     *             @OA\Property(property="activity_title_en", type="string", example="Workshop on AI"),
+     *             @OA\Property(property="activity_title_ar", type="string", example="ورشة عمل حول الذكاء الاصطناعي"),
      *             @OA\Property(property="folder_name", type="string", example="AI_Workshop_Folder"),
      *             @OA\Property(property="activity_type", type="string", example="Training"),
      *             @OA\Property(property="content_network", type="string", example="Online"),
@@ -84,7 +85,8 @@ class ActivityController extends Controller
     {
         try {
             $validated = $request->validate([
-                'activity_title' => 'required|string|max:255',
+                'activity_title_en' => 'required_without:activity_title_ar|string|max:255',
+                'activity_title_ar' => 'required_without:activity_title_en|string|max:255',
                 'folder_name' => 'nullable|string|max:255',
                 'activity_type' => 'required|string|max:255',
                 'content_network' => 'nullable|string|max:255',
@@ -130,7 +132,8 @@ class ActivityController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             @OA\Property(property="activity_title", type="string", example="Updated Workshop Title"),
+     *             @OA\Property(property="activity_title_en", type="string", example="Updated Workshop Title"),
+     *             @OA\Property(property="activity_title_ar", type="string", example="عنوان الورشة المحدث"),
      *             @OA\Property(property="folder_name", type="string", example="Updated_Folder_Name"),
      *             @OA\Property(property="activity_type", type="string", example="Seminar"),
      *             @OA\Property(property="content_network", type="string", example="Offline"),
@@ -154,7 +157,8 @@ class ActivityController extends Controller
             }
 
             $validated = $request->validate([
-                'activity_title' => 'sometimes|string|max:255',
+                'activity_title_en' => 'sometimes|required_without:activity_title_ar|string|max:255',
+                'activity_title_ar' => 'sometimes|required_without:activity_title_en|string|max:255',
                 'folder_name' => 'nullable|string|max:255',
                 'activity_type' => 'sometimes|string|max:255',
                 'content_network' => 'nullable|string|max:255',

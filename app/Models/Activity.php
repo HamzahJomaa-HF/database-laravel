@@ -15,7 +15,8 @@ class Activity extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'activity_title',
+        'activity_title_en',
+        'activity_title_ar',
         'activity_type',
         'folder_name',
         'content_network',
