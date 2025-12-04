@@ -98,6 +98,10 @@ return [
             'throttle' => 60,
         ],
     ],
+    'system_users' => [
+        'driver' => 'eloquent',
+        'model' => App\Models\SystemUser::class,
+    ],
 
     /*
     |--------------------------------------------------------------------------
