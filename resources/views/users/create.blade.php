@@ -211,7 +211,7 @@
                                         <input type="tel" name="phone_number" id="phone_number" 
                                                class="form-control @error('phone_number') is-invalid @enderror" 
                                                value="{{ old('phone_number') }}" 
-                                               placeholder="+961 70 123 456" required>
+                                               placeholder="Phone Number" required>
                                         @error('phone_number')
                                             <div class="invalid-feedback d-block">{{ $message }}</div>
                                         @enderror
@@ -222,7 +222,7 @@
                                         <input type="tel" name="office_phone" id="office_phone" 
                                                class="form-control @error('office_phone') is-invalid @enderror" 
                                                value="{{ old('office_phone') }}" 
-                                               placeholder="+961 1 123 456">
+                                               placeholder="Office Phone">
                                         @error('office_phone')
                                             <div class="invalid-feedback d-block">{{ $message }}</div>
                                         @enderror
@@ -245,7 +245,7 @@
                                         <input type="tel" name="home_phone" id="home_phone" 
                                                class="form-control @error('home_phone') is-invalid @enderror" 
                                                value="{{ old('home_phone') }}" 
-                                               placeholder="+961 5 123 456">
+                                               placeholder="Home Phone">
                                         @error('home_phone')
                                             <div class="invalid-feedback d-block">{{ $message }}</div>
                                         @enderror
@@ -882,6 +882,159 @@
             // Ensure dropdown is properly positioned
             $(this).data('select2').$dropdown.css('width', $(this).outerWidth() + 'px');
         });
+
+
+
+        // ============================================
+    // PHONE NUMBER FORMATTING (Lebanese Format)
+    // ============================================
+    function formatPhoneNumber(inputId) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        
+        let lastValue = input.value;
+        
+        input.addEventListener('input', function(e) {
+            let value = e.target.value;
+            
+            // Remove all non-digit characters except '+'
+            let cleanValue = value.replace(/[^\d+]/g, '');
+            
+            // Store cursor position
+            const cursorPos = e.target.selectionStart;
+            
+            // Format the number with spaces
+            let formatted = '';
+            let digits = '';
+            
+            // Check if it starts with +961
+            if (cleanValue.startsWith('+961')) {
+                digits = cleanValue.substring(4); // Remove +961
+                formatted = '+961';
+            } else if (cleanValue.startsWith('961')) {
+                digits = cleanValue.substring(3); // Remove 961
+                formatted = '+961';
+            } else if (cleanValue.startsWith('+')) {
+                // If starts with + but not +961, keep as is
+                formatted = cleanValue;
+            } else {
+                digits = cleanValue;
+                formatted = '';
+            }
+            
+            // Add spaces for formatting (only for +961 numbers)
+            if (formatted === '+961' && digits.length > 0) {
+                // Format: +961 XX XXX XXX
+                formatted += ' ' + digits.substring(0, 2);
+                if (digits.length > 2) {
+                    formatted += ' ' + digits.substring(2, 5);
+                    if (digits.length > 5) {
+                        formatted += ' ' + digits.substring(5, 8);
+                    }
+                }
+            } else if (formatted !== '+961' && formatted.length > 0) {
+                // For other international numbers, just add spaces every 3 digits
+                formatted = formatted.replace(/(\d{3})(?=\d)/g, '$1 ');
+            }
+            
+            // Limit to 15 characters maximum (for +961 format)
+            if (formatted.length > 15) {
+                formatted = formatted.substring(0, 15);
+            }
+            
+            // Only update if value has changed
+            if (formatted !== lastValue) {
+                e.target.value = formatted;
+                lastValue = formatted;
+                
+                // Try to maintain cursor position
+                try {
+                    // Simple cursor position adjustment
+                    let newCursorPos = cursorPos;
+                    
+                    // If we added spaces, adjust cursor
+                    if (formatted.length > value.length) {
+                        // Count how many spaces were added before cursor position
+                        const addedSpaces = (formatted.substring(0, cursorPos).match(/ /g) || []).length - 
+                                           (value.substring(0, cursorPos).match(/ /g) || []).length;
+                        newCursorPos = cursorPos + addedSpaces;
+                    } else if (formatted.length < value.length) {
+                        // If we removed characters, adjust cursor
+                        newCursorPos = Math.max(0, cursorPos - 1);
+                    }
+                    
+                    e.target.setSelectionRange(newCursorPos, newCursorPos);
+                } catch (err) {
+                    // Ignore cursor position errors
+                }
+            }
+        });
+        
+        // On blur, format properly if it looks like a Lebanese number
+        input.addEventListener('blur', function(e) {
+            let value = e.target.value.trim();
+            if (!value) return;
+            
+            // Remove all non-digit characters except '+'
+            let cleanValue = value.replace(/[^\d+]/g, '');
+            
+            // If it's 8 digits (Lebanese mobile without country code), add +961
+            if (cleanValue.length === 8 && !cleanValue.startsWith('+') && !cleanValue.startsWith('961')) {
+                const formatted = `+961 ${cleanValue.substring(0, 2)} ${cleanValue.substring(2, 5)} ${cleanValue.substring(5, 8)}`;
+                e.target.value = formatted;
+                lastValue = formatted;
+            }
+            // If it's 11 digits starting with 961 (Lebanese number with country code but no +)
+            else if (cleanValue.length === 11 && cleanValue.startsWith('961')) {
+                const digits = cleanValue.substring(3);
+                const formatted = `+961 ${digits.substring(0, 2)} ${digits.substring(2, 5)} ${digits.substring(5, 8)}`;
+                e.target.value = formatted;
+                lastValue = formatted;
+            }
+            // If it's 12 digits starting with +961 (full Lebanese number with +)
+            else if (cleanValue.length === 12 && cleanValue.startsWith('+961')) {
+                const digits = cleanValue.substring(4);
+                const formatted = `+961 ${digits.substring(0, 2)} ${digits.substring(2, 5)} ${digits.substring(5, 8)}`;
+                e.target.value = formatted;
+                lastValue = formatted;
+            }
+        });
+        
+        // Prevent entering more than allowed digits
+        input.addEventListener('keydown', function(e) {
+            // Allow: backspace, delete, tab, escape, enter, arrows
+            if ([46, 8, 9, 27, 13, 110, 190].includes(e.keyCode) ||
+                // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+                (e.keyCode === 65 && e.ctrlKey === true) ||
+                (e.keyCode === 67 && e.ctrlKey === true) ||
+                (e.keyCode === 86 && e.ctrlKey === true) ||
+                (e.keyCode === 88 && e.ctrlKey === true) ||
+                // Allow: home, end, left, right
+                (e.keyCode >= 35 && e.keyCode <= 39)) {
+                return;
+            }
+            
+            // Get current value and count digits
+            let value = this.value;
+            let digits = value.replace(/[^\d]/g, '');
+            
+            // If it starts with +961, limit to 8 more digits
+            if (value.startsWith('+961')) {
+                if (digits.length >= 11) { // 3 (961) + 8 digits = 11
+                    e.preventDefault();
+                }
+            }
+            // Otherwise limit to reasonable length
+            else if (digits.length >= 15) {
+                e.preventDefault();
+            }
+        });
+    }
+    
+    // Apply formatting to all phone inputs
+    formatPhoneNumber('phone_number');
+    formatPhoneNumber('office_phone');
+    formatPhoneNumber('home_phone');
         
         // Form validation
         const form = document.getElementById('userForm');
