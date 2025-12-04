@@ -2,10 +2,15 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\UserController;
+use App\Http\Controllers\ActivityController;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+
+
+Route::get('/activity/{external_activity_id}/link', [ActivityController::class, 'index'])->name('link.activities'); // Example route for ActivityController
 
 // Use {user_id} to match your controller methods
 Route::get('/users', [UserController::class, 'index'])->name('users.index');
