@@ -17,16 +17,17 @@ return new class extends Migration
                 $table->dropColumn('phone_number');
             }
             
-                        // First, drop the old phone_number column if it exists
+            // First, drop the old phone_number column if it exists
             if (Schema::hasColumn('users', 'mobile_phone')) {
-                            // Then rename mobile_phone to phone_number
-            $table->renameColumn('mobile_phone', 'phone_number');
-            }
-            
-
+            // Then rename mobile_phone to phone_number
+                $table->renameColumn('mobile_phone', 'phone_number');
+                
             
             // Make phone_number non-nullable since it's required
             $table->string('phone_number')->nullable(false)->change();
+            }
+            
+
         });
     }
 
