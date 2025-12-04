@@ -47,12 +47,18 @@ jobs:
             --exclude "node_modules" \
             --exclude ".github" \
             --exclude "storage" \
+            --exclude "deploy" \
             ./ ./deploy/
           if [ -d "public/build" ]; then
             mkdir -p deploy/public/build
             rsync -a public/build/ deploy/public/build/
           fi
-    
+
+      - name: Fix deploy folder permissions
+        run: |
+          sudo chown -R "$USER:$USER" deploy
+          sudo chmod -R u+rwX deploy
+
       - name: Copy files to VM (release path)
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -76,43 +82,55 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             set -e
+
             APP_DIR="${{ env.APP_DIR }}"
             RELEASE_DIR="${{ env.RELEASE_DIR }}"
             SHARED_DIR="$APP_DIR/shared"
+
             # Ensure shared dirs exist
             sudo -u www-data mkdir -p "$SHARED_DIR/storage" "$SHARED_DIR/bootstrap/cache"
+
             # Link shared storage & cache into release
             ln -sfn "$SHARED_DIR/storage" "$RELEASE_DIR/storage"
             ln -sfn "$SHARED_DIR/bootstrap/cache" "$RELEASE_DIR/bootstrap/cache"
+
             # .env handling
             if [ -n "${{ secrets.LARAVEL_ENV }}" ]; then
               echo "${{ secrets.LARAVEL_ENV }}" | sudo -u www-data tee "$SHARED_DIR/.env" >/dev/null
             fi
             ln -sfn "$SHARED_DIR/.env" "$RELEASE_DIR/.env"
+
             # Composer install (optimized, no dev)
             cd "$RELEASE_DIR"
             composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+
             # Generate APP_KEY if missing
             if ! grep -q "^APP_KEY=base64:" "$RELEASE_DIR/.env"; then
               php artisan key:generate --force
               # move the generated key back to shared .env to persist
               cp "$RELEASE_DIR/.env" "$SHARED_DIR/.env"
             fi
+
             # Laravel caches
             php artisan storage:link || true
             php artisan config:cache
             php artisan route:cache || true
             php artisan view:cache || true
+
             # DB migrate (safe in prod)
             php artisan migrate --force
+
             # Atomic release: symlink current -> this release
             ln -sfn "$RELEASE_DIR" "$APP_DIR/current"
+
             # Permissions
             sudo chown -R www-data:www-data "$APP_DIR"
             sudo setfacl -R -m u:www-data:rwx "$APP_DIR" || true
+
             # Reload services
             sudo systemctl reload php8.2-fpm || true
             sudo systemctl reload nginx || true
+
             # (Optional) restart queue workers if using Supervisor
             if command -v supervisorctl >/dev/null 2>&1; then
               sudo supervisorctl restart laravel-worker:* || true
