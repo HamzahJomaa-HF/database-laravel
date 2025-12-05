@@ -77,55 +77,62 @@ return new class extends Migration
             
             $table->foreign('main_activity_id', 'FK_RP_ACTIVITY_MAPPINGS_MAIN_ACTIVITY_ID')
                   ->references('activity_id')->on('activities')
-                  ->onDelete('set null');
+                  ->onDelete('cascade');  // CHANGED from 'set null' to 'cascade'
+            
+            // ADD unique constraint for N:N mapping
+            $table->unique(['rp_activity_id', 'main_activity_id'], 
+                           'UNIQUE_RP_ACTIVITY_MAIN_ACTIVITY');
         });
     }
 
     public function down(): void
     {
-        // Drop foreign keys in reverse order
+        // ✅ CORRECTED: DROP foreign keys in reverse order (NOT create them!)
         
         // 8. rp_activity_mappings
         Schema::table('rp_activity_mappings', function (Blueprint $table) {
-            $table->dropForeign('FK_RP_ACTIVITY_MAPPINGS_RP_ACTIVITY_ID');
-            $table->dropForeign('FK_RP_ACTIVITY_MAPPINGS_MAIN_ACTIVITY_ID');
+            // DROP unique constraint
+            $table->dropUniqueIfExists('UNIQUE_RP_ACTIVITY_MAIN_ACTIVITY');
+            // DROP foreign keys
+            $table->dropForeignIfExists('FK_RP_ACTIVITY_MAPPINGS_RP_ACTIVITY_ID');
+            $table->dropForeignIfExists('FK_RP_ACTIVITY_MAPPINGS_MAIN_ACTIVITY_ID');
         });
 
         // 7. rp_activity_focalpoints
         Schema::table('rp_activity_focalpoints', function (Blueprint $table) {
-            $table->dropForeign('FK_RP_ACTIVITY_FOCALPOINTS_ACTIVITY_ID');
-            $table->dropForeign('FK_RP_ACTIVITY_FOCALPOINTS_FOCALPOINT_ID');
+            $table->dropForeignIfExists('FK_RP_ACTIVITY_FOCALPOINTS_ACTIVITY_ID');
+            $table->dropForeignIfExists('FK_RP_ACTIVITY_FOCALPOINTS_FOCALPOINT_ID');
         });
 
         // 6. rp_activity_indicators
         Schema::table('rp_activity_indicators', function (Blueprint $table) {
-            $table->dropForeign('FK_RP_ACTIVITY_INDICATORS_ACTIVITY_ID');
-            $table->dropForeign('FK_RP_ACTIVITY_INDICATORS_INDICATOR_ID');
+            $table->dropForeignIfExists('FK_RP_ACTIVITY_INDICATORS_ACTIVITY_ID');
+            $table->dropForeignIfExists('FK_RP_ACTIVITY_INDICATORS_INDICATOR_ID');
         });
 
         // 5. rp_target_actions
         Schema::table('rp_target_actions', function (Blueprint $table) {
-            $table->dropForeign('FK_RP_TARGET_ACTIONS_ACTION_ID');
+            $table->dropForeignIfExists('FK_RP_TARGET_ACTIONS_ACTION_ID');
         });
 
         // 4. rp_activities
         Schema::table('rp_activities', function (Blueprint $table) {
-            $table->dropForeign('FK_RP_ACTIVITIES_ACTION_ID');
+            $table->dropForeignIfExists('FK_RP_ACTIVITIES_ACTION_ID');
         });
 
         // 3. rp_actions
         Schema::table('rp_actions', function (Blueprint $table) {
-            $table->dropForeign('FK_RP_ACTIONS_UNIT_ID');
+            $table->dropForeignIfExists('FK_RP_ACTIONS_UNIT_ID');
         });
 
         // 2. rp_units
         Schema::table('rp_units', function (Blueprint $table) {
-            $table->dropForeign('FK_RP_UNITS_PROGRAM_ID');
+            $table->dropForeignIfExists('FK_RP_UNITS_PROGRAM_ID');
         });
 
         // 1. rp_programs
         Schema::table('rp_programs', function (Blueprint $table) {
-            $table->dropForeign('FK_RP_PROGRAMS_COMPONENT_ID');
+            $table->dropForeignIfExists('FK_RP_PROGRAMS_COMPONENT_ID');
         });
     }
 };
