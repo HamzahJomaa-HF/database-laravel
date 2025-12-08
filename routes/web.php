@@ -13,13 +13,15 @@ use App\Http\Controllers\Reporting\{
     ReportingActivityIndicatorController,
     ReportingActivityFocalPointController,
     ReportingMappingController,
+    ReportingImportController
    
 };
+Route::get('/', function () {
+    return view('welcome');
+});
 
 // Reporting Routes Group
 Route::prefix('reporting')->name('reporting.')->group(function () {
-    
-    
     
     // Main Resources
     Route::resource('components', ReportingComponentController::class);
@@ -166,5 +168,19 @@ Route::prefix('reporting')->name('reporting.')->group(function () {
         ->name('mappings.validate');
     Route::get('mappings/needing-sync', [ReportingMappingController::class, 'getMappingsNeedingSync'])
         ->name('mappings.needing-sync');
-});
 
+    // ========== IMPORT ROUTES ==========
+   Route::prefix('import')->name('import.')->group(function () {
+    Route::match(['GET', 'POST'], '/', [ReportingImportController::class, 'handleImport'])
+        ->name('handle');
+    Route::get('/template', [ReportingImportController::class, 'downloadTemplate'])
+        ->name('download-template');
+
+
+
+
+
+
+        
+});
+}); // Close the main reporting group
