@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\SystemUser;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class LoginController extends Controller
 {
@@ -17,77 +18,127 @@ class LoginController extends Controller
 
     public function login(Request $request)
     {
+        // Check if this is OTP verification
+        if ($request->has('otp') && $request->has('email') && $request->has('token')) {
+            return $this->verifyOtp($request);
+        }
+        
+        // Check if this is "Send OTP" request
+        if ($request->has('send_otp') && $request->has('email') && $request->has('password')) {
+            return $this->sendOtp($request);
+        }
+        
+        // Otherwise, show regular form
+        return view('auth.login');
+    }
+
+    private function sendOtp(Request $request)
+    {
         $request->validate([
             'email' => 'required|email',
             'password' => 'required',
         ]);
 
-        // Check credentials in system_users table
         $user = SystemUser::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
-            return back()->withErrors(['email' => 'Invalid credentials']);
+            return response()->json([
+                'success' => false,
+                'error' => 'Invalid credentials'
+            ], 401);
         }
 
-        // Check if user is active
         if (!$user->is_active) {
-            return back()->withErrors(['email' => 'Account is deactivated']);
+            return response()->json([
+                'success' => false,
+                'error' => 'Account is deactivated'
+            ], 403);
         }
 
         // Generate OTP
         $otp = rand(100000, 999999);
         
-        // Store OTP in session (for demo, in production send via email/SMS)
-        session([
-            'pending_otp' => $otp,
-            'pending_user_id' => $user->id,
-            'otp_expiry' => now()->addMinutes(10),
+        // Generate a unique token
+        $sessionToken = Str::random(32);
+        
+        // Store OTP in user record
+        $user->temp_otp = $otp;
+        $user->otp_expires_at = now()->addMinutes(10);
+        $user->otp_session_token = $sessionToken;
+        $user->save();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'OTP sent successfully',
+            'email' => $user->email,
+            'token' => $sessionToken,
+            'demo_otp' => $otp, // Remove in production
         ]);
-
-        // Show OTP for demo (remove in production)
-        session()->flash('demo_otp', $otp);
-        
-        return redirect()->route('verify.otp.form');
     }
 
-    public function showOtpForm()
-    {
-        if (!session('pending_otp')) {
-            return redirect()->route('login');
-        }
-        
-        return view('auth.verify-otp');
-    }
-
-    public function verifyOtp(Request $request)
+    private function verifyOtp(Request $request)
     {
         $request->validate([
             'otp' => 'required|numeric|digits:6',
+            'email' => 'required|email',
+            'token' => 'required|string'
         ]);
 
-        if (!session('pending_otp') || !session('pending_user_id')) {
-            return redirect()->route('login')->withErrors(['otp' => 'Session expired']);
+        // Find user by email AND token
+        $user = SystemUser::where('email', $request->email)
+            ->where('otp_session_token', $request->token)
+            ->first();
+        
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Invalid session'
+            ], 400);
+        }
+
+        if (!$user->temp_otp) {
+            return response()->json([
+                'success' => false,
+                'error' => 'OTP expired'
+            ], 400);
         }
 
         // Check OTP expiry
-        if (now()->greaterThan(session('otp_expiry'))) {
-            session()->forget(['pending_otp', 'pending_user_id', 'otp_expiry']);
-            return redirect()->route('login')->withErrors(['otp' => 'OTP expired']);
+        if (now()->greaterThan($user->otp_expires_at)) {
+            // Clear OTP data
+            $user->temp_otp = null;
+            $user->otp_expires_at = null;
+            $user->otp_session_token = null;
+            $user->save();
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'OTP expired'
+            ], 400);
         }
 
         // Verify OTP
-        if ($request->otp != session('pending_otp')) {
-            return back()->withErrors(['otp' => 'Invalid OTP']);
+        if ($request->otp != $user->temp_otp) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Invalid OTP'
+            ], 400);
         }
 
         // Login user
-        $user = SystemUser::find(session('pending_user_id'));
         Auth::guard('system')->login($user);
+        
+        // Clear OTP data
+        $user->temp_otp = null;
+        $user->otp_expires_at = null;
+        $user->otp_session_token = null;
+        $user->save();
 
-        // Clear OTP session
-        session()->forget(['pending_otp', 'pending_user_id', 'otp_expiry']);
-
-        return redirect()->route('dashboard');
+        return response()->json([
+            'success' => true,
+            'message' => 'Login successful',
+            'redirect' => route('dashboard')
+        ]);
     }
 
     public function logout(Request $request)
@@ -96,6 +147,6 @@ class LoginController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         
-        return redirect()->route('login');
+        return redirect()->route('login')->with('info', 'You have been logged out.');
     }
 }
