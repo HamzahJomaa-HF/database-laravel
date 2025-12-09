@@ -13,6 +13,7 @@ use App\Http\Controllers\Reporting\{
     ReportingActivityIndicatorController,
     ReportingActivityFocalPointController,
     ReportingMappingController,
+
     ReportingImportController
    
 };
@@ -29,7 +30,6 @@ Route::prefix('reporting')->name('reporting.')->group(function () {
     Route::resource('units', ReportingUnitController::class);
     Route::resource('actions', ReportingActionController::class);
     Route::resource('activities', ReportingActivityController::class);
-    Route::resource('indicators', ReportingIndicatorController::class);
     Route::resource('focalpoints', ReportingFocalPointController::class);
     Route::resource('target-actions', ReportingTargetActionController::class);
     
@@ -80,24 +80,7 @@ Route::prefix('reporting')->name('reporting.')->group(function () {
         ->name('activities.attach-focalpoints');
     
     // Indicators
-    Route::get('indicators/by-code/{code}', [ReportingIndicatorController::class, 'getByCode'])
-        ->name('indicators.by-code');
-    Route::get('indicators/by-type/{type}', [ReportingIndicatorController::class, 'getByType'])
-        ->name('indicators.by-type');
-    Route::post('indicators/{id}/toggle-status', [ReportingIndicatorController::class, 'toggleStatus'])
-        ->name('indicators.toggle-status');
-    Route::get('indicators/{id}/performance-statistics', [ReportingIndicatorController::class, 'getPerformanceStatistics'])
-        ->name('indicators.performance-statistics');
-    Route::get('indicators/{id}/calculate-achievement', [ReportingIndicatorController::class, 'calculateAchievement'])
-        ->name('indicators.calculate-achievement');
-    Route::post('indicators/import', [ReportingIndicatorController::class, 'import'])
-        ->name('indicators.import');
-    Route::get('indicators/export', [ReportingIndicatorController::class, 'export'])
-        ->name('indicators.export');
-    Route::get('indicators/{id}/assignments', [ReportingIndicatorController::class, 'getAssignments'])
-        ->name('indicators.assignments');
-    Route::get('indicators/upcoming-targets', [ReportingIndicatorController::class, 'getUpcomingTargets'])
-        ->name('indicators.upcoming-targets');
+    
     
     // Focal Points
     Route::get('focalpoints/by-code/{code}', [ReportingFocalPointController::class, 'getByCode'])

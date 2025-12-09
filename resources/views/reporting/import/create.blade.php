@@ -42,16 +42,15 @@
             </div>
         @endif
 
-        <!-- FIXED LINE HERE: Changed route name to 'handle' -->
         <form action="{{ route('reporting.import.handle') }}" method="POST" enctype="multipart/form-data">
             @csrf
             
             <div class="mb-4">
-                <label for="csv_file" class="form-label fw-bold">Select Excel/CSV File</label>
+                <label for="excel_file" class="form-label fw-bold">Select Excel/CSV File</label>
                 <input type="file" 
                        class="form-control" 
-                       id="csv_file" 
-                       name="csv_file" 
+                       id="excel_file" 
+                       name="excel_file" 
                        accept=".csv,.xlsx,.xls"
                        required>
                 <div class="form-text">
@@ -95,7 +94,7 @@
     
     <!-- Simple file name display -->
     <script>
-        document.getElementById('csv_file').addEventListener('change', function(e) {
+        document.getElementById('excel_file').addEventListener('change', function(e) {
             var fileName = e.target.files[0].name;
             var nextSibling = e.target.nextElementSibling;
             if (nextSibling && nextSibling.tagName === 'DIV') {
