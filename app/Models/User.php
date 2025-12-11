@@ -6,75 +6,118 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 
 class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
-    protected $primaryKey = 'user_id';  
-    public $incrementing = false;       
-    protected $keyType = 'string';      
+    protected $primaryKey = 'user_id';
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
-        'identification_id',
+        // Required Fields
+        'prefix',
+        'is_high_profile',
+        'scope',
+        'default_cop_id', // Foreign key to cops table
         'first_name',
-        'middle_name',
-        'mother_name',
         'last_name',
         'gender',
+        'position_1',
+        'organization_1',
+        'organization_type_1',
+        'status_1',
+        'address',
+        'phone_number', // CHANGED: from mobile_phone to phone_number
+        
+        // Optional Fields
+        'sector',
+        'middle_name',
         'dob',
+        'office_phone',
+        'extension_number',
+        'home_phone',
+        'email',
+        
+        // Optional Secondary Position Fields
+        'position_2',
+        'organization_2',
+        'organization_type_2',
+        'status_2',
+        
+        // Existing fields for backward compatibility
+        'identification_id',
+        'mother_name',
         'register_number',
-        'phone_number',
+        // REMOVED: 'phone_number', (duplicate)
         'marital_status',
         'employment_status',
         'passport_number',
         'register_place',
-        'email',      // Add email field if you have it
-        'password',   // Add password field if you have it
     ];
 
     protected $hidden = [
-        'password', // Hide password if you have it
-        'remember_token', // Add if using remember me
+        'remember_token',
     ];
+
+    protected $casts = [
+        'dob' => 'date',
+        'is_high_profile' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
+    // Constants for ENUM values
+    public const SCOPE_INTERNATIONAL = 'International';
+    public const SCOPE_REGIONAL = 'Regional';
+    public const SCOPE_NATIONAL = 'National';
+    public const SCOPE_LOCAL = 'Local';
+
+    public const ORG_TYPE_PUBLIC = 'Public Sector';
+    public const ORG_TYPE_PRIVATE = 'Private Sector';
+    public const ORG_TYPE_ACADEMIA = 'Academia';
+    public const ORG_TYPE_UN = 'UN';
+    public const ORG_TYPE_INGOS = 'INGOs';
+    public const ORG_TYPE_CIVIL_SOCIETY = 'Civil Society';
+    public const ORG_TYPE_NGOS = 'NGOs';
+    public const ORG_TYPE_ACTIVIST = 'Activist';
+
+    public const GENDER_MALE = 'Male';
+    public const GENDER_FEMALE = 'Female';
+    public const GENDER_OTHER = 'Other';
+
+    public const TYPE_STAKEHOLDER = 'Stakeholder';
+    public const TYPE_EMPLOYEE = 'Employee';
+    public const TYPE_ADMIN = 'Admin';
+    public const TYPE_CUSTOMER = 'Customer';
+    public const TYPE_PARTNER = 'Partner';
+    public const TYPE_BENEFICIARY = 'Beneficiary';
 
     protected static function boot()
     {
         parent::boot();
 
         static::creating(function ($user) {
-            // Generate UUID if not already set
             if (empty($user->user_id)) {
                 $user->user_id = (string) Str::uuid();
             }
 
-            // Check the creation logic
-            $condition1 = !empty($user->identification_id);
-            $condition2 = !empty($user->passport_number);
-            $condition3 = (
-                !empty($user->dob) &&
-                !empty($user->phone_number) &&
-                !empty($user->first_name) &&
-                !empty($user->middle_name) &&
-                !empty($user->last_name)
-            );
-            $condition4 = (
-                !empty($user->register_number) &&
-                !empty($user->register_place) &&
-                !empty($user->first_name) &&
-                !empty($user->middle_name) &&
-                !empty($user->last_name) &&
-                !empty($user->dob)
-            );
-
-            if (!($condition1 || $condition2 || $condition3 || $condition4)) {
-                throw ValidationException::withMessages([
-                    'user' => 'User creation requires either identification_id, passport_number, 
-                    (dob, phone_number, first_name, middle_name, last_name), 
-                    or (register_number, register_place, first_name, middle_name, last_name, dob).'
-                ]);
+            // Set default for high profile if not provided
+            if (!isset($user->is_high_profile)) {
+                $user->is_high_profile = false;
             }
+
+            // Set default type if not provided
+            if (empty($user->type)) {
+                $user->type = self::TYPE_STAKEHOLDER;
+            }
+            
+            // REMOVED: mobile_phone to phone_number sync logic
+        });
+
+        static::updating(function ($user) {
+            // REMOVED: mobile_phone to phone_number sync logic
         });
     }
 
@@ -91,68 +134,7 @@ class User extends Authenticatable
 
     public function diplomas()
     {
-        return $this->belongsToMany(Diploma::class, 'users_diploma', 'user_id', 'diploma_id');
-    }
-
-    /**
-     * Get the name of the unique identifier for the user.
-     *
-     * @return string
-     */
-    public function getAuthIdentifierName()
-    {
-        return 'user_id'; // Tell Laravel to use user_id as the identifier
-    }
-
-    /**
-     * Get the unique identifier for the user.
-     *
-     * @return mixed
-     */
-    public function getAuthIdentifier()
-    {
-        return $this->{$this->getAuthIdentifierName()};
-    }
-
-    /**
-     * Get the password for the user.
-     *
-     * @return string
-     */
-    public function getAuthPassword()
-    {
-        // If you don't have a password column, you might need to handle this differently
-        return $this->password ?? null;
-    }
-
-    /**
-     * Get the "remember me" token value.
-     *
-     * @return string
-     */
-    public function getRememberToken()
-    {
-        return $this->remember_token;
-    }
-
-    /**
-     * Set the "remember me" token value.
-     *
-     * @param  string  $value
-     * @return void
-     */
-    public function setRememberToken($value)
-    {
-        $this->remember_token = $value;
-    }
-
-    /**
-     * Get the column name for the "remember me" token.
-     *
-     * @return string
-     */
-    public function getRememberTokenName()
-    {
-        return 'remember_token';
+        return $this->belongsToMany(Diploma::class, 'users_diploma', 'user_id', 'diploma_id')
+                    ->withTimestamps();
     }
 }

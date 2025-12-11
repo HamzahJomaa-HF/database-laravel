@@ -22,6 +22,7 @@ use App\Http\Controllers\API\DiplomaController;
 use App\Http\Controllers\API\UserDiplomaController;
 use App\Http\Controllers\API\NationalityController;
 use App\Http\Controllers\API\UserNationalityController;
+use App\Http\Controllers\API\ProjectPortfolioController;
 
         
 
@@ -224,3 +225,8 @@ Route::prefix('activity-users')->group(function () {
     Route::post('/upload', [ActivityUserController::class, 'uploadFileWithoutId']);
     Route::post('/activity-users/debug-csv', [ActivityUserController::class, 'debugCsv']);
 });
+
+// routes/api.php
+Route::apiResource('project-portfolios', ProjectPortfolioController::class);
+Route::get('portfolios/{portfolioId}/projects', [ProjectPortfolioController::class, 'getProjectsByPortfolio']);
+Route::get('projects/{projectId}/portfolios', [ProjectPortfolioController::class, 'getPortfoliosByProject']);
