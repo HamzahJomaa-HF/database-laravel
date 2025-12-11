@@ -4,9 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\ActivityController;
 
-    ReportingImportController
-   
-};
+
 Route::get('/', function () {
     return view('welcome');
 });
