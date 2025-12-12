@@ -12,8 +12,8 @@ use App\Models\RpActivity;
 use App\Models\RpIndicator;
 use App\Models\RpFocalpoint;
 use App\Models\RpTargetAction;
-use App\Models\RpActivityIndicator; // ADDED
-use App\Models\RpActivityFocalpoint; // ADDED
+use App\Models\RpActivityIndicator;
+use App\Models\RpActivityFocalpoint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -76,8 +76,8 @@ class ReportingImportController extends Controller
                 'indicators' => $countsAfter['indicators'] - $countsBefore['indicators'],
                 'focalpoints' => $countsAfter['focalpoints'] - $countsBefore['focalpoints'],
                 'target_actions' => $countsAfter['target_actions'] - $countsBefore['target_actions'],
-                'activity_indicators' => $countsAfter['activity_indicators'] - $countsBefore['activity_indicators'], // ADDED
-                'activity_focalpoints' => $countsAfter['activity_focalpoints'] - $countsBefore['activity_focalpoints'], // ADDED
+                'activity_indicators' => $countsAfter['activity_indicators'] - $countsBefore['activity_indicators'],
+                'activity_focalpoints' => $countsAfter['activity_focalpoints'] - $countsBefore['activity_focalpoints'],
             ];
             
             Log::info('Actual inserted counts (difference):', $actualInserted);
@@ -90,8 +90,8 @@ class ReportingImportController extends Controller
                 'indicators_rows' => $results['processed_indicators'],
                 'focalpoints_rows' => $results['processed_focalpoints'],
                 'target_actions_rows' => $results['processed_target_actions'],
-                'activity_indicators_rows' => $results['processed_activity_indicators'], // ADDED
-                'activity_focalpoints_rows' => $results['processed_activity_focalpoints'], // ADDED
+                'activity_indicators_rows' => $results['processed_activity_indicators'],
+                'activity_focalpoints_rows' => $results['processed_activity_focalpoints'],
             ]);
 
             $summary = [
@@ -103,8 +103,8 @@ class ReportingImportController extends Controller
                 'indicators' => $actualInserted['indicators'] . ' new / ' . $results['processed_indicators'] . ' rows in file',
                 'focalpoints' => $actualInserted['focalpoints'] . ' new / ' . $results['processed_focalpoints'] . ' rows in file',
                 'target_actions' => $actualInserted['target_actions'] . ' new / ' . $results['processed_target_actions'] . ' rows in file',
-                'activity_indicators' => $actualInserted['activity_indicators'] . ' new / ' . $results['processed_activity_indicators'] . ' rows in file', // ADDED
-                'activity_focalpoints' => $actualInserted['activity_focalpoints'] . ' new / ' . $results['processed_activity_focalpoints'] . ' rows in file', // ADDED
+                'activity_indicators' => $actualInserted['activity_indicators'] . ' new / ' . $results['processed_activity_indicators'] . ' rows in file',
+                'activity_focalpoints' => $actualInserted['activity_focalpoints'] . ' new / ' . $results['processed_activity_focalpoints'] . ' rows in file',
             ];
 
             return view('reporting.import.create')
@@ -132,8 +132,8 @@ class ReportingImportController extends Controller
             'indicators' => RpIndicator::count(),
             'focalpoints' => RpFocalpoint::count(),
             'target_actions' => RpTargetAction::count(),
-            'activity_indicators' => RpActivityIndicator::count(), // ADDED
-            'activity_focalpoints' => RpActivityFocalpoint::count(), // ADDED
+            'activity_indicators' => RpActivityIndicator::count(),
+            'activity_focalpoints' => RpActivityFocalpoint::count(),
         ];
     }
 
@@ -200,8 +200,8 @@ class ReportingImportController extends Controller
                 'processed_activities' => $activityResults['processed_activities'],
                 'processed_indicators' => $activityResults['processed_indicators'],
                 'processed_focalpoints' => $activityResults['processed_focalpoints'],
-                'processed_activity_indicators' => $activityResults['processed_activity_indicators'], // ADDED
-                'processed_activity_focalpoints' => $activityResults['processed_activity_focalpoints'], // ADDED
+                'processed_activity_indicators' => $activityResults['processed_activity_indicators'],
+                'processed_activity_focalpoints' => $activityResults['processed_activity_focalpoints'],
             ];
             
         } catch (\Exception $e) {
@@ -322,13 +322,13 @@ class ReportingImportController extends Controller
             'processed_activities' => $activityResults['processed_activities'],
             'processed_indicators' => $activityResults['processed_indicators'],
             'processed_focalpoints' => $activityResults['processed_focalpoints'],
-            'processed_activity_indicators' => $activityResults['processed_activity_indicators'], // ADDED
-            'processed_activity_focalpoints' => $activityResults['processed_activity_focalpoints'], // ADDED
+            'processed_activity_indicators' => $activityResults['processed_activity_indicators'],
+            'processed_activity_focalpoints' => $activityResults['processed_activity_focalpoints'],
         ];
     }
 
     /**
-     * Process hierarchy section - UPDATED to include target actions
+     * Process hierarchy section - RESPECTS EMPTY CELLS
      */
     private function processHierarchySection(array $data)
     {
@@ -347,6 +347,11 @@ class ReportingImportController extends Controller
         $unitCache = [];
         $actionCache = [];
 
+        // Track last valid values for each level
+        $lastComponentId = null;
+        $lastProgramId = null;
+        $lastUnitId = null;
+
         foreach ($data as $index => $row) {
             // Ensure row has at least 10 columns
             $row = array_pad($row, 10, '');
@@ -360,18 +365,22 @@ class ReportingImportController extends Controller
             $actionCode = trim($row[6] ?? '');
             $actionName = trim($row[7] ?? '');
             $actionObjective = trim($row[8] ?? '');
-            $actionTargets = trim($row[9] ?? ''); // Column to process for rp_target_actions
+            $actionTargets = trim($row[9] ?? '');
 
-            // Skip row if all hierarchy data is empty
+            // Skip row if ALL fields are empty
             if (empty($componentCode) && empty($componentName) && 
                 empty($programCode) && empty($programName) &&
-                empty($unitCode) && empty($unitName)) {
-                Log::debug('Skipping row ' . ($index + 2) . ' - all hierarchy data empty');
+                empty($unitCode) && empty($unitName) &&
+                empty($actionCode) && empty($actionName) &&
+                empty($actionObjective) && empty($actionTargets)) {
+                Log::debug('Skipping row ' . ($index + 2) . ' - completely empty');
                 continue;
             }
 
             // ========== COMPONENT ==========
+            $componentId = null;
             if (!empty($componentCode) || !empty($componentName)) {
+                // Only create component if there's data
                 if (empty($componentCode)) {
                     $componentCode = 'COMP_' . Str::random(8);
                 }
@@ -379,16 +388,16 @@ class ReportingImportController extends Controller
                     $componentName = 'Component - ' . $componentCode;
                 }
                 
-                $componentKey = $componentCode;
+                $componentKey = strtoupper($componentCode);
                 
                 if (!isset($componentCache[$componentKey])) {
                     try {
                         $component = RpComponent::firstOrCreate(
                             ['code' => $componentCode],
                             [
+                                'rp_components_id' => (string) Str::uuid(),
                                 'name' => $componentName,
                                 'description' => null,
-                                'is_active' => true,
                                 'created_at' => now(),
                                 'updated_at' => now(),
                             ]
@@ -406,18 +415,20 @@ class ReportingImportController extends Controller
                     }
                 }
                 $componentId = $componentCache[$componentKey];
+                $lastComponentId = $componentId;
             } else {
-                // If no component data in this row, use the last one
-                if (empty($componentCache)) {
+                // If no component data, use last valid component
+                $componentId = $lastComponentId;
+                if (!$componentId) {
                     Log::warning('No component data found and no previous component available');
                     continue;
                 }
-                $componentId = end($componentCache);
-                $componentKey = key($componentCache);
             }
 
             // ========== PROGRAM ==========
+            $programId = null;
             if (!empty($programCode) || !empty($programName)) {
+                // Only create program if there's data
                 if (empty($programCode)) {
                     $programCode = 'PROG_' . Str::random(6);
                 }
@@ -425,17 +436,17 @@ class ReportingImportController extends Controller
                     $programName = 'Program - ' . $programCode;
                 }
                 
-                $programKey = $componentKey . '|' . $programCode;
+                $programKey = ($componentId ?: '') . '|' . strtoupper($programCode);
                 
                 if (!isset($programCache[$programKey])) {
                     try {
                         $program = RpProgram::firstOrCreate(
                             ['code' => $programCode],
                             [
+                                'rp_programs_id' => (string) Str::uuid(),
                                 'component_id' => $componentId,
                                 'name' => $programName,
                                 'description' => null,
-                                'is_active' => true,
                                 'created_at' => now(),
                                 'updated_at' => now(),
                             ]
@@ -449,40 +460,24 @@ class ReportingImportController extends Controller
                         ]);
                     } catch (\Exception $e) {
                         Log::error('Error creating program: ' . $e->getMessage());
-                        // Continue with default program
-                        $programCode = 'DEFAULT_PROG';
-                        $programKey = $componentKey . '|' . $programCode;
-                        $program = RpProgram::firstOrCreate(
-                            ['code' => $programCode],
-                            [
-                                'component_id' => $componentId,
-                                'name' => 'Default Program',
-                                'is_active' => true
-                            ]
-                        );
-                        $programCache[$programKey] = $program->rp_programs_id;
+                        continue;
                     }
                 }
                 $programId = $programCache[$programKey];
+                $lastProgramId = $programId;
             } else {
-                // If no program data in this row, use the last one for this component
-                $lastProgramKey = null;
-                foreach ($programCache as $key => $id) {
-                    if (strpos($key, $componentKey . '|') === 0) {
-                        $lastProgramKey = $key;
-                    }
-                }
-                if ($lastProgramKey) {
-                    $programId = $programCache[$lastProgramKey];
-                    $programCode = explode('|', $lastProgramKey)[1];
-                } else {
-                    Log::warning('No program data found for component: ' . $componentKey);
+                // If no program data, use last valid program for this component
+                $programId = $lastProgramId;
+                if (!$programId) {
+                    Log::warning('No program data found and no previous program available');
                     continue;
                 }
             }
 
             // ========== UNIT ==========
+            $unitId = null;
             if (!empty($unitCode) || !empty($unitName)) {
+                // Only create unit if there's data
                 if (empty($unitCode)) {
                     $unitCode = 'UNIT_' . Str::random(4);
                 }
@@ -490,18 +485,18 @@ class ReportingImportController extends Controller
                     $unitName = 'Unit - ' . $unitCode;
                 }
                 
-                $unitKey = $programKey . '|' . $unitCode;
+                $unitKey = ($programId ?: '') . '|' . strtoupper($unitCode);
                 
                 if (!isset($unitCache[$unitKey])) {
                     try {
                         $unit = RpUnit::firstOrCreate(
                             ['code' => $unitCode],
                             [
+                                'rp_units_id' => (string) Str::uuid(),
                                 'program_id' => $programId,
                                 'name' => $unitName,
                                 'unit_type' => 'department',
                                 'description' => null,
-                                'is_active' => true,
                                 'created_at' => now(),
                                 'updated_at' => now(),
                             ]
@@ -515,42 +510,24 @@ class ReportingImportController extends Controller
                         ]);
                     } catch (\Exception $e) {
                         Log::error('Error creating unit: ' . $e->getMessage());
-                        // Continue with default unit
-                        $unitCode = 'DEFAULT_UNIT';
-                        $unitKey = $programKey . '|' . $unitCode;
-                        $unit = RpUnit::firstOrCreate(
-                            ['code' => $unitCode],
-                            [
-                                'program_id' => $programId,
-                                'name' => 'Default Unit',
-                                'unit_type' => 'department',
-                                'is_active' => true
-                            ]
-                        );
-                        $unitCache[$unitKey] = $unit->rp_units_id;
+                        continue;
                     }
                 }
                 $unitId = $unitCache[$unitKey];
+                $lastUnitId = $unitId;
             } else {
-                // If no unit data in this row, use the last one for this program
-                $lastUnitKey = null;
-                foreach ($unitCache as $key => $id) {
-                    if (strpos($key, $programKey . '|') === 0) {
-                        $lastUnitKey = $key;
-                    }
-                }
-                if ($lastUnitKey) {
-                    $unitId = $unitCache[$lastUnitKey];
-                    $unitCode = explode('|', $lastUnitKey)[2];
-                } else {
-                    Log::warning('No unit data found for program: ' . $programKey);
+                // If no unit data, use last valid unit for this program
+                $unitId = $lastUnitId;
+                if (!$unitId) {
+                    Log::warning('No unit data found and no previous unit available');
                     continue;
                 }
             }
 
             // ========== ACTION ==========
             $actionId = null;
-            if (!empty($actionCode) || !empty($actionName)) {
+            if (!empty($actionCode) || !empty($actionName) || !empty($actionObjective)) {
+                // Only create action if there's data
                 if (empty($actionCode)) {
                     $actionCode = 'ACT_' . ($processedActions + 1);
                 }
@@ -558,20 +535,19 @@ class ReportingImportController extends Controller
                     $actionName = 'Action - ' . $actionCode;
                 }
                 
-                $actionKey = $unitKey . '|' . $actionCode;
+                $actionKey = ($unitId ?: '') . '|' . strtoupper($actionCode);
                 
                 if (!isset($actionCache[$actionKey])) {
                     try {
                         $action = RpAction::firstOrCreate(
                             ['code' => $actionCode],
                             [
+                                'rp_actions_id' => (string) Str::uuid(),
                                 'unit_id' => $unitId,
                                 'name' => $actionName,
                                 'description' => !empty($actionObjective) ? $actionObjective : null,
                                 'planned_start_date' => now(),
                                 'planned_end_date' => now()->addYear(),
-                                'status' => 'planned',
-                                'is_active' => true,
                                 'created_at' => now(),
                                 'updated_at' => now(),
                             ]
@@ -580,29 +556,21 @@ class ReportingImportController extends Controller
                         $actionCache[$actionKey] = $actionId;
                         $processedActions++;
                         
-                        // Create multiple reference formats for better matching
-                        $actionMap[$actionId] = [
-                            'id' => $actionId,
-                            'references' => [
-                                // Format 1: Component.Program.Unit.Action
-                                $componentCode . '.' . $programCode . '.' . $unitCode . '.' . $actionCode,
-                                // Format 2: Component.ProgramNumber.Unit.Action
-                                $componentCode . '.' . preg_replace('/[^0-9]/', '', $programCode) . '.' . $unitCode . '.' . $actionCode,
-                                // Format 3: Component.3.Unit.Action (default)
-                                $componentCode . '.3.' . $unitCode . '.' . $actionCode,
-                                // Format 4: Just the action code
-                                $actionCode,
-                            ]
-                        ];
+                        // Create reference for matching
+                        if ($actionId) {
+                            $actionMap[$actionId] = [
+                                'id' => $actionId,
+                                'references' => [$actionCode]
+                            ];
+                            
+                            Log::debug('Action created/retrieved:', [
+                                'id' => $actionId,
+                                'code' => $actionCode,
+                                'name' => $actionName,
+                            ]);
+                        }
                         
-                        Log::debug('Action created/retrieved:', [
-                            'id' => $actionId,
-                            'code' => $actionCode,
-                            'name' => $actionName,
-                            'references' => $actionMap[$actionId]['references']
-                        ]);
-                        
-                        // ========== PROCESS ACTION TARGETS & BENEFICIARIES ==========
+                        // ========== PROCESS ACTION TARGETS ==========
                         if (!empty($actionTargets) && $actionId) {
                             $targetsResult = $this->processActionTargets($actionId, $actionTargets);
                             $processedTargetActions += $targetsResult['processed'];
@@ -619,7 +587,7 @@ class ReportingImportController extends Controller
                 } else {
                     $actionId = $actionCache[$actionKey];
                     
-                    // Process Action Targets & Beneficiaries for existing action too
+                    // Process Action Targets for existing action too
                     if (!empty($actionTargets) && $actionId) {
                         $targetsResult = $this->processActionTargets($actionId, $actionTargets);
                         $processedTargetActions += $targetsResult['processed'];
@@ -630,6 +598,9 @@ class ReportingImportController extends Controller
                         ]);
                     }
                 }
+            } else {
+                // No action data - skip creating action
+                Log::debug('Skipping action creation - no action data in row');
             }
             
             // Progress logging
@@ -662,7 +633,7 @@ class ReportingImportController extends Controller
     }
 
     /**
-     * Process Action Targets & Beneficiaries into rp_target_actions table
+     * Process Action Targets into rp_target_actions table
      */
     private function processActionTargets(string $actionId, string $targetsText): array
     {
@@ -721,12 +692,8 @@ class ReportingImportController extends Controller
                 RpTargetAction::create([
                     'rp_target_actions_id' => (string) Str::uuid(),
                     'action_id' => $actionId,
-                    'target_name' => mb_substr($beneficiary, 0, 255, 'UTF-8'), // Store as target_name
-                    'description' => $beneficiary, // Store full text in description
-                    'target_value' => 1, // Default value
-                    'unit_of_measure' => 'عدد', // Arabic for "number"
-                    'target_date' => now()->addYear()->format('Y-m-d'),
-                    'status' => 'pending',
+                    'target_name' => mb_substr($beneficiary, 0, 255, 'UTF-8'),
+                    'description' => $beneficiary,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -746,7 +713,7 @@ class ReportingImportController extends Controller
     }
 
     /**
-     * Process activities section - UPDATED with pivot table support
+     * Process activities section - RESPECTS EMPTY CELLS
      */
     private function processActivitySection(array $data, array $actionMap)
     {
@@ -755,12 +722,12 @@ class ReportingImportController extends Controller
         $processedActivities = 0;
         $processedIndicators = 0;
         $processedFocalpoints = 0;
-        $processedActivityIndicators = 0; // ADDED
-        $processedActivityFocalpoints = 0; // ADDED
+        $processedActivityIndicators = 0;
+        $processedActivityFocalpoints = 0;
         
         $activityCodes = [];
-        $indicatorCodes = [];
-        $focalpointCodes = [];
+        $indicatorNames = [];
+        $focalpointNames = [];
 
         // Skip header row if present
         $headerRow = $data[0] ?? [];
@@ -816,22 +783,15 @@ class ReportingImportController extends Controller
             // Find action ID - using enhanced matching
             $actionId = $this->findActionIdEnhanced($actionReference, $actionMap, $index);
             
-            if (!$actionId) {
-                Log::warning('Action not found for reference: ' . $actionReference . ', creating standalone activity');
-                // Create activity without action link
-                $actionId = null;
-            }
-
-            // Create Activity
+            // Create Activity - even without action link if reference not found
             try {
                 $activityData = [
+                    'rp_activities_id' => (string) Str::uuid(),
                     'code' => $activityCode,
                     'name' => $activityName,
                     'description' => null,
                     'activity_type' => 'project_activity',
                     'status' => $status,
-                    'is_active' => true,
-                    'needs_sync' => false,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
@@ -853,19 +813,25 @@ class ReportingImportController extends Controller
                 ]);
                 
                 // ========== INDICATORS ==========
+                // Only create indicators if there's text
                 if (!empty($indicatorsText) && $indicatorsText !== '""') {
-                    $indicatorsResult = $this->processActivityIndicators($activity, $indicatorsText, $indicatorCodes);
-                    $processedIndicators += $indicatorsResult['processed'];
-                    $processedActivityIndicators += $indicatorsResult['processed']; // Count pivot entries
-                    $indicatorCodes = $indicatorsResult['codes'];
+                    $indicatorsResult = $this->processActivityIndicators($activity, $indicatorsText, $indicatorNames);
+                    $processedIndicators += $indicatorsResult['processed_indicators'];
+                    $processedActivityIndicators += $indicatorsResult['processed_pivot'];
+                    $indicatorNames = $indicatorsResult['names'];
+                } else {
+                    Log::debug('No indicators text for activity ' . $activity->code);
                 }
 
                 // ========== FOCAL POINTS ==========
+                // Only create focal points if there's text
                 if (!empty($focalPointsText) && $focalPointsText !== '""') {
-                    $focalpointsResult = $this->processActivityFocalPointsEnhanced($activity, $focalPointsText, $focalpointCodes);
-                    $processedFocalpoints += $focalpointsResult['processed'];
-                    $processedActivityFocalpoints += $focalpointsResult['processed']; // Count pivot entries
-                    $focalpointCodes = $focalpointsResult['codes'];
+                    $focalpointsResult = $this->processActivityFocalPoints($activity, $focalPointsText, $focalpointNames);
+                    $processedFocalpoints += $focalpointsResult['processed_focalpoints'];
+                    $processedActivityFocalpoints += $focalpointsResult['processed_pivot'];
+                    $focalpointNames = $focalpointsResult['names'];
+                } else {
+                    Log::debug('No focal points text for activity ' . $activity->code);
                 }
                 
             } catch (\Exception $e) {
@@ -884,19 +850,19 @@ class ReportingImportController extends Controller
             'processed_activities' => $processedActivities,
             'processed_indicators' => $processedIndicators,
             'processed_focalpoints' => $processedFocalpoints,
-            'processed_activity_indicators' => $processedActivityIndicators, // ADDED
-            'processed_activity_focalpoints' => $processedActivityFocalpoints, // ADDED
+            'processed_activity_indicators' => $processedActivityIndicators,
+            'processed_activity_focalpoints' => $processedActivityFocalpoints,
             'unique_activities' => count($activityCodes),
-            'unique_indicators' => count($indicatorCodes),
-            'unique_focalpoints' => count($focalpointCodes)
+            'unique_indicators' => count($indicatorNames),
+            'unique_focalpoints' => count($focalpointNames)
         ]);
 
         return [
             'processed_activities' => $processedActivities,
             'processed_indicators' => $processedIndicators,
             'processed_focalpoints' => $processedFocalpoints,
-            'processed_activity_indicators' => $processedActivityIndicators, // ADDED
-            'processed_activity_focalpoints' => $processedActivityFocalpoints, // ADDED
+            'processed_activity_indicators' => $processedActivityIndicators,
+            'processed_activity_focalpoints' => $processedActivityFocalpoints,
         ];
     }
 
@@ -978,64 +944,6 @@ class ReportingImportController extends Controller
     }
 
     /**
-     * Create simple placeholder action
-     */
-    private function createSimplePlaceholderAction(int $index): string
-    {
-        try {
-            $componentCode = 'PLACEHOLDER_COMP_' . $index;
-            $programCode = 'PLACEHOLDER_PROG_' . $index;
-            $unitCode = 'PLACEHOLDER_UNIT_' . $index;
-            $actionCode = 'PLACEHOLDER_ACT_' . $index;
-            
-            $component = RpComponent::firstOrCreate(
-                ['code' => $componentCode],
-                [
-                    'name' => 'Placeholder Component ' . $index,
-                    'is_active' => true
-                ]
-            );
-            
-            $program = RpProgram::firstOrCreate(
-                ['code' => $programCode],
-                [
-                    'component_id' => $component->rp_components_id,
-                    'name' => 'Placeholder Program ' . $index,
-                    'is_active' => true
-                ]
-            );
-            
-            $unit = RpUnit::firstOrCreate(
-                ['code' => $unitCode],
-                [
-                    'program_id' => $program->rp_programs_id,
-                    'name' => 'Placeholder Unit ' . $index,
-                    'unit_type' => 'department',
-                    'is_active' => true
-                ]
-            );
-            
-            $action = RpAction::firstOrCreate(
-                ['code' => $actionCode],
-                [
-                    'unit_id' => $unit->rp_units_id,
-                    'name' => 'Placeholder Action ' . $index,
-                    'status' => 'planned',
-                    'is_active' => true
-                ]
-            );
-            
-            return $action->rp_actions_id;
-            
-        } catch (\Exception $e) {
-            Log::error('Error creating placeholder action: ' . $e->getMessage());
-            // Return a default action ID if one exists
-            $defaultAction = RpAction::first();
-            return $defaultAction ? $defaultAction->rp_actions_id : null;
-        }
-    }
-
-    /**
      * Map status
      */
     private function mapStatus(string $excelStatus): string
@@ -1063,20 +971,23 @@ class ReportingImportController extends Controller
     }
 
     /**
-     * Process indicators for an activity - UPDATED with pivot table creation
+     * Process indicators for an activity - FIXED VERSION (using name instead of code)
      */
-    private function processActivityIndicators(RpActivity $activity, string $indicatorsText, array $existingCodes): array
+    private function processActivityIndicators(RpActivity $activity, string $indicatorsText, array $existingNames): array
     {
-        $processed = 0;
-        $indicatorCodes = $existingCodes;
+        $processedIndicators = 0;
+        $processedPivot = 0;
+        $indicatorNames = $existingNames;
         
         // Clean the text - preserve original formatting
         $indicatorsText = trim($indicatorsText, '" \t\n\r\0\x0B');
         $indicatorsText = str_replace('""', '"', $indicatorsText);
         
         if (empty($indicatorsText)) {
-            return ['processed' => 0, 'codes' => $indicatorCodes];
+            return ['processed_indicators' => 0, 'processed_pivot' => 0, 'names' => $indicatorNames];
         }
+        
+        Log::debug('Processing indicators for activity ' . $activity->code, ['text' => $indicatorsText]);
         
         // Handle different indicator formats
         $indicatorLines = [];
@@ -1104,7 +1015,14 @@ class ReportingImportController extends Controller
                 continue;
             }
             
-            $processed++;
+            // Clean up common bullet points or numbers at the beginning
+            $indicatorText = preg_replace('/^[\d٠-٩]+\.\s*/u', '', $indicatorText);
+            $indicatorText = preg_replace('/^[•\-*]\s*/u', '', $indicatorText);
+            $indicatorText = trim($indicatorText);
+            
+            if (empty($indicatorText)) {
+                continue;
+            }
             
             // Create indicator name (first 200 chars)
             $indicatorName = mb_substr($indicatorText, 0, 200, 'UTF-8');
@@ -1112,52 +1030,67 @@ class ReportingImportController extends Controller
                 $indicatorName .= '...';
             }
             
-            // Create unique code
-            $indicatorCode = 'IND_' . $activity->code . '_' . ($index + 1) . '_' . Str::random(4);
-            
-            // Ensure unique code
-            if (isset($indicatorCodes[$indicatorCode])) {
-                $indicatorCode = $indicatorCode . '_' . time();
+            // Check if this name already exists (to avoid duplicates)
+            $nameKey = md5($indicatorName);
+            if (isset($indicatorNames[$nameKey])) {
+                Log::debug('Indicator name already exists, skipping duplicate: ' . $indicatorName);
+                // Still create the pivot relationship with existing indicator
+                try {
+                    $existingIndicator = RpIndicator::where('name', $indicatorName)->first();
+                    if ($existingIndicator) {
+                        RpActivityIndicator::firstOrCreate(
+                            [
+                                'activity_id' => $activity->rp_activities_id,
+                                'indicator_id' => $existingIndicator->rp_indicators_id
+                            ],
+                            [
+                                'rp_activity_indicators_id' => (string) Str::uuid(),
+                                'notes' => null,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]
+                        );
+                        $processedPivot++;
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Failed to create activity indicator pivot: ' . $e->getMessage());
+                }
+                continue;
             }
-            $indicatorCodes[$indicatorCode] = true;
+            
+            $indicatorNames[$nameKey] = true;
             
             try {
-                // Create or get indicator
-                $indicator = RpIndicator::firstOrCreate(
-                    ['indicator_code' => $indicatorCode],
-                    [
-                        'name' => $indicatorName,
-                        'description' => $indicatorText,
-                        'indicator_type' => 'output',
-                        'unit_of_measure' => 'number',
-                        'is_active' => true,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]
-                );
+                // Create indicator - using 'name' field since schema doesn't have 'code'
+                $indicator = RpIndicator::create([
+                    'rp_indicators_id' => (string) Str::uuid(),
+                    'name' => $indicatorName,
+                    'description' => $indicatorText,
+                    'indicator_type' => 'output',
+                    'target_value' => null,
+                    'data_source' => 'manual',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                
+                $processedIndicators++;
                 
                 // Create pivot table entry in rp_activity_indicators
-                RpActivityIndicator::firstOrCreate(
-                    [
-                        'activity_id' => $activity->rp_activities_id,
-                        'indicator_id' => $indicator->rp_indicators_id
-                    ],
-                    [
-                        'rp_activity_indicators_id' => (string) Str::uuid(),
-                        'target_value' => null,
-                        'achieved_value' => null,
-                        'achieved_date' => null,
-                        'notes' => null,
-                        'status' => 'planned',
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]
-                );
-                
-                Log::debug('Activity indicator created in pivot table:', [
+                RpActivityIndicator::create([
+                    'rp_activity_indicators_id' => (string) Str::uuid(),
                     'activity_id' => $activity->rp_activities_id,
                     'indicator_id' => $indicator->rp_indicators_id,
-                    'indicator_code' => $indicatorCode,
+                    'notes' => null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                
+                $processedPivot++;
+                
+                Log::debug('Activity indicator created:', [
+                    'activity_id' => $activity->rp_activities_id,
+                    'activity_code' => $activity->code,
+                    'indicator_id' => $indicator->rp_indicators_id,
                     'indicator_name' => $indicatorName
                 ]);
                 
@@ -1166,82 +1099,101 @@ class ReportingImportController extends Controller
             }
         }
         
-        return ['processed' => $processed, 'codes' => $indicatorCodes];
+        return [
+            'processed_indicators' => $processedIndicators,
+            'processed_pivot' => $processedPivot,
+            'names' => $indicatorNames
+        ];
     }
 
     /**
-     * Enhanced focal points processor - UPDATED with pivot table creation
+     * Focal points processor - FIXED VERSION
      */
-    private function processActivityFocalPointsEnhanced(RpActivity $activity, string $focalPointsText, array $uniqueFocalpoints): array
+    private function processActivityFocalPoints(RpActivity $activity, string $focalPointsText, array $uniqueFocalpoints): array
     {
-        $processed = 0;
-        $focalpointCodes = $uniqueFocalpoints;
+        $processedFocalpoints = 0;
+        $processedPivot = 0;
+        $focalpointNames = $uniqueFocalpoints;
         
-        // Clean the text - remove quotes but keep EVERYTHING ELSE
+        // Clean the text - remove quotes but keep everything else
         $focalPointsText = trim($focalPointsText, '" \t\n\r\0\x0B');
         $focalPointsText = str_replace('""', '"', $focalPointsText);
         
         if (empty($focalPointsText)) {
-            return ['processed' => 0, 'codes' => $focalpointCodes];
+            return ['processed_focalpoints' => 0, 'processed_pivot' => 0, 'names' => $focalpointNames];
         }
         
-        Log::debug('Processing focal points text for activity ' . $activity->code . ':', ['text' => $focalPointsText]);
+        Log::debug('Processing focal points for activity ' . $activity->code, ['text' => $focalPointsText]);
         
         // Store the COMPLETE original text as a single focal point entry
         $completeText = $focalPointsText;
         
-        // Create a single focal point entry with the complete text
-        $processed++;
+        // Clean up the text for the name
+        $displayName = trim($completeText);
         
-        // Create a unique code for this complete focal point entry
-        $code = 'FP_' . $activity->code . '_' . Str::random(8);
-        
-        // Ensure unique code
-        if (isset($focalpointCodes[$code])) {
-            $code = $code . '_' . time();
+        // Check if this name already exists
+        $nameKey = md5($displayName);
+        if (isset($focalpointNames[$nameKey])) {
+            Log::debug('Focal point name already exists: ' . $displayName);
+            // Still create the pivot relationship with existing focal point
+            try {
+                $existingFocalpoint = RpFocalpoint::where('name', $displayName)->first();
+                if ($existingFocalpoint) {
+                    RpActivityFocalpoint::firstOrCreate(
+                        [
+                            'activity_id' => $activity->rp_activities_id,
+                            'focalpoint_id' => $existingFocalpoint->rp_focalpoints_id
+                        ],
+                        [
+                            'rp_activity_focalpoints_id' => (string) Str::uuid(),
+                            'role' => 'Focal Point',
+                            'end_date' => null,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]
+                    );
+                    $processedPivot++;
+                }
+            } catch (\Exception $e) {
+                Log::error('Failed to create activity focal point pivot: ' . $e->getMessage());
+            }
+            return [
+                'processed_focalpoints' => 0,
+                'processed_pivot' => $processedPivot,
+                'names' => $focalpointNames
+            ];
         }
-        $focalpointCodes[$code] = true;
+        
+        $focalpointNames[$nameKey] = true;
+        $processedFocalpoints++;
         
         try {
-            // Store the COMPLETE text as the name - exactly as in the Excel cell
-            $displayName = $completeText;
-            
-            $focalpoint = RpFocalpoint::firstOrCreate(
-                ['focalpoint_code' => $code],
-                [
-                    'name' => $displayName,
-                    'position' => 'Focal Point',
-                    'department' => 'Operations',
-                    'email' => null,
-                    'phone' => null,
-                    'is_active' => true,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]
-            );
+            // Create focal point using name as identifier
+            $focalpoint = RpFocalpoint::create([
+                'rp_focalpoints_id' => (string) Str::uuid(),
+                'name' => $displayName,
+                'type' => 'internal',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
             
             // Create pivot table entry in rp_activity_focalpoints
-            RpActivityFocalpoint::firstOrCreate(
-                [
-                    'activity_id' => $activity->rp_activities_id,
-                    'focalpoint_id' => $focalpoint->rp_focalpoints_id
-                ],
-                [
-                    'rp_activity_focalpoints_id' => (string) Str::uuid(),
-                    'role' => 'Focal Point',
-                    'responsibilities' => 'Primary contact for this activity',
-                    'assigned_date' => now(),
-                    'end_date' => null,
-                    'status' => 'active',
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]
-            );
-            
-            Log::debug('Activity focal point created in pivot table:', [
+            RpActivityFocalpoint::create([
+                'rp_activity_focalpoints_id' => (string) Str::uuid(),
                 'activity_id' => $activity->rp_activities_id,
                 'focalpoint_id' => $focalpoint->rp_focalpoints_id,
-                'focalpoint_code' => $code,
+                'role' => 'Focal Point',
+                'end_date' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            
+            $processedPivot++;
+            
+            Log::debug('Activity focal point created:', [
+                'activity_id' => $activity->rp_activities_id,
+                'activity_code' => $activity->code,
+                'focalpoint_id' => $focalpoint->rp_focalpoints_id,
                 'focalpoint_name' => $displayName
             ]);
             
@@ -1249,43 +1201,11 @@ class ReportingImportController extends Controller
             Log::error('Failed to create activity focal point for activity ' . $activity->code . ': ' . $e->getMessage());
         }
         
-        return ['processed' => $processed, 'codes' => $focalpointCodes];
-    }
-
-    /**
-     * Helper function to transliterate Arabic to Latin for codes
-     */
-    private function transliterateArabic(string $text): string
-    {
-        $transliteration = [
-            'ا' => 'a', 'أ' => 'a', 'إ' => 'i', 'آ' => 'a', 'ى' => 'a', 'ة' => 'h',
-            'ب' => 'b', 'ت' => 't', 'ث' => 'th', 'ج' => 'j', 'ح' => 'h', 'خ' => 'kh',
-            'د' => 'd', 'ذ' => 'dh', 'ر' => 'r', 'ز' => 'z', 'س' => 's', 'ش' => 'sh',
-            'ص' => 's', 'ض' => 'd', 'ط' => 't', 'ظ' => 'z', 'ع' => 'a', 'غ' => 'gh',
-            'ف' => 'f', 'ق' => 'q', 'ك' => 'k', 'ل' => 'l', 'م' => 'm', 'ن' => 'n',
-            'ه' => 'h', 'و' => 'w', 'ي' => 'y', 'ئ' => 'e', 'ؤ' => 'o', 'ء' => 'a',
-            ' ' => '_'
+        return [
+            'processed_focalpoints' => $processedFocalpoints,
+            'processed_pivot' => $processedPivot,
+            'names' => $focalpointNames
         ];
-        
-        $result = '';
-        $text = trim($text);
-        
-        for ($i = 0; $i < mb_strlen($text, 'UTF-8'); $i++) {
-            $char = mb_substr($text, $i, 1, 'UTF-8');
-            if (isset($transliteration[$char])) {
-                $result .= $transliteration[$char];
-            } elseif (preg_match('/[A-Za-z0-9]/', $char)) {
-                $result .= $char;
-            } else {
-                $result .= '_';
-            }
-        }
-        
-        // Remove duplicate underscores and trim
-        $result = preg_replace('/_+/', '_', $result);
-        $result = trim($result, '_');
-        
-        return $result ?: 'focalpoint';
     }
 
     /**
