@@ -27,18 +27,18 @@
 <body>
     <div class="upload-container">
         <h2 class="mb-4 text-center">
-            <i class="fas fa-file-import"></i> Import Reporting Data
+            📊 Import Reporting Data
         </h2>
 
         @if(session('success'))
             <div class="alert alert-success">
-                <i class="fas fa-check-circle"></i> {{ session('success') }}
+                ✅ {{ session('success') }}
             </div>
         @endif
 
         @if(session('error'))
             <div class="alert alert-danger">
-                <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
+                ❌ {{ session('error') }}
             </div>
         @endif
 
@@ -46,32 +46,31 @@
             @csrf
             
             <div class="mb-4">
-                <label for="excel_file" class="form-label fw-bold">Select Excel/CSV File</label>
+                <label for="csv_file" class="form-label fw-bold">Select Excel/CSV File</label>
                 <input type="file" 
                        class="form-control" 
-                       id="excel_file" 
-                       name="excel_file" 
+                       id="csv_file" 
+                       name="csv_file" 
                        accept=".csv,.xlsx,.xls"
                        required>
                 <div class="form-text">
-                    Supported formats: CSV, Excel (.xlsx, .xls). Max size: 10MB
+                    Supported formats: CSV, Excel (.xlsx, .xls)
                 </div>
             </div>
 
-            <div class="alert alert-info">
-                <h6 class="alert-heading mb-2">
-                    <i class="fas fa-info-circle"></i> Instructions
-                </h6>
-                <p class="mb-0">Upload your Excel/CSV file containing reporting data. The system will automatically import all data into the database.</p>
+            <div class="mb-3">
+                <a href="{{ route('reporting.import.download-template') }}" class="btn btn-outline-primary btn-sm">
+                    📥 Download Template
+                </a>
             </div>
 
             @if(isset($summary) && is_array($summary))
             <div class="mb-4 p-3 border rounded">
-                <h5 class="mb-3">Import Summary:</h5>
+                <h5 class="mb-3">📈 Import Summary:</h5>
                 <ul class="list-unstyled mb-0">
                     @foreach($summary as $key => $value)
                     <li class="mb-1">
-                        <span class="fw-bold">{{ ucfirst($key) }}:</span> {{ $value }}
+                        <span class="fw-bold">{{ ucfirst($key) }}:</span> {{ $value }} imported
                     </li>
                     @endforeach
                 </ul>
@@ -80,21 +79,18 @@
 
             <div class="d-grid gap-2">
                 <button type="submit" class="btn btn-primary btn-lg">
-                    <i class="fas fa-upload"></i> Upload & Import
+                    ⬆️ Upload & Import
                 </button>
                 <a href="{{ url('/') }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-times"></i> Cancel
+                    ❌ Cancel
                 </a>
             </div>
         </form>
     </div>
 
-    <!-- Font Awesome -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
-    
     <!-- Simple file name display -->
     <script>
-        document.getElementById('excel_file').addEventListener('change', function(e) {
+        document.getElementById('csv_file').addEventListener('change', function(e) {
             var fileName = e.target.files[0].name;
             var nextSibling = e.target.nextElementSibling;
             if (nextSibling && nextSibling.tagName === 'DIV') {
