@@ -32,7 +32,7 @@ class ReportingImportController extends Controller
         
         try {
             $request->validate([
-                'excel_file' => 'required|file|mimes:xlsx,xls,csv'
+                'csv_file' => 'required|file|mimes:xlsx,xls,csv'
             ]);
             
             // Set execution limits for large files
@@ -43,7 +43,7 @@ class ReportingImportController extends Controller
             // Disable query logging for performance
             DB::disableQueryLog();
             
-            $file = $request->file('excel_file');
+            $file = $request->file('csv_file');
             $extension = $file->getClientOriginalExtension();
             
             Log::info('Starting import with extension: ' . $extension);
@@ -442,7 +442,7 @@ class ReportingImportController extends Controller
                     $actionName = trim($row[7] ?? '');
                     $actionObjective = trim($row[8] ?? '');
                     $actionTargets = trim($row[9] ?? '');
-
+                    
                     // Debug row data
                     Log::debug('Processing hierarchy row ' . ($index + 2) . ':', [
                         'component' => $componentCode,
