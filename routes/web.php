@@ -32,15 +32,7 @@ Route::prefix('users')->name('users.')->group(function () {
 Route::get('/', function () {
     return view('welcome');
 });
-// Users Routes
-Route::prefix('users')->name('users.')->group(function () {
-    Route::get('/', [UserController::class, 'index'])->name('index');
-    Route::get('/create', [UserController::class, 'create'])->name('create');
-    Route::get('/statistics', [UserController::class, 'statistics'])->name('statistics');
-    Route::get('/import', [UserController::class, 'importForm'])->name('import.form');
-    Route::post('/import', [UserController::class, 'import'])->name('import.process');
-    Route::get('/export', [UserController::class, 'exportExcel'])->name('export.excel');
-});
+
 
 // =======================
 // Reporting Routes Group
