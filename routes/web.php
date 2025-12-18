@@ -17,6 +17,7 @@ use App\Http\Controllers\Reporting\{
     ReportingImportController
 };
 use App\Http\Controllers\API\UserController as APIUserController;
+use App\Http\Controllers\ActivityController;
 
 Route::prefix('users')->name('users.')->group(function () {
     Route::get('/', [APIUserController::class, 'index'])->name('index');          // All Users
@@ -38,6 +39,7 @@ Route::prefix('users')->name('users.')->group(function () {
 // Route::get('/users/dashboard', [UserController::class, 'dashboard'])->name('users.dashboard');
 
 
+Route::get('/activity/{external_activity_id}/link', [ActivityController::class, 'index'])->name('link.activities'); // Example route for ActivityController
 
 // Root
 Route::get('/', function () {
