@@ -137,4 +137,12 @@ class User extends Authenticatable
         return $this->belongsToMany(Diploma::class, 'users_diploma', 'user_id', 'diploma_id')
                     ->withTimestamps();
     }
+    public function defaultCop()
+{
+    return $this->belongsTo(Cop::class, 'default_cop_id', 'cop_id');
+}
+public function nationalities()
+{
+    return $this->belongsToMany(Nationality::class, 'users_nationality', 'user_id', 'nationality_id');
+}
 }

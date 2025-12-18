@@ -15,6 +15,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 
+// ADD THIS NEW FORM REQUEST CLASS
+use App\Http\Requests\BulkDeleteUserRequest;
+
 class UserController extends Controller
 {
     /**
@@ -359,6 +362,38 @@ class UserController extends Controller
         $user->delete();
 
         return redirect()->route('users.index')->with('success', 'User deleted successfully.');
+    }
+
+    /**
+     * Bulk delete users
+     */
+    public function bulkDestroy(BulkDeleteUserRequest $request)
+    {
+        try {
+            $userIds = $request->getUserIdsAsArray();
+            
+            DB::transaction(function () use ($userIds) {
+                foreach ($userIds as $userId) {
+                    $user = User::where('user_id', $userId)->first();
+                    if ($user) {
+                        $user->diplomas()->detach();
+                        $user->nationalities()->detach();
+                        $user->delete();
+                    }
+                }
+            });
+            
+            $count = count($userIds);
+            Log::info("Bulk deleted {$count} users");
+            
+            return redirect()->route('users.index')
+                ->with('success', "Successfully deleted {$count} user(s).");
+                
+        } catch (\Exception $e) {
+            Log::error('Bulk delete failed: ' . $e->getMessage());
+            return redirect()->route('users.index')
+                ->with('error', 'Failed to delete users: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -721,7 +756,7 @@ class UserController extends Controller
     /**
      * Show import form
      */
-    public function showImportForm()
+  public function importForm()
     {
         $cops = Cop::orderBy('cop_name')->get();
         return view('users.import', compact('cops'));

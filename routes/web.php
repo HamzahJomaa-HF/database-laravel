@@ -17,18 +17,23 @@ use App\Http\Controllers\Reporting\{
     ReportingImportController
 };
 use App\Http\Controllers\API\UserController as APIUserController;
-use App\Http\Controllers\ActivityController;
 
 Route::prefix('users')->name('users.')->group(function () {
-    Route::get('/', [APIUserController::class, 'index'])->name('index');          // All Users
-    Route::post('/', [APIUserController::class, 'index'])->name('store');          // All Users
-    Route::get('/create', [APIUserController::class, 'create'])->name('create'); // Add New User
-    Route::get('/statistics', [APIUserController::class, 'statistics'])->name('statistics'); 
+    Route::get('/', [APIUserController::class, 'index'])->name('index');
+    Route::post('/', [APIUserController::class, 'store'])->name('store');
+    Route::get('/create', [APIUserController::class, 'create'])->name('create');
+    Route::get('/statistics', [APIUserController::class, 'statistics'])->name('statistics');
     Route::get('/import', [APIUserController::class, 'importForm'])->name('import.form');
-    Route::post('/import', [APIUserController::class, 'import'])->name('import.process');
+Route::post('/import', [APIUserController::class, 'import'])->name('import');    Route::get('/import/template', [APIUserController::class, 'downloadTemplate'])->name('import.template');
     Route::get('/export', [APIUserController::class, 'exportExcel'])->name('export.excel');
+     // Bulk delete route - ADD THIS
+    Route::post('/bulk-delete', [APIUserController::class, 'bulkDestroy'])->name('bulk.destroy');
+    
+    // Add these missing routes:
+    Route::get('/{user_id}/edit', [APIUserController::class, 'edit'])->name('edit');
+    Route::put('/{user_id}', [APIUserController::class, 'update'])->name('update');
+    Route::delete('/{user_id}', [APIUserController::class, 'destroy'])->name('destroy');
 });
-
 // // Use {user_id} to match your controller methods
 // Route::get('/users', [UserController::class, 'index'])->name('users.index');
 // Route::get('/users/create', [UserController::class, 'create'])->name('users.create');

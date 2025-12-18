@@ -22,34 +22,44 @@
     </div>
 
     {{-- Bulk Actions Section --}}
-    <div class="row mb-4" id="bulkActionsSection" style="display: none;">
-        <div class="col-12">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-warning border-bottom py-3">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-grow-1">
-                            <h5 class="mb-0 fw-semibold">
-                                <i class="bi bi-check-all me-2"></i>Bulk Actions
-                            </h5>
-                        </div>
-                        <div class="flex-shrink-0">
-                            <span class="badge bg-white text-dark" id="selectedCount">0 selected</span>
-                        </div>
+<div class="row mb-4" id="bulkActionsSection" style="display: none;">
+    <div class="col-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-warning border-bottom py-3">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-0 fw-semibold">
+                            <i class="bi bi-check-all me-2"></i>Bulk Actions
+                        </h5>
                     </div>
-                </div>
-                <div class="card-body p-3">
-                    <div class="d-flex align-items-center gap-3">
-                        <button type="button" class="btn btn-danger" id="deleteSelectedBtn">
-                            <i class="bi bi-trash me-1"></i>Delete Selected
-                        </button>
+                    <div class="flex-shrink-0">
+                        <span class="badge bg-white text-dark me-3" id="selectedCount">0 selected</span>
                         <button type="button" class="btn btn-outline-secondary" id="clearSelectionBtn">
                             <i class="bi bi-x-circle me-1"></i>Clear Selection
                         </button>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
+            </div> {{-- Close card-header --}}
+            
+            <div class="card-body p-3">
+                <form method="POST" 
+                      action="{{ route('users.bulk.destroy') }}" 
+                      id="bulkDeleteForm" 
+                      class="d-inline">
+                    @csrf
+                    <input type="hidden" name="user_ids" id="selectedUserIds">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>Delete Selected
+                    </button>
+                </form>
+                <small class="text-muted ms-3">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    This action cannot be undone
+                </small>
+            </div> {{-- Close card-body --}}
+        </div> {{-- Close card --}}
+    </div> {{-- Close col --}}
+</div> {{-- Close row --}}
 
     {{-- Filters Section --}}
     <div class="row mb-4">
@@ -97,15 +107,7 @@
                                            placeholder="Phone number">
                                 </div>
 
-                                {{-- Dropdowns --}}
-                                <div class="col-md-3">
-                                    <label for="inlineFormRole" class="form-label fw-semibold">Role Type</label>
-                                    <select id="inlineFormRole" name="type" class="form-control">
-                                        <option value="">All Roles</option>
-                                        <option value="Beneficiary" {{ request('type') == 'Beneficiary' ? 'selected' : '' }}>Beneficiary</option>
-                                        <option value="Stakeholder" {{ request('type') == 'Stakeholder' ? 'selected' : '' }}>Stakeholder</option>
-                                    </select>
-                                </div>
+                                
 
                                 <div class="col-md-3">
                                     <label for="inlineFormEmployment" class="form-label fw-semibold">Status</label>
@@ -673,12 +675,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const userCheckboxes = document.querySelectorAll('.user-checkbox');
     const bulkActionsSection = document.getElementById('bulkActionsSection');
     const selectedCount = document.getElementById('selectedCount');
-    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
     const clearSelectionBtn = document.getElementById('clearSelectionBtn');
+    
+    // Get modal elements if they exist
     const bulkDeleteModal = document.getElementById('bulkDeleteModal');
     const deleteCount = document.getElementById('deleteCount');
+    const modalDeleteSelectedBtn = document.getElementById('deleteSelectedBtn'); // The button that triggers the modal
+    
+    // Get the form in the bulk actions section (not modal)
+    const bulkActionsForm = document.querySelector('#bulkActionsSection form#bulkDeleteForm');
     const selectedUserIds = document.getElementById('selectedUserIds');
-    const bulkDeleteForm = document.getElementById('bulkDeleteForm');
     
     // Update selected count and show/hide bulk actions
     function updateSelection() {
@@ -686,31 +692,41 @@ document.addEventListener('DOMContentLoaded', function() {
         const count = selectedCheckboxes.length;
         
         // Update count display
-        selectedCount.textContent = `${count} selected`;
-        deleteCount.textContent = count;
+        if (selectedCount) selectedCount.textContent = `${count} selected`;
+        if (deleteCount) deleteCount.textContent = count;
         
         // Show/hide bulk actions section
         if (count > 0) {
-            bulkActionsSection.style.display = 'block';
+            if (bulkActionsSection) bulkActionsSection.style.display = 'block';
             
             // Update the hidden input with selected user IDs
             const selectedIds = selectedCheckboxes.map(cb => cb.value);
-            selectedUserIds.value = JSON.stringify(selectedIds);
+            if (selectedUserIds) {
+                selectedUserIds.value = JSON.stringify(selectedIds);
+            }
         } else {
-            bulkActionsSection.style.display = 'none';
-            selectedUserIds.value = '';
+            if (bulkActionsSection) bulkActionsSection.style.display = 'none';
+            if (selectedUserIds) {
+                selectedUserIds.value = '';
+            }
         }
         
         // Update select all checkbox state
         if (count === 0) {
-            selectAllCheckbox.checked = false;
-            selectAllCheckbox.indeterminate = false;
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            }
         } else if (count === userCheckboxes.length) {
-            selectAllCheckbox.checked = true;
-            selectAllCheckbox.indeterminate = false;
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = true;
+                selectAllCheckbox.indeterminate = false;
+            }
         } else {
-            selectAllCheckbox.checked = false;
-            selectAllCheckbox.indeterminate = true;
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = true;
+            }
         }
         
         // Add/remove selected class from rows
@@ -752,29 +768,69 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Delete selected button
-    if (deleteSelectedBtn) {
-        deleteSelectedBtn.addEventListener('click', function() {
+    // Delete selected button (modal trigger) - if it exists
+    if (modalDeleteSelectedBtn) {
+        modalDeleteSelectedBtn.addEventListener('click', function() {
             const count = Array.from(userCheckboxes).filter(cb => cb.checked).length;
-            if (count > 0) {
+            if (count > 0 && bulkDeleteModal) {
                 const modal = new bootstrap.Modal(bulkDeleteModal);
                 modal.show();
+            } else {
+                alert('No users selected.');
+            }
+        });
+    }
+    
+    // Handle bulk delete form submission in the bulk actions section
+    if (bulkActionsForm) {
+        bulkActionsForm.addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent immediate submission
+            
+            const selectedCheckboxes = Array.from(userCheckboxes).filter(cb => cb.checked);
+            const count = selectedCheckboxes.length;
+            
+            if (count === 0) {
+                alert('No users selected.');
+                return;
+            }
+            
+            if (confirm(`Are you sure you want to delete ${count} selected user(s)? This action cannot be undone.`)) {
+                // Show loading state
+                const submitBtn = this.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    const originalText = submitBtn.innerHTML;
+                    submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Deleting...';
+                    submitBtn.disabled = true;
+                    
+                    // Submit the form
+                    this.submit();
+                    
+                    // Optional: Re-enable button after 3 seconds if submission fails
+                    setTimeout(() => {
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.disabled = false;
+                    }, 3000);
+                } else {
+                    this.submit();
+                }
+            }
+        });
+    }
+    
+    // Handle modal form submission if it exists
+    const modalForm = document.querySelector('#bulkDeleteModal form#bulkDeleteForm');
+    if (modalForm) {
+        modalForm.addEventListener('submit', function(e) {
+            const submitBtn = this.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Deleting...';
+                submitBtn.disabled = true;
             }
         });
     }
     
     // Initialize selection state
     updateSelection();
-    
-    // Handle bulk delete form submission
-    if (bulkDeleteForm) {
-        bulkDeleteForm.addEventListener('submit', function(e) {
-            // The form will submit normally, no need for extra handling
-            // Just show loading state if needed
-            deleteSelectedBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Deleting...';
-            deleteSelectedBtn.disabled = true;
-        });
-    }
 });
 </script>
 @endsection
