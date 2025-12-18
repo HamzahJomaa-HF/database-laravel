@@ -372,7 +372,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form method="POST" action="{{ route('users.bulk-delete') }}" id="bulkDeleteForm">
+                <form method="POST"  id="bulkDeleteForm">
                     @csrf
                     <input type="hidden" name="user_ids" id="selectedUserIds">
                     <button type="submit" class="btn btn-danger">Delete Selected</button>

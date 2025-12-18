@@ -20,12 +20,23 @@ use App\Http\Controllers\API\UserController as APIUserController;
 
 Route::prefix('users')->name('users.')->group(function () {
     Route::get('/', [APIUserController::class, 'index'])->name('index');          // All Users
+    Route::post('/', [APIUserController::class, 'index'])->name('store');          // All Users
     Route::get('/create', [APIUserController::class, 'create'])->name('create'); // Add New User
     Route::get('/statistics', [APIUserController::class, 'statistics'])->name('statistics'); 
     Route::get('/import', [APIUserController::class, 'importForm'])->name('import.form');
     Route::post('/import', [APIUserController::class, 'import'])->name('import.process');
     Route::get('/export', [APIUserController::class, 'exportExcel'])->name('export.excel');
 });
+
+// // Use {user_id} to match your controller methods
+// Route::get('/users', [UserController::class, 'index'])->name('users.index');
+// Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+// Route::post('/users', [UserController::class, 'store'])->name('users.store');
+// Route::get('/users/{user_id}/edit', [UserController::class, 'edit'])->name('users.edit'); // Changed to user_id
+// Route::put('/users/{user_id}', [UserController::class, 'update'])->name('users.update'); // Changed to user_id
+// Route::delete('/users/{user_id}', [UserController::class, 'destroy'])->name('users.destroy'); // Changed to user_id
+// Route::get('/users/dashboard', [UserController::class, 'dashboard'])->name('users.dashboard');
+
 
 
 // Root
