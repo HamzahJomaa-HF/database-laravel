@@ -67,7 +67,7 @@ class Program extends Model
     }
 
     /**
-     * Relation to ProjectCenters (if needed)
+     * Relation to Project(if needed)
      */
     public function projects()
     {
