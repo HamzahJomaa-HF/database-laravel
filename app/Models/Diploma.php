@@ -15,7 +15,6 @@ class Diploma extends Model
     protected $keyType = 'string';     // UUID is a string
 
     protected $fillable = [
-        'diploma_id',
         'diploma_name',
         'institution',
         'year',

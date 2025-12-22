@@ -1127,8 +1127,8 @@ class UserController extends Controller
                     'male' => 'Male',
                     'f' => 'Female',
                     'female' => 'Female',
-                    'o' => 'Other',
-                    'other' => 'Other',
+            
+            
                 ];
                 
                 $lowerValue = strtolower($cleanValue);
@@ -1136,7 +1136,7 @@ class UserController extends Controller
                     $cleanValue = $genderMap[$lowerValue];
                 }
                 
-                if (!in_array($cleanValue, ['Male', 'Female', 'Other'])) {
+                if (!in_array($cleanValue, ['Male', 'Female'])) {
                     Log::warning("Invalid gender value '{$original}', defaulting to 'Male'");
                     $cleanValue = 'Male';
                 }
@@ -1156,7 +1156,7 @@ class UserController extends Controller
             // Handle type formatting
             if ($key === 'type' && $cleanValue) {
                 $cleanValue = ucfirst(strtolower(trim($cleanValue)));
-                $allowedTypes = ['Stakeholder', 'Employee', 'Admin', 'Customer', 'Partner', 'Beneficiary'];
+                $allowedTypes = ['Stakeholder', 'Beneficiary'];
                 if (!in_array($cleanValue, $allowedTypes)) {
                     $cleanValue = 'Stakeholder';
                 }

@@ -16,29 +16,28 @@ class RpUnit extends Model
     public $incrementing = false;
 
     protected $fillable = [
-        'program_id',
+        'rp_programs_id',  // ← FIXED: was 'program_id'
         'external_id',
         'name',
         'code',
         'unit_type',
         'description',
-        'is_active'
     ];
 
-    protected $casts = [
-        'is_active' => 'boolean'
-    ];
+    
+
+    protected $dates = ['deleted_at'];
 
     /**
-     * Relationships (MUST match controller usage)
+     * CORRECTED Relationships
      */
     public function program()
     {
-        return $this->belongsTo(RpProgram::class, 'program_id', 'rp_programs_id');
+        return $this->belongsTo(RpProgram::class, 'rp_programs_id', 'rp_programs_id');
     }
 
     public function actions()
     {
-        return $this->hasMany(RpAction::class, 'unit_id', 'rp_units_id');
+        return $this->hasMany(RpAction::class, 'rp_units_id', 'rp_units_id');
     }
 }

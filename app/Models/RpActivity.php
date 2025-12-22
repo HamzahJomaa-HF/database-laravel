@@ -16,62 +16,59 @@ class RpActivity extends Model
     public $incrementing = false;
 
     protected $fillable = [
-        'action_id',
+        'rp_actions_id',      // ← FIXED: was 'action_id'
         'external_id',
         'external_type',
         'name',
         'code',
         'description',
-        'activity_title_en',
-        'activity_title_ar',
-        'folder_name',
-        'content_network',
         'activity_type',
-        'reporting_period_start',
-        'reporting_period_end',
         'status',
-        'achievements',
-        'challenges',
-        'next_steps',
-        'allocated_budget',
-        'spent_budget',
-        'is_active',
-        'needs_sync'
     ];
 
     protected $casts = [
-        'reporting_period_start' => 'date',
-        'reporting_period_end' => 'date',
-        'allocated_budget' => 'decimal:2',
-        'spent_budget' => 'decimal:2',
-        'is_active' => 'boolean',
-        'needs_sync' => 'boolean'
+        'status' => 'string',
+        // REMOVE all date/budget casts - those fields don't exist!
     ];
 
+    protected $dates = ['deleted_at'];
+
     /**
-     * Relationships (MUST match controller usage)
+     * CORRECTED Relationships
      */
     public function action()
     {
-        return $this->belongsTo(RpAction::class, 'action_id', 'rp_actions_id');
+        return $this->belongsTo(RpAction::class, 'rp_actions_id', 'rp_actions_id');
     }
 
-    // Pivot tables for many-to-many relationships
+    // CORRECT pivot relationships based on your schema:
     public function indicators()
     {
-        return $this->belongsToMany(RpIndicator::class, 'rp_activity_indicators', 'activity_id', 'indicator_id')
-            ->withTimestamps();
+        return $this->belongsToMany(
+            RpIndicator::class, 
+            'rp_activity_indicators', 
+            'rp_activities_id',  // Foreign key in pivot table
+            'rp_indicators_id'   // Related key in pivot table
+        )->withPivot('notes');
     }
 
     public function focalpoints()
     {
-        return $this->belongsToMany(RpFocalpoint::class, 'rp_activity_focalpoints', 'activity_id', 'focalpoint_id')
-            ->withTimestamps();
+        return $this->belongsToMany(
+            RpFocalpoint::class, 
+            'rp_activity_focalpoints', 
+            'rp_activities_id',  // Foreign key in pivot table  
+            'rp_focalpoints_id'  // Related key in pivot table
+        )->withPivot(['role', 'end_date']);
     }
 
     public function mappedActivities()
     {
-        return $this->belongsToMany(Activity::class, 'rp_activity_mappings', 'rp_activity_id', 'main_activity_id')
-            ->withTimestamps();
+        return $this->belongsToMany(
+            Activity::class,
+            'rp_activity_mappings',
+            'rp_activities_id',  // Foreign key in pivot table
+            'activity_id'        // Related key in pivot table
+        );
     }
 }

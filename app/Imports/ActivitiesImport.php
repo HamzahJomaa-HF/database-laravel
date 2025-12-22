@@ -171,7 +171,7 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
         
         // Check if this code already exists for this action
         $existing = DB::table('rp_activities')
-            ->where('action_id', $actionId)
+            ->where('rp_actions_id', $actionId)
             ->where('code', $uniqueCode)
             ->exists();
         
@@ -184,7 +184,7 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
         while (true) {
             $proposedCode = "{$actionCode}-{$activityCode}-{$counter}";
             $exists = DB::table('rp_activities')
-                ->where('action_id', $actionId)
+                ->where('rp_actions_id', $actionId)
                 ->where('code', $proposedCode)
                 ->exists();
             
@@ -331,7 +331,7 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
         try {
             // Find existing activity with the unique code
             $existingActivity = DB::table('rp_activities')
-                ->where('action_id', $action->rp_actions_id)
+                ->where('rp_actions_id', $action->rp_actions_id)
                 ->where('code', $activityCode)
                 ->first(['rp_activities_id', 'code', 'name']);
             
@@ -356,7 +356,7 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
                 
                 DB::table('rp_activities')->insert([
                     'rp_activities_id' => $activityId,
-                    'action_id' => $action->rp_actions_id,
+                    'rp_actions_id' => $action->rp_actions_id,
                     'external_id' => (string) Str::uuid(),
                     'external_type' => null,
                     'name' => $this->truncateForDb($activityName ?: "Activity {$activityCode}"),
@@ -428,8 +428,8 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
 
             // Check and create link
             $existingLink = DB::table('rp_activity_indicators')
-                ->where('activity_id', $activityId)
-                ->where('indicator_id', $indicatorId)
+                ->where('rp_activities_id', $activityId)
+                ->where('rp_indicators_id', $indicatorId)
                 ->first();
 
             if (!$existingLink) {
@@ -437,8 +437,8 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
                 
                 DB::table('rp_activity_indicators')->insert([
                     'rp_activity_indicators_id' => $linkId,
-                    'activity_id' => $activityId,
-                    'indicator_id' => $indicatorId,
+                    'rp_activities_id' => $activityId,
+                    'rp_indicators_id' => $indicatorId,
                     'notes' => null,
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -477,7 +477,7 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
                     'external_id' => (string) Str::uuid(),
                     'name' => $this->truncateForDb($name),
                     'type' => 'rp_activity',
-                    'user_id' => null,
+                    'employee_id' => null,
                     'created_at' => now(),
                     'updated_at' => now(),
                     'deleted_at' => null,
@@ -489,8 +489,8 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
 
             // Check and create link
             $existingLink = DB::table('rp_activity_focalpoints')
-                ->where('activity_id', $activityId)
-                ->where('focalpoint_id', $focalpointId)
+                ->where('rp_activities_id', $activityId)
+                ->where('rp_focalpoints_id', $focalpointId)
                 ->first();
 
             if (!$existingLink) {
@@ -498,8 +498,8 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
                 
                 DB::table('rp_activity_focalpoints')->insert([
                     'rp_activity_focalpoints_id' => $linkId,
-                    'activity_id' => $activityId,
-                    'focalpoint_id' => $focalpointId,
+                    'rp_activities_id' => $activityId,
+                    'rp_focalpoints_id' => $focalpointId,
                     'role' => 'Focal Point',
                     'end_date' => null,
                     'created_at' => now(),

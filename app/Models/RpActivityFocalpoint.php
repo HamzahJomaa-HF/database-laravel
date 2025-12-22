@@ -15,48 +15,42 @@ class RpActivityFocalpoint extends Model
     public $incrementing = false;
 
     protected $fillable = [
-        'activity_id',
-        'focalpoint_id',
+        'rp_activities_id',    
+        'rp_focalpoints_id',  
         'role',
-        'responsibilities',
-        'assigned_date',
         'end_date',
-        'status'
+       
     ];
 
     protected $casts = [
-        'assigned_date' => 'date',
-        'end_date' => 'date'
+        'end_date' => 'date',
     ];
 
     /**
-     * Relationships (MUST match controller usage)
+     * CORRECTED Relationships
      */
     public function activity()
     {
-        return $this->belongsTo(RpActivity::class, 'activity_id', 'rp_activities_id');
+        return $this->belongsTo(RpActivity::class, 'rp_activities_id', 'rp_activities_id');
     }
 
     public function focalpoint()
     {
-        return $this->belongsTo(RpFocalpoint::class, 'focalpoint_id', 'rp_focalpoints_id');
+        return $this->belongsTo(RpFocalpoint::class, 'rp_focalpoints_id', 'rp_focalpoints_id');
     }
 
     /**
-     * Scopes (Optional but useful for your controller queries)
+     * CORRECTED Scopes
      */
     public function scopeByActivity($query, $activityId)
     {
-        return $query->where('activity_id', $activityId);
+        return $query->where('rp_activities_id', $activityId);
     }
 
     public function scopeByFocalPoint($query, $focalpointId)
     {
-        return $query->where('focalpoint_id', $focalpointId);
+        return $query->where('rp_focalpoints_id', $focalpointId);
     }
 
-    public function scopeActive($query)
-    {
-        return $query->where('status', 'active');
-    }
+   
 }

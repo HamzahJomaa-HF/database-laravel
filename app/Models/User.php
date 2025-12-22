@@ -15,48 +15,47 @@ class User extends Authenticatable
     public $incrementing = false;
     protected $keyType = 'string';
 
-    protected $fillable = [
-        // Required Fields
-        'prefix',
-        'is_high_profile',
-        'scope',
-        'default_cop_id', // Foreign key to cops table
-        'first_name',
-        'last_name',
-        'gender',
-        'position_1',
-        'organization_1',
-        'organization_type_1',
-        'status_1',
-        'address',
-        'phone_number', // CHANGED: from mobile_phone to phone_number
-        
-        // Optional Fields
-        'sector',
-        'middle_name',
-        'dob',
-        'office_phone',
-        'extension_number',
-        'home_phone',
-        'email',
-        
-        // Optional Secondary Position Fields
-        'position_2',
-        'organization_2',
-        'organization_type_2',
-        'status_2',
-        
-        // Existing fields for backward compatibility
-        'identification_id',
-        'mother_name',
-        'register_number',
-        // REMOVED: 'phone_number', (duplicate)
-        'marital_status',
-        'employment_status',
-        'passport_number',
-        'register_place',
-    ];
-
+   protected $fillable = [
+    // Required Fields
+    'prefix',
+    'is_high_profile',
+    'scope',
+    'default_cop_id',
+    'first_name',
+    'last_name',
+    'gender',
+    'position_1',
+    'organization_1',
+    'organization_type_1',
+    'status_1',
+    'address',
+    'phone_number',
+    
+    // Optional Fields
+    'sector',
+    'middle_name',
+    'dob',
+    'office_phone',
+    'extension_number',
+    'home_phone',
+    'email',
+    
+    // Optional Secondary Position Fields
+    'position_2',
+    'organization_2',
+    'organization_type_2',
+    'status_2',
+    
+    // Other fields
+    'identification_id',
+    'mother_name',
+    'register_number',
+    'marital_status',
+    'employment_status',
+    'passport_number',
+    'register_place',
+    'type', // ← ADD THIS (exists in DB)
+];
     protected $hidden = [
         'remember_token',
     ];
@@ -85,13 +84,8 @@ class User extends Authenticatable
 
     public const GENDER_MALE = 'Male';
     public const GENDER_FEMALE = 'Female';
-    public const GENDER_OTHER = 'Other';
-
+    
     public const TYPE_STAKEHOLDER = 'Stakeholder';
-    public const TYPE_EMPLOYEE = 'Employee';
-    public const TYPE_ADMIN = 'Admin';
-    public const TYPE_CUSTOMER = 'Customer';
-    public const TYPE_PARTNER = 'Partner';
     public const TYPE_BENEFICIARY = 'Beneficiary';
 
     protected static function boot()

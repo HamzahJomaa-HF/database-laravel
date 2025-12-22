@@ -17,34 +17,24 @@ class RpIndicator extends Model
 
     protected $fillable = [
         'external_id',
-        'indicator_code',
         'name',
         'description',
         'indicator_type',
-        'unit_of_measure',
-        'baseline_value',
-        'baseline_date',
         'target_value',
-        'target_date',
         'data_source',
-        'frequency',
-        'calculation_method',
-        'is_active'
     ];
 
     protected $casts = [
-        'baseline_value' => 'decimal:2',
         'target_value' => 'decimal:2',
-        'baseline_date' => 'date',
-        'target_date' => 'date',
-        'is_active' => 'boolean'
     ];
 
+    protected $dates = ['deleted_at'];
+
     /**
-     * Relationships (MUST match controller usage)
+     * CORRECTED Relationships
      */
     public function activityAssignments()
     {
-        return $this->hasMany(RpActivityIndicator::class, 'indicator_id', 'rp_indicators_id');
+        return $this->hasMany(RpActivityIndicator::class, 'rp_indicators_id', 'rp_indicators_id');
     }
 }

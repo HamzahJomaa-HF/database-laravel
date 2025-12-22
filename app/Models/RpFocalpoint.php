@@ -17,25 +17,26 @@ class RpFocalpoint extends Model
 
     protected $fillable = [
         'external_id',
-        'focalpoint_code',
         'name',
-        'position',
-        'department',
-        'email',
-        'phone',
-        'responsibility_level',
-        'is_active'
+        'type',         
+        'employee_id',  
+       
     ];
 
-    protected $casts = [
-        'is_active' => 'boolean'
-    ];
+   
+
+    protected $dates = ['deleted_at'];
 
     /**
-     * Relationships (MUST match controller usage)
+     * CORRECTED Relationships
      */
     public function activityAssignments()
     {
-        return $this->hasMany(RpActivityFocalpoint::class, 'focalpoint_id', 'rp_focalpoints_id');
+        return $this->hasMany(RpActivityFocalpoint::class, 'rp_focalpoints_id', 'rp_focalpoints_id');
+    }
+
+    public function employee()
+    {
+        return $this->belongsTo(Employee::class, 'employee_id', 'employee_id');
     }
 }

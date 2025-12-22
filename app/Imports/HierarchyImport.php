@@ -168,7 +168,7 @@ class HierarchyImport implements ToCollection, WithHeadingRow
                     } else {
                         $existing = DB::table('rp_programs')
                             ->where('code', $programCode)
-                            ->where('component_id', $componentId)
+                            ->where('rp_components_id', $componentId)
                             ->first(['rp_programs_id']);
 
                         if ($existing) {
@@ -180,7 +180,7 @@ class HierarchyImport implements ToCollection, WithHeadingRow
                             $programId = Str::uuid();
                             DB::table('rp_programs')->insert([
                                 'rp_programs_id' => $programId,
-                                'component_id' => $componentId,
+                               'rp_components_id' => $componentId,
                                 'external_id' => Str::uuid(),
                                 'name' => $programName ?: $programCode,
                                 'code' => $programCode,
@@ -207,7 +207,7 @@ class HierarchyImport implements ToCollection, WithHeadingRow
                     } else {
                         $existing = DB::table('rp_units')
                             ->where('code', $unitCode)
-                            ->where('program_id', $programId)
+                            ->where('rp_programs_id', $programId)
                             ->first(['rp_units_id']);
 
                         if ($existing) {
@@ -220,7 +220,7 @@ class HierarchyImport implements ToCollection, WithHeadingRow
                             DB::table('rp_units')->insert([
                                 'rp_units_id' => $unitId,
                                 'external_id' => Str::uuid(),
-                                'program_id' => $programId,
+                                'rp_programs_id' => $programId,
                                 'name' => $unitName ?: $unitCode,
                                 'code' => $unitCode,
                                 'description' => null,
@@ -245,7 +245,7 @@ class HierarchyImport implements ToCollection, WithHeadingRow
                     } else {
                         $existing = DB::table('rp_actions')
                             ->where('code', $actionCode)
-                            ->where('unit_id', $unitId)
+                            ->where('rp_units_id', $unitId)
                             ->first(['rp_actions_id']);
 
                         if ($existing) {
@@ -256,7 +256,7 @@ class HierarchyImport implements ToCollection, WithHeadingRow
                             DB::table('rp_actions')->insert([
                                 'rp_actions_id' => Str::uuid(),
                                 'external_id' => Str::uuid(),
-                                'unit_id' => $unitId,
+                               'rp_units_id' => $unitId,
                                 'name' => $actionName ?: $actionCode,
                                 'code' => $actionCode,
                                 'objectives' => $actionObjective,

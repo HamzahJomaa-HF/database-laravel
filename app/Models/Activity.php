@@ -15,16 +15,17 @@ class Activity extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'activity_title_en',
-        'activity_title_ar',
-        'activity_type',
-        'folder_name',
-        'content_network',
-        'start_date',
-        'end_date',
-        'parent_activity',
-        'target_cop',
-        'external_id',
+    'activity_title_en',
+    'activity_title_ar',
+    'activity_type',
+    'folder_name',
+    'content_network',
+    'start_date',
+    'end_date',
+    'parent_activity',
+    'target_cop',
+    'external_id',
+    'venue', 
     ];
 
     protected $dates = ['start_date', 'end_date'];

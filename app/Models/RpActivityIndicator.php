@@ -15,49 +15,38 @@ class RpActivityIndicator extends Model
     public $incrementing = false;
 
     protected $fillable = [
-        'activity_id',
-        'indicator_id',
-        'target_value',
-        'achieved_value',
-        'achieved_date',
+        'rp_activities_id',    // ← FIXED: was 'activity_id'
+        'rp_indicators_id',    // ← FIXED: was 'indicator_id'
         'notes',
-        'status'
     ];
 
-    protected $casts = [
-        'target_value' => 'decimal:2',
-        'achieved_value' => 'decimal:2',
-        'achieved_date' => 'date'
-    ];
+    
 
     /**
-     * Relationships (MUST match controller usage)
+     * CORRECTED Relationships
      */
     public function activity()
     {
-        return $this->belongsTo(RpActivity::class, 'activity_id', 'rp_activities_id');
+        return $this->belongsTo(RpActivity::class, 'rp_activities_id', 'rp_activities_id');
     }
 
     public function indicator()
     {
-        return $this->belongsTo(RpIndicator::class, 'indicator_id', 'rp_indicators_id');
+        return $this->belongsTo(RpIndicator::class, 'rp_indicators_id', 'rp_indicators_id');
     }
 
     /**
-     * Scopes (Optional but useful for your controller queries)
+     * CORRECTED Scopes
      */
     public function scopeByActivity($query, $activityId)
     {
-        return $query->where('activity_id', $activityId);
+        return $query->where('rp_activities_id', $activityId);
     }
 
     public function scopeByIndicator($query, $indicatorId)
     {
-        return $query->where('indicator_id', $indicatorId);
+        return $query->where('rp_indicators_id', $indicatorId);
     }
 
-    public function scopeByStatus($query, $status)
-    {
-        return $query->where('status', $status);
-    }
+   
 }

@@ -16,40 +16,37 @@ class RpAction extends Model
     public $incrementing = false;
 
     protected $fillable = [
-        'unit_id',
+        'rp_units_id',           
         'external_id',
         'name',
         'code',
-        'description',
+        'objectives',           
         'planned_start_date',
         'planned_end_date',
-        'status',
-        'allocated_budget',
-        'is_active'
+        'targets_beneficiaries', 
     ];
 
     protected $casts = [
         'planned_start_date' => 'date',
         'planned_end_date' => 'date',
-        'allocated_budget' => 'decimal:2',
-        'is_active' => 'boolean'
     ];
 
+    protected $dates = ['deleted_at'];
+
     /**
-     * Relationships (OBLIGATORY for Eloquent)
+     * CORRECTED Relationships - using ACTUAL column names from your schema
      */
     public function unit()
     {
-        return $this->belongsTo(RpUnit::class, 'unit_id', 'rp_units_id');
+       
+        return $this->belongsTo(RpUnit::class, 'rp_units_id', 'rp_units_id');
     }
 
     public function activities()
     {
-        return $this->hasMany(RpActivity::class, 'action_id', 'rp_actions_id');
+        
+        return $this->hasMany(RpActivity::class, 'rp_actions_id', 'rp_actions_id');
     }
 
-    public function targetActions()
-    {
-        return $this->hasMany(RpTargetAction::class, 'action_id', 'rp_actions_id');
-    }
+   
 }

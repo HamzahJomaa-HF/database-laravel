@@ -16,34 +16,27 @@ class RpProgram extends Model
     public $incrementing = false;
 
     protected $fillable = [
-        'component_id',
+        'rp_components_id',  // ← FIXED: was 'component_id'
         'external_id',
         'name',
         'code',
         'description',
-        'start_date',
-        'end_date',
-        'budget',
-        'is_active'
     ];
 
-    protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
-        'budget' => 'decimal:2',
-        'is_active' => 'boolean'
-    ];
+   
+
+    protected $dates = ['deleted_at'];
 
     /**
-     * Relationships (MUST match controller usage)
+     * CORRECTED Relationships
      */
     public function component()
     {
-        return $this->belongsTo(RpComponent::class, 'component_id', 'rp_components_id');
+        return $this->belongsTo(RpComponent::class, 'rp_components_id', 'rp_components_id');
     }
 
     public function units()
     {
-        return $this->hasMany(RpUnit::class, 'program_id', 'rp_programs_id');
+        return $this->hasMany(RpUnit::class, 'rp_programs_id', 'rp_programs_id');
     }
 }

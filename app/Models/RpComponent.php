@@ -17,21 +17,20 @@ class RpComponent extends Model
 
     protected $fillable = [
         'external_id',
-        'name',
         'code',
         'description',
-        'is_active'
+        
     ];
 
-    protected $casts = [
-        'is_active' => 'boolean'
-    ];
+    
+
+    protected $dates = ['deleted_at'];
 
     /**
-     * Relationships (Optional but likely needed)
+     * FIXED Relationships
      */
     public function programs()
     {
-        return $this->hasMany(RpProgram::class, 'component_id', 'rp_components_id');
-    }
-}
+        return $this->hasMany(RpProgram::class, 'rp_components_id', 'rp_components_id');
+                                          
+}}
