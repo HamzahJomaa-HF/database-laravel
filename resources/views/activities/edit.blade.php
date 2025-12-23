@@ -343,6 +343,8 @@
                                                                type="checkbox" 
                                                                name="operational_support[]" 
                                                                id="support_logistics" 
+                                                               checked
+            
                                                                value="Logistics"
                                                                {{ is_array(old('operational_support')) && in_array('Logistics', old('operational_support')) ? 'checked' : '' }}>
                                                         <label class="form-check-label" for="support_logistics">
