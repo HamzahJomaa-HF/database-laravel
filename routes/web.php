@@ -31,6 +31,9 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/activities/edit', function () {
+    return view('activities.edit');
+})->name('activities.edit');
 
 // =======================
 // Reporting Routes Group
@@ -49,10 +52,6 @@ Route::post('/reporting/import/process', [ReportingImportController::class, 'pro
     
    
     
-
-Route::get('/activities/edit', function () {
-    return view('activities.edit');
-})->name('activities.edit');
 
    
 
