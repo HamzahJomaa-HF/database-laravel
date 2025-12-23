@@ -98,17 +98,26 @@
                                         @enderror
                                     </div>
 
-                                    {{-- Activity Type --}}
+                                    {{-- Updated Activity Type --}}
                                     <div class="col-md-6">
                                         <label for="activity_type" class="form-label fw-semibold">
                                             Activity Type <span class="text-danger">*</span>
                                         </label>
                                         <select name="activity_type" id="activity_type" class="form-control form-select @error('activity_type') is-invalid @enderror" required>
                                             <option value="">Select Activity Type</option>
-                                            <option value="Workshop" {{ old('activity_type', 'Training') == 'Workshop' ? 'selected' : '' }}>Workshop</option>
-                                            <option value="Training" selected>Training</option>
-                                            <option value="Seminar" {{ old('activity_type', 'Training') == 'Seminar' ? 'selected' : '' }}>Seminar</option>
-                                            <option value="Conference" {{ old('activity_type', 'Training') == 'Conference' ? 'selected' : '' }}>Conference</option>
+                                            <option value="Capacity Building" {{ old('activity_type', 'Training') == 'Capacity Building' ? 'selected' : '' }}>Capacity Building - بناء القدرات</option>
+                                            <option value="Policies & Plans" {{ old('activity_type', 'Training') == 'Policies & Plans' ? 'selected' : '' }}>Policies & Plans - السياسات والخطط</option>
+                                            <option value="Engagement Event" {{ old('activity_type', 'Training') == 'Engagement Event' ? 'selected' : '' }}>Engagement Event - فعالية تفاعلية</option>
+                                            <option value="Overview" {{ old('activity_type', 'Training') == 'Overview' ? 'selected' : '' }}>Overview - نظرة عامة</option>
+                                            <option value="Field Activity" {{ old('activity_type', 'Training') == 'Field Activity' ? 'selected' : '' }}>Field Activity - نشاط ميداني</option>
+                                            <option value="Specialized Service" {{ old('activity_type', 'Training') == 'Specialized Service' ? 'selected' : '' }}>Specialized Service - خدمة متخصصة</option>
+                                            <option value="Research Activity" {{ old('activity_type', 'Training') == 'Research Activity' ? 'selected' : '' }}>Research Activity - نشاط بحثي</option>
+                                            <option value="Physical Development" {{ old('activity_type', 'Training') == 'Physical Development' ? 'selected' : '' }}>Physical Development - تطوير مادي</option>
+                                            <option value="Technical Development" {{ old('activity_type', 'Training') == 'Technical Development' ? 'selected' : '' }}>Technical Development - تطوير تقني</option>
+                                            <option value="Media Production" {{ old('activity_type', 'Training') == 'Media Production' ? 'selected' : '' }}>Media Production - إنتاج إعلامي</option>
+                                            <option value="Public Campaign" {{ old('activity_type', 'Training') == 'Public Campaign' ? 'selected' : '' }}>Public Campaign - حملة توعوية</option>
+                                            <option value="Legal Activity" {{ old('activity_type', 'Training') == 'Legal Activity' ? 'selected' : '' }}>Legal Activity - نشاط قانوني</option>
+                                            <option value="Support & Assistance" {{ old('activity_type', 'Training') == 'Support & Assistance' ? 'selected' : '' }}>Support & Assistance - الدعم والمساندة</option>
                                         </select>
                                         @error('activity_type')
                                             <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -165,13 +174,27 @@
                                         @enderror
                                     </div>
 
-                                    {{-- Venue --}}
+                                    {{-- Updated Venue Dropdown --}}
                                     <div class="col-md-12">
                                         <label for="venue" class="form-label fw-semibold">Venue</label>
-                                        <input type="text" name="venue" id="venue" 
-                                               class="form-control @error('venue') is-invalid @enderror" 
-                                               value="Hariri Foundation Headquarters" 
-                                               placeholder="Venue location">
+                                        <select name="venue" id="venue" 
+                                               class="form-control form-select @error('venue') is-invalid @enderror">
+                                            <option value="">Select Venue</option>
+                                            <option value="Rafic Hariri High School" {{ old('venue', 'Hariri Foundation Headquarters') == 'Rafic Hariri High School' ? 'selected' : '' }}>Rafic Hariri High School</option>
+                                            <option value="Hajj Bahaa Hariri High School" {{ old('venue', 'Hariri Foundation Headquarters') == 'Hajj Bahaa Hariri High School' ? 'selected' : '' }}>Hajj Bahaa Hariri High School</option>
+                                            <option value="Hariri Foundation Vocational & Technical Training Center" {{ old('venue', 'Hariri Foundation Headquarters') == 'Hariri Foundation Vocational & Technical Training Center' ? 'selected' : '' }}>Hariri Foundation Vocational & Technical Training Center</option>
+                                            <option value="Khan al Franj" {{ old('venue', 'Hariri Foundation Headquarters') == 'Khan al Franj' ? 'selected' : '' }}>Khan al Franj</option>
+                                            <option value="Hariri Social & Medical Center" {{ old('venue', 'Hariri Foundation Headquarters') == 'Hariri Social & Medical Center' ? 'selected' : '' }}>Hariri Social & Medical Center</option>
+                                            <option value="Outreach & Leadership Academy" {{ old('venue', 'Hariri Foundation Headquarters') == 'Outreach & Leadership Academy' ? 'selected' : '' }}>Outreach & Leadership Academy</option>
+                                            <option value="Villa Hariri" {{ old('venue', 'Hariri Foundation Headquarters') == 'Villa Hariri' ? 'selected' : '' }}>Villa Hariri</option>
+                                            <option value="HF Sports Complex" {{ old('venue', 'Hariri Foundation Headquarters') == 'HF Sports Complex' ? 'selected' : '' }}>HF Sports Complex</option>
+                                            <option value="HF Saida Office" {{ old('venue', 'Hariri Foundation Headquarters') == 'HF Saida Office' ? 'selected' : '' }}>HF Saida Office</option>
+                                            <option value="HF Local Community Center(TAAH)" {{ old('venue', 'Hariri Foundation Headquarters') == 'HF Local Community Center(TAAH)' ? 'selected' : '' }}>HF Local Community Center(TAAH)</option>
+                                            <option value="HF Local Community Center(Kawet Saida)" {{ old('venue', 'Hariri Foundation Headquarters') == 'HF Local Community Center(Kawet Saida)' ? 'selected' : '' }}>HF Local Community Center(Kawet Saida)</option>
+                                            <option value="National State Academy" {{ old('venue', 'Hariri Foundation Headquarters') == 'National State Academy' ? 'selected' : '' }}>National State Academy</option>
+                                            <option value="YRLF Beirut" {{ old('venue', 'Hariri Foundation Headquarters') == 'YRLF Beirut' ? 'selected' : '' }}>YRLF Beirut</option>
+                                            <option value="Enmaeya Beirut" {{ old('venue', 'Hariri Foundation Headquarters') == 'Enmaeya Beirut' ? 'selected' : '' }}>Enmaeya Beirut</option>
+                                        </select>
                                         @error('venue')
                                             <div class="invalid-feedback d-block">{{ $message }}</div>
                                         @enderror
@@ -255,7 +278,7 @@
                         {{-- ====================================== --}}
                         {{-- SECTION 5: FOCAL POINTS (Multiple Select) --}}
                         {{-- ====================================== --}}
-                        <div class="section-card mb-5">
+                        <div class="section-card mb-4">
                             <div class="section-header">
                                 <h6 class="mb-0 fw-semibold">Focal Points</h6>
                                 <span class="text-muted small">Select one or more focal points</span>
@@ -299,8 +322,85 @@
                             </div>
                         </div>
 
+                        {{-- ========================================== --}}
+                        {{-- SECTION 6: OPERATIONAL SUPPORT REQUIRED --}}
+                        {{-- ========================================== --}}
+                        <div class="section-card mb-4">
+                            <div class="section-header">
+                                <h6 class="mb-0 fw-semibold">Operational Support Required</h6>
+                                <span class="text-muted small">Select required support types</span>
+                            </div>
+                            <div class="section-body">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="form-group">
+                                            <label class="form-label fw-semibold mb-2 d-block">Select Required Support</label>
+                                            <div class="form-check form-check-inline mb-2">
+                                                <input class="form-check-input @error('operational_support') is-invalid @enderror" 
+                                                       type="radio" 
+                                                       name="operational_support" 
+                                                       id="support_logistics" 
+                                                       value="Logistics"
+                                                       {{ old('operational_support') == 'Logistics' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="support_logistics">
+                                                    Logistics
+                                                </label>
+                                            </div>
+                                            <div class="form-check form-check-inline mb-2">
+                                                <input class="form-check-input @error('operational_support') is-invalid @enderror" 
+                                                       type="radio" 
+                                                       name="operational_support" 
+                                                       id="support_media" 
+                                                       value="Media"
+                                                       {{ old('operational_support') == 'Media' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="support_media">
+                                                    Media
+                                                </label>
+                                            </div>
+                                            <div class="form-check form-check-inline mb-2">
+                                                <input class="form-check-input @error('operational_support') is-invalid @enderror" 
+                                                       type="radio" 
+                                                       name="operational_support" 
+                                                       id="support_pr" 
+                                                       value="Public Relations"
+                                                       {{ old('operational_support') == 'Public Relations' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="support_pr">
+                                                    Public Relations
+                                                </label>
+                                            </div>
+                                            <div class="form-check form-check-inline mb-2">
+                                                <input class="form-check-input @error('operational_support') is-invalid @enderror" 
+                                                       type="radio" 
+                                                       name="operational_support" 
+                                                       id="support_hcdm" 
+                                                       value="Human Capital Data Management"
+                                                       {{ old('operational_support') == 'Human Capital Data Management' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="support_hcdm">
+                                                    Human Capital Data Management
+                                                </label>
+                                            </div>
+                                            <div class="form-check form-check-inline mb-2">
+                                                <input class="form-check-input @error('operational_support') is-invalid @enderror" 
+                                                       type="radio" 
+                                                       name="operational_support" 
+                                                       id="support_none" 
+                                                       value="None"
+                                                       {{ old('operational_support', 'None') == 'None' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="support_none">
+                                                    None
+                                                </label>
+                                            </div>
+                                            @error('operational_support')
+                                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         {{-- ======================== --}}
-                        {{-- SECTION 6: ACTION BUTTONS --}}
+                        {{-- SECTION 7: ACTION BUTTONS --}}
                         {{-- ======================== --}}
                         <div class="card bg-light border-0">
                             <div class="card-body py-3">
@@ -375,6 +475,30 @@
         font-size: 0.95rem;
         color: #495057;
         font-weight: 600;
+    }
+    
+    /* Radio Button Styling */
+    .form-check-input {
+        width: 1.1em;
+        height: 1.1em;
+        margin-top: 0.15em;
+        margin-right: 0.5em;
+        border: 2px solid #dee2e6;
+    }
+    
+    .form-check-input:checked {
+        background-color: #198754;
+        border-color: #198754;
+    }
+    
+    .form-check-input:focus {
+        box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
+    }
+    
+    .form-check-label {
+        font-size: 0.95rem;
+        color: #495057;
+        font-weight: 500;
     }
     
     /* Select2 Styling to match form controls - Same as first form */
@@ -534,6 +658,16 @@
         box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.15) !important;
     }
     
+    /* Radio button invalid state */
+    .form-check-input.is-invalid {
+        border-color: #dc3545 !important;
+    }
+    
+    .form-check-input.is-invalid:checked {
+        background-color: #dc3545;
+        border-color: #dc3545;
+    }
+    
     /* Ensure proper height for all inputs */
     .form-control:not(textarea) {
         height: 42px;
@@ -567,60 +701,56 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize the custom multiple select for reporting activities
-        $('#reporting_activities_select').select2({
-            placeholder: 'Select reporting activities...',
-            allowClear: true,
-            width: '100%',
-            closeOnSelect: false,
-            dropdownParent: $('#reporting_activities_select').parent(),
-            tags: false,
-            multiple: true,
-            templateResult: function(data) {
-                if (!data.id) {
-                    return data.text;
-                }
-                return data.text;
-            },
-            templateSelection: function(data) {
-                return data.text;
-            },
-            language: {
-                noResults: function() {
-                    return "No activities found";
-                }
-            }
-        }).on('select2:open', function() {
-            // Ensure dropdown is properly positioned
-            $(this).data('select2').$dropdown.css('width', $(this).outerWidth() + 'px');
-        });
+      // Initialize the custom multiple select for reporting activities
+$('#reporting_activities_select').select2({
+    placeholder: 'Select reporting activities...',
+    allowClear: true,
+    width: '100%',
+    closeOnSelect: false,
+    // REMOVED: dropdownParent: $('#reporting_activities_select').parent(),
+    tags: false,
+    multiple: true,
+    templateResult: function(data) {
+        if (!data.id) {
+            return data.text;
+        }
+        return data.text;
+    },
+    templateSelection: function(data) {
+        return data.text;
+    },
+    language: {
+        noResults: function() {
+            return "No activities found";
+        }
+    }
+});
         
         // Initialize the custom multiple select for focal points
-        $('#focal_points_select').select2({
-            placeholder: 'Select focal points...',
-            allowClear: true,
-            width: '100%',
-            closeOnSelect: false,
-            dropdownParent: $('#focal_points_select').parent(),
-            tags: false,
-            multiple: true,
-            templateResult: function(data) {
-                if (!data.id) {
-                    return data.text;
-                }
-                return data.text;
-            },
-            templateSelection: function(data) {
-                return data.text;
-            },
-            language: {
-                noResults: function() {
-                    return "No focal points found";
-                }
-            }
-        }).on('select2:open', function() {
-            // Ensure dropdown is properly positioned
-            $(this).data('select2').$dropdown.css('width', $(this).outerWidth() + 'px');
-        });
+       // Initialize the custom multiple select for focal points
+$('#focal_points_select').select2({
+    placeholder: 'Select focal points...',
+    allowClear: true,
+    width: '100%',
+    closeOnSelect: false,
+    // REMOVED: dropdownParent: $('#focal_points_select').parent(),
+    tags: false,
+    multiple: true,
+    templateResult: function(data) {
+        if (!data.id) {
+            return data.text;
+        }
+        return data.text;
+    },
+    templateSelection: function(data) {
+        return data.text;
+    },
+    language: {
+        noResults: function() {
+            return "No focal points found";
+        }
+    }
+});
 
         // Form validation
         const form = document.getElementById('activityForm');
@@ -657,6 +787,9 @@
                 // Reset Select2 fields
                 $('#reporting_activities_select').val(null).trigger('change');
                 $('#focal_points_select').val(null).trigger('change');
+                
+                // Reset radio buttons to default
+                document.querySelector('input[name="operational_support"][value="None"]').checked = true;
                 
                 // Reset submit button
                 submitBtn.classList.remove('loading');
@@ -705,6 +838,17 @@
             if ($(this).val() && $(this).val().length > 0) {
                 $(this).removeClass('is-invalid');
             }
+        });
+        
+        // Radio button validation
+        const radioButtons = document.querySelectorAll('input[name="operational_support"]');
+        radioButtons.forEach(radio => {
+            radio.addEventListener('change', function() {
+                // Remove invalid class from all radio buttons when one is selected
+                radioButtons.forEach(rb => {
+                    rb.classList.remove('is-invalid');
+                });
+            });
         });
     });
 </script>
