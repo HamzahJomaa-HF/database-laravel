@@ -3,224 +3,412 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use App\Models\Activity;
 use Illuminate\Http\Request;
+use App\Models\Activity;
+use App\Models\RpComponent;
+use App\Models\RpActivity;
 
 class ActivityController extends Controller
 {
     /**
-     * @OA\Info(
-     *      version="1.0.0",
-     *      title="Hariri Foundation API",
-     *      description="API documentation for Hariri Foundation project - Activities Management",
-     *      @OA\Contact(email="support@haririfoundation.com")
-     * )
+     * Show the form for editing an activity.
+     * This version doesn't require an ID parameter.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
      */
-
-    /**
-     * @OA\Get(
-     *     path="/api/activities",
-     *     summary="Get all activities or a specific activity by ID",
-     *     tags={"Activities"},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="query",
-     *         description="Optional activity UUID to fetch a specific activity",
-     *         required=false,
-     *         @OA\Schema(type="string", format="uuid")
-     *     ),
-     *     @OA\Response(response=200, description="Activities retrieved successfully"),
-     *     @OA\Response(response=404, description="Activity not found")
-     * )
-     */
-    public function index(Request $request)
+    public function edit(Request $request)
     {
-        try {
-            if ($request->has('id')) {
-                $activity = Activity::where('activity_id', $request->id)->first();
-                if (!$activity) {
-                    return response()->json(['message' => 'Activity not found'], 404);
+        // Get RP Components from database (limit to 5 as requested)
+        $rpComponents = RpComponent::whereNull('deleted_at')
+            ->orderBy('code')
+            ->limit(5)
+            ->get();
+        
+        // Get an activity for testing
+        $activity = Activity::first();
+        
+        // If no activity exists, create a dummy one for testing
+        if (!$activity) {
+            $activity = (object) [
+                'activity_id' => 'test-id',
+                'activity_title_en' => 'Leadership Training Workshop',
+                'activity_title_ar' => 'ورشة تدريب القيادة',
+                'activity_type' => 'Capacity Building',
+                'content_network' => 'Training program for school leaders focusing on management skills.',
+                'start_date' => '2024-01-15',
+                'end_date' => '2024-01-17',
+                'venue' => 'Hariri Foundation Headquarters',
+                'operational_support' => json_encode(['Logistics']),
+            ];
+        } else {
+            // Load reporting activities relationship if it exists
+            if (method_exists($activity, 'reportingActivities')) {
+                $activity->load('reportingActivities');
+            }
+        }
+        
+        // Get selected RP component and activities for this activity
+        $selectedComponent = null;
+        $selectedActivities = collect();
+        
+        // Try to find the component from reporting activities
+        if (isset($activity->reportingActivities) && $activity->reportingActivities->isNotEmpty()) {
+            $selectedActivities = $activity->reportingActivities;
+            
+            // Get the first activity's component through relationships
+            if ($firstRpActivity = $selectedActivities->first()) {
+                // Load relationships to get to component
+                $firstRpActivity->load([
+                    'action.unit.program.component' => function($query) {
+                        $query->whereNull('deleted_at');
+                    }
+                ]);
+                
+                if ($firstRpActivity->action && 
+                    $firstRpActivity->action->unit && 
+                    $firstRpActivity->action->unit->program && 
+                    $firstRpActivity->action->unit->program->component) {
+                    $selectedComponent = $firstRpActivity->action->unit->program->component;
                 }
-                return response()->json($activity);
             }
-
-            $activities = Activity::all();
+        }
+        
+        return view('activities.edit', compact(
+            'activity',
+            'rpComponents',
+            'selectedComponent',
+            'selectedActivities'
+        ));
+    }
+    
+    /**
+     * Get RP Activities by Component ID (AJAX endpoint)
+     * 
+     * Now using Eloquent relationships instead of raw SQL joins
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getRPActivities(Request $request)
+    {
+        $request->validate([
+            'component_id' => 'required|string'
+        ]);
+        
+        $componentId = $request->component_id;
+        
+        \Log::info('getRPActivities called', ['component_id' => $componentId]);
+        
+        // For testing - check if it's a test ID
+        if (strpos($componentId, 'test-') === 0) {
+            \Log::info('Using test data for component', ['component_id' => $componentId]);
+            
             return response()->json([
+                'success' => true,
+                'data' => $this->getTestActivities()
+            ]);
+        }
+        
+        try {
+            \Log::info('Querying database for component using Eloquent', ['component_id' => $componentId]);
+            
+            // Using Eloquent relationships instead of raw joins
+            $activities = RpActivity::with('action') // Eager load the action relationship
+                ->whereHas('action.unit.program.component', function($query) use ($componentId) {
+                    $query->where('rp_components_id', $componentId)
+                          ->whereNull('deleted_at');
+                })
+                ->whereNull('rp_activities.deleted_at')
+                ->orderBy('code')
+                ->limit(5)
+                ->get()
+                ->map(function($activity) {
+                    return [
+                        'rp_activities_id' => $activity->rp_activities_id,
+                        'name' => $activity->name,
+                        'code' => $activity->code,
+                        'rp_action_id' => $activity->rp_actions_id,
+                        'action_name' => $activity->action->name ?? null
+                    ];
+                });
+            
+            \Log::info('Found activities', [
+                'component_id' => $componentId,
+                'count' => $activities->count()
+            ]);
+            
+            return response()->json([
+                'success' => true,
                 'data' => $activities,
-                'message' => 'Activities retrieved successfully'
+                'debug' => [
+                    'component_id' => $componentId,
+                    'count' => $activities->count()
+                ]
             ]);
+            
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An unexpected error occurred',
+            \Log::error('Error loading RP activities', [
+                'component_id' => $componentId,
                 'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading activities'
             ], 500);
         }
     }
-
+    
     /**
-     * @OA\Post(
-     *     path="/api/activities",
-     *     summary="Create a new activity",
-     *     tags={"Activities"},
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"activity_title_en", "activity_title_ar", "activity_type", "content_network", "start_date", "end_date"},
-     *             @OA\Property(property="activity_title_en", type="string", example="Workshop on AI"),
-     *             @OA\Property(property="activity_title_ar", type="string", example="ورشة عمل حول الذكاء الاصطناعي"),
-     *             @OA\Property(property="folder_name", type="string", example="AI_Workshop_Folder"),
-     *             @OA\Property(property="activity_type", type="string", example="Training"),
-     *             @OA\Property(property="content_network", type="string", example="Online"),
-     *             @OA\Property(property="start_date", type="string", format="date", example="2025-10-20"),
-     *             @OA\Property(property="end_date", type="string", format="date", example="2025-10-22"),
-     *             @OA\Property(property="parent_activity", type="string", format="uuid", example="a1b2c3d4-5678-90ab-cdef-1234567890ab"),
-     *             @OA\Property(property="target_cop", type="string", format="uuid", example="b2c3d4e5-6789-0abc-def1-234567890bcd")
-     *         )
-     *     ),
-     *     @OA\Response(response=201, description="Activity created successfully"),
-     *     @OA\Response(response=400, description="Invalid input data")
-     * )
+     * Get RP Actions grouped by Component ID
+     * Returns actions with their activities as sub-items
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function store(Request $request)
+    public function getRPActionsWithActivities(Request $request)
     {
-        try {
-            $validated = $request->validate([
-                'activity_title_en' => 'required_without:activity_title_ar|string|max:255',
-                'activity_title_ar' => 'required_without:activity_title_en|string|max:255',
-                'folder_name' => 'nullable|string|max:255',
-                'activity_type' => 'required|string|max:255',
-                'content_network' => 'nullable|string|max:255',
-                'start_date' => 'required|date',
-                'end_date' => 'required|date|after_or_equal:start_date',
-                'parent_activity' => 'nullable|uuid|exists:activities,activity_id',
-                'target_cop' => 'nullable|uuid|exists:users,user_id',
-
+        $request->validate([
+            'component_id' => 'required|string'
+        ]);
+        
+        $componentId = $request->component_id;
+        
+        \Log::info('getRPActionsWithActivities called', ['component_id' => $componentId]);
+        
+        // For testing
+        if (strpos($componentId, 'test-') === 0) {
+            return response()->json([
+                'success' => true,
+                'data' => $this->getTestActionsWithActivities()
             ]);
-
-            $activity = Activity::create($validated);
-
-            return response()->json([
-                'data' => $activity,
-                'message' => 'Activity created successfully'
-            ], 201);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An unexpected error occurred',
-                'error' => $e->getMessage()
-            ], 500);
         }
-    }
-
-    /**
-     * @OA\Put(
-     *     path="/api/activities/{id}",
-     *     summary="Update an existing activity",
-     *     tags={"Activities"},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         description="Activity UUID to update",
-     *         required=true,
-     *         @OA\Schema(type="string", format="uuid")
-     *     ),
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             @OA\Property(property="activity_title_en", type="string", example="Updated Workshop Title"),
-     *             @OA\Property(property="activity_title_ar", type="string", example="عنوان الورشة المحدث"),
-     *             @OA\Property(property="folder_name", type="string", example="Updated_Folder_Name"),
-     *             @OA\Property(property="activity_type", type="string", example="Seminar"),
-     *             @OA\Property(property="content_network", type="string", example="Offline"),
-     *             @OA\Property(property="start_date", type="string", format="date", example="2025-10-21"),
-     *             @OA\Property(property="end_date", type="string", format="date", example="2025-10-25"),
-     *             @OA\Property(property="parent_activity", type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000"),
-     *             @OA\Property(property="target_cop", type="string", format="uuid", example="987e6543-b21d-43c1-a654-123456789abc")
-     *         )
-     *     ),
-     *     @OA\Response(response=200, description="Activity updated successfully"),
-     *     @OA\Response(response=404, description="Activity not found")
-     * )
-     */
-    public function update(Request $request, $id)
-    {
+        
         try {
-            $activity = Activity::where('activity_id', $id)->first();
-
-            if (!$activity) {
-                return response()->json(['message' => 'Activity not found'], 404);
+            // Get the component with its full hierarchy
+            $component = RpComponent::with([
+                'programs.units.actions.activities' => function($query) {
+                    $query->whereNull('deleted_at')
+                          ->orderBy('code')
+                          ->select(['rp_activities_id', 'rp_actions_id', 'name', 'code']);
+                }
+            ])
+            ->where('rp_components_id', $componentId)
+            ->whereNull('deleted_at')
+            ->first();
+            
+            if (!$component) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Component not found'
+                ], 404);
             }
-
-            $validated = $request->validate([
-                'activity_title_en' => 'sometimes|required_without:activity_title_ar|string|max:255',
-                'activity_title_ar' => 'sometimes|required_without:activity_title_en|string|max:255',
-                'folder_name' => 'nullable|string|max:255',
-                'activity_type' => 'sometimes|string|max:255',
-                'content_network' => 'nullable|string|max:255',
-                'start_date' => 'nullable|date',
-                'end_date' => 'nullable|date|after_or_equal:start_date',
-                'parent_activity' => 'nullable|uuid|exists:activities,activity_id',
-                'target_cop' => 'nullable|uuid|exists:users,user_id',
-
-            ]);
-
-            $activity->update($validated);
-
+            
+            // Structure the data: Group by Action
+            $actionsData = [];
+            
+            foreach ($component->programs as $program) {
+                foreach ($program->units as $unit) {
+                    foreach ($unit->actions as $action) {
+                        if ($action->activities->isNotEmpty()) {
+                            $actionsData[] = [
+                                'action_id' => $action->rp_actions_id,
+                                'action_name' => $action->name,
+                                'action_code' => $action->code,
+                                'activities' => $action->activities->map(function($activity) {
+                                    return [
+                                        'rp_activities_id' => $activity->rp_activities_id,
+                                        'name' => $activity->name,
+                                        'code' => $activity->code,
+                                        'rp_action_id' => $activity->rp_actions_id
+                                    ];
+                                })
+                            ];
+                        }
+                    }
+                }
+            }
+            
             return response()->json([
-                'data' => $activity,
-                'message' => 'Activity updated successfully'
+                'success' => true,
+                'data' => $actionsData,
+                'component' => [
+                    'id' => $component->rp_components_id,
+                    'name' => $component->name,
+                    'code' => $component->code
+                ]
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
+            
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An unexpected error occurred',
+            \Log::error('Error loading RP actions with activities', [
+                'component_id' => $componentId,
                 'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading data'
             ], 500);
         }
     }
-
+    
     /**
-     * @OA\Delete(
-     *     path="/api/activities/{id}",
-     *     summary="Delete an activity by UUID",
-     *     tags={"Activities"},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         description="Activity UUID to delete",
-     *         required=true,
-     *         @OA\Schema(type="string", format="uuid")
-     *     ),
-     *     @OA\Response(response=200, description="Activity deleted successfully"),
-     *     @OA\Response(response=404, description="Activity not found")
-     * )
+     * Get all RP Components with basic info
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function destroy($id)
+    public function getRPComponents(Request $request)
     {
         try {
-            $activity = Activity::where('activity_id', $id)->first();
-
-            if (!$activity) {
-                return response()->json(['message' => 'Activity not found'], 404);
-            }
-
-            $activity->delete();
-
-            return response()->json(['message' => 'Activity deleted successfully']);
-        } catch (\Exception $e) {
+            $components = RpComponent::whereNull('deleted_at')
+                ->orderBy('code')
+                ->limit(10) // Limit for performance
+                ->get(['rp_components_id', 'code', 'name', 'description']);
+            
             return response()->json([
-                'message' => 'An unexpected error occurred',
+                'success' => true,
+                'data' => $components
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error loading RP components', [
                 'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading components'
             ], 500);
         }
+    }
+    
+    /**
+     * Get RP Component details with hierarchy counts
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  string  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getRPComponentDetails(Request $request, $id)
+    {
+        try {
+            $component = RpComponent::withCount([
+                'programs',
+                'programs as units_count' => function($query) {
+                    $query->select(\DB::raw('count(distinct rp_units.rp_units_id)'))
+                          ->join('rp_units', 'rp_programs.rp_programs_id', '=', 'rp_units.rp_programs_id')
+                          ->whereNull('rp_units.deleted_at');
+                },
+                'programs as actions_count' => function($query) {
+                    $query->select(\DB::raw('count(distinct rp_actions.rp_actions_id)'))
+                          ->join('rp_units', 'rp_programs.rp_programs_id', '=', 'rp_units.rp_programs_id')
+                          ->join('rp_actions', 'rp_units.rp_units_id', '=', 'rp_actions.rp_units_id')
+                          ->whereNull('rp_actions.deleted_at');
+                },
+                'programs as activities_count' => function($query) {
+                    $query->select(\DB::raw('count(distinct rp_activities.rp_activities_id)'))
+                          ->join('rp_units', 'rp_programs.rp_programs_id', '=', 'rp_units.rp_programs_id')
+                          ->join('rp_actions', 'rp_units.rp_units_id', '=', 'rp_actions.rp_units_id')
+                          ->join('rp_activities', 'rp_actions.rp_actions_id', '=', 'rp_activities.rp_actions_id')
+                          ->whereNull('rp_activities.deleted_at');
+                }
+            ])
+            ->where('rp_components_id', $id)
+            ->whereNull('deleted_at')
+            ->first();
+            
+            if (!$component) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Component not found'
+                ], 404);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'data' => $component
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error loading RP component details', [
+                'component_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading component details'
+            ], 500);
+        }
+    }
+    
+    /**
+     * Test data methods (keep these private)
+     */
+    private function getTestActivities()
+    {
+        return [
+            [
+                'rp_activities_id' => 'activity-1',
+                'name' => 'Training Session 1',
+                'code' => 'ACT-001',
+                'rp_action_id' => 'action-1',
+                'action_name' => 'Capacity Building Action'
+            ],
+            [
+                'rp_activities_id' => 'activity-2',
+                'name' => 'Workshop 1',
+                'code' => 'ACT-002',
+                'rp_action_id' => 'action-1',
+                'action_name' => 'Capacity Building Action'
+            ],
+            [
+                'rp_activities_id' => 'activity-3',
+                'name' => 'Mentoring Program',
+                'code' => 'ACT-003',
+                'rp_action_id' => 'action-2',
+                'action_name' => 'Professional Development'
+            ]
+        ];
+    }
+    
+    private function getTestActionsWithActivities()
+    {
+        return [
+            [
+                'action_id' => 'action-1',
+                'action_name' => 'Capacity Building Action',
+                'action_code' => 'ACT-CAP-001',
+                'activities' => [
+                    [
+                        'rp_activities_id' => 'activity-1',
+                        'name' => 'Training Session 1',
+                        'code' => 'ACT-001',
+                        'rp_action_id' => 'action-1'
+                    ],
+                    [
+                        'rp_activities_id' => 'activity-2',
+                        'name' => 'Workshop 1',
+                        'code' => 'ACT-002',
+                        'rp_action_id' => 'action-1'
+                    ]
+                ]
+            ],
+            [
+                'action_id' => 'action-2',
+                'action_name' => 'Professional Development',
+                'action_code' => 'ACT-PRO-001',
+                'activities' => [
+                    [
+                        'rp_activities_id' => 'activity-3',
+                        'name' => 'Mentoring Program',
+                        'code' => 'ACT-003',
+                        'rp_action_id' => 'action-2'
+                    ]
+                ]
+            ]
+        ];
     }
 }

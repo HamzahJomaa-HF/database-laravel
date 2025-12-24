@@ -71,4 +71,40 @@ class RpActivity extends Model
             'activity_id'        // Related key in pivot table
         );
     }
+    // You need these relationships to traverse the hierarchy!
+public function unit()
+{
+    return $this->hasOneThrough(
+        RpUnit::class,
+        RpAction::class,
+        'rp_actions_id', // Foreign key on actions table
+        'rp_units_id',   // Foreign key on units table
+        'rp_activities_id', // Local key on activities table
+        'rp_actions_id'    // Local key on actions table
+    );
+}
+
+public function program()
+{
+    return $this->hasOneThrough(
+        RpProgram::class,
+        RpAction::class,
+        'rp_actions_id', // Foreign key on actions table
+        'rp_programs_id', // Foreign key on programs table (via unit)
+        'rp_activities_id',
+        'rp_actions_id'
+    )->through('unit'); // Need to chain through unit
+}
+
+public function component()
+{
+    return $this->hasOneThrough(
+        RpComponent::class,
+        RpAction::class,
+        'rp_actions_id',
+        'rp_components_id',
+        'rp_activities_id',
+        'rp_actions_id'
+    )->through('unit.program'); // Chain through unit and program
+}
 }

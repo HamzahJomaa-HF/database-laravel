@@ -98,7 +98,7 @@
                                         @enderror
                                     </div>
 
-                                    {{-- Updated Activity Type with default value --}}
+                                    {{-- Activity Type --}}
                                     <div class="col-md-6">
                                         <label for="activity_type" class="form-label fw-semibold">
                                             Activity Type <span class="text-danger">*</span>
@@ -123,26 +123,70 @@
                                             <div class="invalid-feedback d-block">{{ $message }}</div>
                                         @enderror
                                     </div>
+                                </div>
+                            </div>
+                        </div>
 
-                                    {{-- Project --}}
-                                    <div class="col-md-6">
-                                        <label for="project" class="form-label fw-semibold">Project</label>
-                                        <select name="project" id="project" class="form-control form-select @error('project') is-invalid @enderror">
-                                            <option value="">Select Project</option>
-                                            <option value="Education Development Project" selected>Education Development Project</option>
-                                            <option value="Youth Empowerment Project">Youth Empowerment Project</option>
-                                            <option value="Teacher Capacity Project">Teacher Capacity Project</option>
+                        {{-- ======================================= --}}
+                        {{-- SECTION 2: HARIRI FOUNDATION PROJECT ALLOCATION --}}
+                        {{-- ======================================= --}}
+                        <div class="section-card mb-4">
+                            <div class="section-header">
+                                <h6 class="mb-0 fw-semibold">Hariri Foundation Project Allocation</h6>
+                                <span class="text-muted small">Select programs and projects for this activity</span>
+                            </div>
+                            <div class="section-body">
+                                <div class="row g-3">
+                                    {{-- Programs Single Select --}}
+                                    <div class="col-md-12">
+                                        <label for="programs_select" class="form-label fw-semibold mb-2">
+                                            Program <span class="text-danger">*</span>
+                                        </label>
+                                        <select id="programs_select" 
+                                                class="form-control @error('program') is-invalid @enderror"
+                                                name="program">
+                                            <option value="">Select a Program</option>
+                                            <option value="PROG001">PROG001 - Rafic Hariri High School</option>
+                                            <option value="PROG002">PROG002 - Hajj Bahaa Hariri High School</option>
+                                            <option value="PROG010">PROG010 - School Network of Saida & Neighboring Towns</option>
+                                            <option value="PROG019">PROG019 - National State Academy</option>
                                         </select>
-                                        @error('project')
+                                        @error('program')
                                             <div class="invalid-feedback d-block">{{ $message }}</div>
                                         @enderror
+                                        <div class="form-text mt-1">
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            Projects will be filtered based on selected program
+                                        </div>
+                                    </div>
+
+                                    {{-- Projects Multi-Select --}}
+                                    <div class="col-md-12">
+                                        <label for="projects_select" class="form-label fw-semibold mb-2">Projects</label>
+                                        <select id="projects_select" 
+                                                multiple
+                                                class="form-control @error('projects') is-invalid @enderror"
+                                                name="projects[]">
+                                            {{-- Projects will be dynamically loaded here --}}
+                                            <option value="" disabled>Select a program first to see available projects</option>
+                                        </select>
+                                        @error('projects')
+                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
+                                        @error('projects.*')
+                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
+                                        <div class="form-text mt-1">
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            Only projects related to selected program are shown
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         {{-- ================================ --}}
-                        {{-- SECTION 2: DATES AND VENUE --}}
+                        {{-- SECTION 3: DATES AND VENUE --}}
                         {{-- ================================ --}}
                         <div class="section-card mb-4">
                             <div class="section-header">
@@ -174,7 +218,7 @@
                                         @enderror
                                     </div>
 
-                                    {{-- Updated Venue Dropdown with default value --}}
+                                    {{-- Venue Dropdown --}}
                                     <div class="col-md-12">
                                         <label for="venue" class="form-label fw-semibold">Venue</label>
                                         <select name="venue" id="venue" 
@@ -183,18 +227,11 @@
                                             <option value="Hariri Foundation Headquarters" selected>Hariri Foundation Headquarters</option>
                                             <option value="Rafic Hariri High School">Rafic Hariri High School</option>
                                             <option value="Hajj Bahaa Hariri High School">Hajj Bahaa Hariri High School</option>
+                                            <option value="Hariri Social & Medical Center">Hariri Social & Medical Center</option>
                                             <option value="Hariri Foundation Vocational & Technical Training Center">Hariri Foundation Vocational & Technical Training Center</option>
                                             <option value="Khan al Franj">Khan al Franj</option>
-                                            <option value="Hariri Social & Medical Center">Hariri Social & Medical Center</option>
                                             <option value="Outreach & Leadership Academy">Outreach & Leadership Academy</option>
-                                            <option value="Villa Hariri">Villa Hariri</option>
-                                            <option value="HF Sports Complex">HF Sports Complex</option>
-                                            <option value="HF Saida Office">HF Saida Office</option>
-                                            <option value="HF Local Community Center(TAAH)">HF Local Community Center(TAAH)</option>
-                                            <option value="HF Local Community Center(Kawet Saida)">HF Local Community Center(Kawet Saida)</option>
                                             <option value="National State Academy">National State Academy</option>
-                                            <option value="YRLF Beirut">YRLF Beirut</option>
-                                            <option value="Enmaeya Beirut">Enmaeya Beirut</option>
                                         </select>
                                         @error('venue')
                                             <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -205,7 +242,7 @@
                         </div>
 
                         {{-- ================================== --}}
-                        {{-- SECTION 3: CONTENT AND NETWORK --}}
+                        {{-- SECTION 4: CONTENT AND NETWORK --}}
                         {{-- ================================== --}}
                         <div class="section-card mb-4">
                             <div class="section-header">
@@ -230,54 +267,64 @@
                         </div>
 
                         {{-- ====================================== --}}
-                        {{-- SECTION 4: REPORTING ACTIVITIES (Multiple Select) --}}
-                        {{-- ====================================== --}}
-                        <div class="section-card mb-4">
-                            <div class="section-header">
-                                <h6 class="mb-0 fw-semibold">Reporting Activities</h6>
-                                <span class="text-muted small">Select one or more reporting activities</span>
-                            </div>
-                            <div class="section-body">
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="form-group mb-0">
-                                            <label for="reporting_activities_select" class="form-label fw-semibold mb-2">Select Reporting Activities</label>
-                                            <select id="reporting_activities_select" 
-                                                    multiple
-                                                    class="form-control @error('reporting_activities') is-invalid @enderror"
-                                                    name="reporting_activities[]">
-                                                @php
-                                                    // Sample data - replace with actual data from controller
-                                                    $reportingActivities = [
-                                                        ['id' => 1, 'name' => 'Capacity Building'],
-                                                        ['id' => 2, 'name' => 'Teacher Training'],
-                                                        ['id' => 3, 'name' => 'Infrastructure Support'],
-                                                        ['id' => 4, 'name' => 'Policy Development'],
-                                                        ['id' => 5, 'name' => 'Community Outreach'],
-                                                        ['id' => 6, 'name' => 'Monitoring & Evaluation'],
-                                                    ];
-                                                @endphp
-                                                @foreach($reportingActivities as $activity)
-                                                    <option value="{{ $activity['id'] }}" 
-                                                            {{ in_array($activity['id'], [1, 2]) ? 'selected' : '' }}>
-                                                        {{ $activity['name'] }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                            @error('reporting_activities')
-                                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                                            @enderror
-                                            @error('reporting_activities.*')
-                                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+{{-- SECTION 5: REPORTING ACTIVITIES (Connected to Database) --}}
+{{-- ====================================== --}}
+<div class="section-card mb-4">
+    <div class="section-header">
+        <h6 class="mb-0 fw-semibold">Reporting Activities</h6>
+        <span class="text-muted small">Select reporting component and activities</span>
+    </div>
+    <div class="section-body">
+        <div class="row g-3">
+            {{-- RP Components Dropdown --}}
+            <div class="col-md-12">
+                <label for="rp_component_id" class="form-label fw-semibold mb-2">Reporting Component</label>
+                <select id="rp_component_id" 
+                        class="form-control form-select @error('rp_component_id') is-invalid @enderror"
+                        name="rp_component_id">
+                    <option value="">Select a Reporting Component</option>
+                    @foreach($rpComponents as $component)
+                        <option value="{{ $component->rp_components_id }}" 
+                                {{ old('rp_component_id') == $component->rp_components_id ? 'selected' : '' }}>
+                            {{ $component->code }} - {{ $component->name }}
+                        </option>
+                    @endforeach
+                </select>
+                @error('rp_component_id')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+                <div class="form-text mt-1">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Select a reporting component to see related activities
+                </div>
+            </div>
+
+            {{-- RP Activities Multi-Select (Grouped by Actions) --}}
+            <div class="col-md-12">
+                <label for="rp_activities_select" class="form-label fw-semibold mb-2">Reporting Activities</label>
+                <select id="rp_activities_select" 
+                        multiple
+                        class="form-control @error('rp_activities') is-invalid @enderror"
+                        name="rp_activities[]">
+                    <option value="" disabled>Select a reporting component first</option>
+                </select>
+                @error('rp_activities')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+                @error('rp_activities.*')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+                <div class="form-text mt-1">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Activities are grouped by their parent actions
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
                         {{-- ====================================== --}}
-                        {{-- SECTION 5: FOCAL POINTS (Multiple Select) --}}
+                        {{-- SECTION 6: FOCAL POINTS (Multiple Select) --}}
                         {{-- ====================================== --}}
                         <div class="section-card mb-4">
                             <div class="section-header">
@@ -294,14 +341,14 @@
                                                     class="form-control @error('focal_points') is-invalid @enderror"
                                                     name="focal_points[]">
                                                 @php
-                                                    // Sample data - replace with actual data from controller
+                                                    // Reduced to 4 key focal points
                                                     $focalPoints = [
-                                                        ['id' => 1, 'name' => 'Education Officer'],
-                                                        ['id' => 2, 'name' => 'Program Manager'],
-                                                        ['id' => 3, 'name' => 'Monitoring Officer'],
-                                                        ['id' => 4, 'name' => 'Field Coordinator'],
-                                                        ['id' => 5, 'name' => 'Project Director'],
-                                                        ['id' => 6, 'name' => 'Technical Advisor'],
+                                                         ['id' => 1, 'name' => 'Mohamad Ismail'],
+                                                        ['id' => 2, 'name' => 'Mohammad Harriri'],
+                                                        ['id' => 3, 'name' => 'Lilia Chahine'],
+                                                        ['id' => 4, 'name' => 'Nadine Zaidan'],
+                                                        ['id' => 5, 'name' => 'Hatem Assii'],
+                                                        ['id' => 6, 'name' => 'Ahmad Chami'],
                                                     ];
                                                 @endphp
                                                 @foreach($focalPoints as $point)
@@ -324,7 +371,7 @@
                         </div>
 
                         {{-- ========================================== --}}
-                        {{-- SECTION 6: OPERATIONAL SUPPORT REQUIRED (Checkboxes) --}}
+                        {{-- SECTION 7: OPERATIONAL SUPPORT REQUIRED (Checkboxes) --}}
                         {{-- ========================================== --}}
                         <div class="section-card mb-4">
                             <div class="section-header">
@@ -344,7 +391,6 @@
                                                                name="operational_support[]" 
                                                                id="support_logistics" 
                                                                checked
-            
                                                                value="Logistics"
                                                                {{ is_array(old('operational_support')) && in_array('Logistics', old('operational_support')) ? 'checked' : '' }}>
                                                         <label class="form-check-label" for="support_logistics">
@@ -378,19 +424,6 @@
                                                         </label>
                                                     </div>
                                                 </div>
-                                                <div class="col-md-6 col-lg-3 mb-2">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input @error('operational_support') is-invalid @enderror" 
-                                                               type="checkbox" 
-                                                               name="operational_support[]" 
-                                                               id="support_hcdm" 
-                                                               value="Human Capital Data Management"
-                                                               {{ is_array(old('operational_support')) && in_array('Human Capital Data Management', old('operational_support')) ? 'checked' : '' }}>
-                                                        <label class="form-check-label" for="support_hcdm">
-                                                            Human Capital Data Management
-                                                        </label>
-                                                    </div>
-                                                </div>
                                             </div>
                                             <div class="row mt-2">
                                                 <div class="col-md-6 col-lg-3 mb-2">
@@ -419,7 +452,7 @@
                         </div>
 
                         {{-- ======================== --}}
-                        {{-- SECTION 7: ACTION BUTTONS --}}
+                        {{-- SECTION 8: ACTION BUTTONS --}}
                         {{-- ======================== --}}
                         <div class="card bg-light border-0">
                             <div class="card-body py-3">
@@ -520,8 +553,9 @@
         font-weight: 500;
     }
     
-    /* Select2 Styling to match form controls - Same as first form */
-    .select2-container--default .select2-selection--multiple {
+    /* Select2 Styling to match form controls */
+    .select2-container--default .select2-selection--multiple,
+    .select2-container--default .select2-selection--single {
         border: 1px solid #dee2e6 !important;
         border-radius: 8px !important;
         padding: 0.25rem 0.5rem !important;
@@ -532,7 +566,8 @@
         min-height: 42px !important;
     }
     
-    .select2-container--default.select2-container--focus .select2-selection--multiple {
+    .select2-container--default.select2-container--focus .select2-selection--multiple,
+    .select2-container--default.select2-container--focus .select2-selection--single {
         border-color: #86b7fe !important;
         box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15) !important;
         outline: 0 !important;
@@ -546,7 +581,7 @@
         margin: 0 !important;
     }
     
-    /* Selected tags styling - matching form style */
+    /* Selected tags styling */
     .select2-container--default .select2-selection--multiple .select2-selection__choice {
         background-color: #f8f9fa !important;
         border: 1px solid #dee2e6 !important;
@@ -601,15 +636,27 @@
         color: #495057 !important;
     }
     
+    /* Disabled options (group headers) */
+    .select2-container--default .select2-results__option[disabled] {
+        background-color: #f8f9fa !important;
+        color: #6c757d !important;
+        font-weight: 600 !important;
+        cursor: default !important;
+        border-top: 1px solid #dee2e6 !important;
+        margin-top: 5px !important;
+    }
+    
     /* Placeholder styling */
-    .select2-container--default .select2-selection--multiple .select2-selection__placeholder {
+    .select2-container--default .select2-selection--multiple .select2-selection__placeholder,
+    .select2-container--default .select2-selection--single .select2-selection__placeholder {
         color: #6c757d !important;
         font-size: 0.95rem !important;
         line-height: 1.5 !important;
     }
     
     /* Clear button styling */
-    .select2-container--default .select2-selection--multiple .select2-selection__clear {
+    .select2-container--default .select2-selection--multiple .select2-selection__clear,
+    .select2-container--default .select2-selection--single .select2-selection__clear {
         color: #6c757d !important;
         font-size: 1rem !important;
         margin-right: 6px !important;
@@ -668,11 +715,13 @@
     }
     
     /* Select2 invalid state */
-    .select2-container--default .select2-selection--multiple.is-invalid {
+    .select2-container--default .select2-selection--multiple.is-invalid,
+    .select2-container--default .select2-selection--single.is-invalid {
         border-color: #dc3545 !important;
     }
     
-    .select2-container--default.select2-container--focus .select2-selection--multiple.is-invalid {
+    .select2-container--default.select2-container--focus .select2-selection--multiple.is-invalid,
+    .select2-container--default.select2-container--focus .select2-selection--single.is-invalid {
         border-color: #dc3545 !important;
         box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.15) !important;
     }
@@ -688,7 +737,8 @@
     }
     
     /* Make Select2 match regular input height */
-    .select2-container .select2-selection--multiple {
+    .select2-container .select2-selection--multiple,
+    .select2-container .select2-selection--single {
         min-height: 42px;
         height: auto;
     }
@@ -700,6 +750,16 @@
     
     .select2-dropdown {
         z-index: 1060 !important;
+    }
+    
+    /* Style for optgroups in projects dropdown */
+    .select2-results__group {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        color: #495057;
+        padding: 8px 12px;
+        border-bottom: 1px solid #dee2e6;
+        margin-top: 5px;
     }
 </style>
 @endsection
@@ -714,6 +774,75 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Complete Program-Project relationship mapping based on provided data
+        const programProjects = {
+            // PROG001: Rafic Hariri High School
+            'PROG001': [
+                {id: 'PROG001-P01', text: 'PROG001-P01 - Rafic Hariri Technical Institute', subProgram: null},
+                {id: 'PROG001-P02', text: 'PROG001-P02 - RHHS Teachers & Staff Capacity Building', subProgram: null}
+            ],
+            
+            // PROG002: Hajj Bahaa Hariri High School
+            'PROG002': [
+                {id: 'PROG002-P01', text: 'PROG002-P01 - HBHS Teachers & Staff Capacity Building', subProgram: null},
+                {id: 'PROG002-P02', text: 'PROG002-P02 - IB PYP Accreditation', subProgram: null}
+            ],
+            
+            // PROG010: School Network of Saida & Neighboring Towns
+            'PROG010': [
+                {id: 'PROG010-P01', text: 'PROG010-P01 - Remedial Education Courses', subProgram: null},
+                {id: 'PROG010-P02', text: 'PROG010-P02 - Educational Conference of Saida & Neighbouring Towns', subProgram: null}
+            ],
+            
+            // PROG019: National State Academy (with sub-programs)
+            'PROG019': [
+                // Sub-program: PROG020 - National State University Academy
+                {id: 'PROG020-P01', text: 'PROG020-P01 - University Academy Legal Registration', subProgram: 'PROG020'},
+                
+                // Sub-program: PROG021 - National State Forum
+                {id: 'PROG021-P01', text: 'PROG021-P01 - Saida Discusses the Ministerial Statement', subProgram: 'PROG021'},
+                {id: 'PROG021-P02', text: 'PROG021-P02 - Readings in the Inaugural Speech', subProgram: 'PROG021'},
+                
+                // Sub-program: PROG022 - Prevention of Violent Extremism Program
+                {id: 'PROG022-P01', text: 'PROG022-P01 - Rafic Hariri Forum for PVE', subProgram: 'PROG022'},
+                {id: 'PROG022-P02', text: 'PROG022-P02 - Hariri Foundation Award for PVE', subProgram: 'PROG022'},
+                {id: 'PROG023-P03', text: 'PROG023-P03 - Early Warning Network for PVE - Saida', subProgram: 'PROG022'},
+                {id: 'PROG023-P04', text: 'PROG023-P04 - Trainings - The State and PVE', subProgram: 'PROG022'}
+            ]
+        };
+
+        // Sub-program display names
+        const subProgramDisplayNames = {
+            'PROG020': 'National State University Academy',
+            'PROG021': 'National State Forum',
+            'PROG022': 'Prevention of Violent Extremism Program'
+        };
+
+        // Initialize the single select for programs
+        $('#programs_select').select2({
+            placeholder: 'Select a program...',
+            allowClear: true,
+            width: '100%',
+            minimumResultsForSearch: 10
+        });
+
+        // Initialize projects select with empty placeholder
+        $('#projects_select').select2({
+            placeholder: 'Select a program first to see available projects',
+            allowClear: true,
+            width: '100%',
+            closeOnSelect: false,
+            multiple: true
+        });
+       // Initialize RP Components Select2
+        $('#rp_component_id').select2({
+            placeholder: 'Select a reporting component...',
+            allowClear: true,
+            width: '100%',
+            minimumResultsForSearch: 10
+        });
+
+
         // Initialize the custom multiple select for reporting activities
         $('#reporting_activities_select').select2({
             placeholder: 'Select reporting activities...',
@@ -721,21 +850,7 @@
             width: '100%',
             closeOnSelect: false,
             tags: false,
-            multiple: true,
-            templateResult: function(data) {
-                if (!data.id) {
-                    return data.text;
-                }
-                return data.text;
-            },
-            templateSelection: function(data) {
-                return data.text;
-            },
-            language: {
-                noResults: function() {
-                    return "No activities found";
-                }
-            }
+            multiple: true
         });
         
         // Initialize the custom multiple select for focal points
@@ -745,22 +860,233 @@
             width: '100%',
             closeOnSelect: false,
             tags: false,
-            multiple: true,
-            templateResult: function(data) {
-                if (!data.id) {
-                    return data.text;
+            multiple: true
+        });
+// AJAX function to load RP Activities based on selected component
+        function loadRPActivitiesByComponent(componentId) {
+            const activitiesSelect = $('#rp_activities_select');
+            
+            if (!componentId) {
+                activitiesSelect.empty();
+                activitiesSelect.append('<option value="" disabled>Select a reporting component first</option>');
+                activitiesSelect.trigger('change');
+                
+                activitiesSelect.select2({
+                    placeholder: 'Select a reporting component first',
+                    allowClear: true,
+                    width: '100%',
+                    closeOnSelect: false,
+                    multiple: true
+                });
+                return;
+            }
+            
+            // Show loading state
+            activitiesSelect.empty();
+            activitiesSelect.append('<option value="">Loading activities...</option>');
+            activitiesSelect.prop('disabled', true);
+            activitiesSelect.trigger('change');
+            
+            // Get CSRF token
+            const csrfToken = $('meta[name="csrf-token"]').attr('content');
+            
+            // AJAX call to fetch activities
+            $.ajax({
+                url: '{{ route("activities.get-rp-activities") }}',
+                type: 'GET',
+                data: {
+                    component_id: componentId,
+                    _token: csrfToken
+                },
+                cache: false,
+                success: function(response) {
+                    console.log('AJAX Response:', response);
+                    
+                    activitiesSelect.empty();
+                    
+                    if (response.success && response.data && response.data.length > 0) {
+                        // Group activities by action
+                        const groupedActivities = {};
+                        
+                        response.data.forEach(activity => {
+                            const actionId = activity.rp_action_id || 'general';
+                            const actionName = activity.action_name || 'General Activities';
+                            
+                            if (!groupedActivities[actionId]) {
+                                groupedActivities[actionId] = {
+                                    name: actionName,
+                                    activities: []
+                                };
+                            }
+                            
+                            groupedActivities[actionId].activities.push({
+                                id: activity.rp_activities_id,
+                                text: activity.code + ' - ' + activity.name
+                            });
+                        });
+                        
+                        // Create optgroups for each action
+                        Object.keys(groupedActivities).forEach(actionId => {
+                            const group = groupedActivities[actionId];
+                            
+                            // Sort activities alphabetically
+                            group.activities.sort((a, b) => a.text.localeCompare(b.text));
+                            
+                            // Create optgroup for this action
+                            const actionGroup = $('<optgroup>').attr('label', group.name);
+                            group.activities.forEach(activity => {
+                                actionGroup.append($('<option>').val(activity.id).text(activity.text));
+                            });
+                            activitiesSelect.append(actionGroup);
+                        });
+                        
+                        // Re-initialize Select2 with new options
+                        activitiesSelect.select2({
+                            placeholder: 'Select reporting activities...',
+                            allowClear: true,
+                            width: '100%',
+                            closeOnSelect: false,
+                            multiple: true,
+                            dropdownAutoWidth: true
+                        });
+                        
+                    } else {
+                        console.log('No activities found for component');
+                        activitiesSelect.append('<option value="">No activities found for this component</option>');
+                        activitiesSelect.select2({
+                            placeholder: 'No activities available',
+                            allowClear: true,
+                            width: '100%',
+                            closeOnSelect: false,
+                            multiple: true
+                        });
+                    }
+                    
+                    activitiesSelect.prop('disabled', false);
+                    activitiesSelect.trigger('change');
+                    
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX error:', xhr.responseText);
+                    
+                    activitiesSelect.empty();
+                    activitiesSelect.append('<option value="">Error loading activities. Please try again.</option>');
+                    activitiesSelect.prop('disabled', false);
+                    
+                    // Reinitialize Select2
+                    activitiesSelect.select2({
+                        placeholder: 'Error loading activities',
+                        allowClear: true,
+                        width: '100%',
+                        closeOnSelect: false,
+                        multiple: true
+                    });
+                    
+                    activitiesSelect.trigger('change');
                 }
-                return data.text;
-            },
-            templateSelection: function(data) {
-                return data.text;
-            },
-            language: {
-                noResults: function() {
-                    return "No focal points found";
+            });
+        }
+        // Function to update projects based on selected program
+        function updateProjectsBasedOnProgram() {
+            const selectedProgram = $('#programs_select').val();
+            const projectsSelect = $('#projects_select');
+            
+            // Clear current projects
+            projectsSelect.empty();
+            
+            if (!selectedProgram) {
+                projectsSelect.append('<option value="">Select a program first to see available projects</option>');
+                projectsSelect.trigger('change');
+                
+                // Update Select2 to show placeholder properly
+                projectsSelect.select2({
+                    placeholder: 'Select a program first to see available projects',
+                    allowClear: true,
+                    width: '100%',
+                    closeOnSelect: false,
+                    multiple: true
+                });
+                return;
+            }
+            
+            // Get projects for selected program
+            const projects = programProjects[selectedProgram] || [];
+            
+            if (projects.length === 0) {
+                projectsSelect.append('<option value="">No projects available for selected program</option>');
+            } else {
+                // Group projects by sub-program
+                const groupedProjects = {};
+                projects.forEach(project => {
+                    const groupKey = project.subProgram || 'general';
+                    if (!groupedProjects[groupKey]) {
+                        groupedProjects[groupKey] = [];
+                    }
+                    groupedProjects[groupKey].push(project);
+                });
+                
+                // Create optgroups for better organization
+                
+                // First, add general projects (not under any sub-program)
+                if (groupedProjects['general'] && groupedProjects['general'].length > 0) {
+                    // Sort general projects alphabetically
+                    groupedProjects['general'].sort((a, b) => a.text.localeCompare(b.text));
+                    
+                    // Create optgroup for general projects
+                    const generalGroup = $('<optgroup>').attr('label', 'Direct Projects');
+                    groupedProjects['general'].forEach(project => {
+                        generalGroup.append($('<option>').val(project.id).text(project.text));
+                    });
+                    projectsSelect.append(generalGroup);
                 }
+                
+                // Add projects grouped by sub-program
+                Object.keys(groupedProjects).forEach(groupKey => {
+                    if (groupKey !== 'general' && groupedProjects[groupKey].length > 0) {
+                        const groupName = subProgramDisplayNames[groupKey] || groupKey;
+                        
+                        // Sort projects in this group alphabetically
+                        groupedProjects[groupKey].sort((a, b) => a.text.localeCompare(b.text));
+                        
+                        // Create optgroup for this sub-program
+                        const subProgramGroup = $('<optgroup>').attr('label', groupName);
+                        groupedProjects[groupKey].forEach(project => {
+                            subProgramGroup.append($('<option>').val(project.id).text(project.text));
+                        });
+                        projectsSelect.append(subProgramGroup);
+                    }
+                });
+            }
+            // Add RP Components and Activities to Select2 validation
+        $('#rp_component_id, #rp_activities_select').on('change', function() {
+            if ($(this).val() && $(this).val().length > 0) {
+                $(this).removeClass('is-invalid');
             }
         });
+            // Re-initialize Select2 with proper configuration for optgroups
+            projectsSelect.select2({
+                placeholder: 'Select projects...',
+                allowClear: true,
+                width: '100%',
+                closeOnSelect: false,
+                multiple: true,
+                templateResult: function(data) {
+                    // If it's an optgroup (no id), return the text
+                    if (!data.id) {
+                        return data.text;
+                    }
+                    return data.text;
+                },
+                templateSelection: function(data) {
+                    return data.text;
+                }
+            });
+            
+            projectsSelect.trigger('change');
+        }
+
+        // Update projects when program is selected
+        $('#programs_select').on('change', updateProjectsBasedOnProgram);
 
         // Form validation
         const form = document.getElementById('activityForm');
@@ -773,7 +1099,6 @@
                     e.preventDefault();
                     e.stopPropagation();
                 } else {
-                    // Add loading state to submit button
                     submitBtn.classList.add('loading');
                     submitBtn.disabled = true;
                 }
@@ -782,10 +1107,8 @@
             });
         }
         
-        // Reset button handler
         if (resetBtn) {
             resetBtn.addEventListener('click', function() {
-                // Remove validation classes
                 if (form) {
                     form.classList.remove('was-validated');
                     const invalidFields = form.querySelectorAll('.is-invalid');
@@ -795,6 +1118,8 @@
                 }
                 
                 // Reset Select2 fields
+                $('#programs_select').val(null).trigger('change');
+                $('#projects_select').val(null).trigger('change');
                 $('#reporting_activities_select').val(null).trigger('change');
                 $('#focal_points_select').val(null).trigger('change');
                 
@@ -804,20 +1129,16 @@
                     checkbox.checked = false;
                 });
                 
-                // Reset submit button
                 submitBtn.classList.remove('loading');
                 submitBtn.disabled = false;
             });
         }
         
-        // Real-time validation for required fields
+        // Real-time validation
         if (form) {
             const requiredFields = form.querySelectorAll('[required]');
             requiredFields.forEach(field => {
-                field.addEventListener('blur', function() {
-                    validateField(this);
-                });
-                
+                field.addEventListener('blur', validateField);
                 field.addEventListener('input', function() {
                     if (this.value.trim()) {
                         this.classList.remove('is-invalid');
@@ -826,28 +1147,48 @@
             });
         }
         
-        function validateField(field) {
-            if (!field.value.trim()) {
-                field.classList.add('is-invalid');
+        // Event listener for component change
+        $('#rp_component_id').on('change', function() {
+            const componentId = $(this).val();
+            console.log('Component changed to:', componentId);
+            loadRPActivitiesByComponent(componentId);
+        });
+
+        // Load activities if component is already selected on page load
+        $(document).ready(function() {
+            // Store currently selected activities for reference
+            const selectedActivityIds = [];
+            $('#rp_activities_select option:selected').each(function() {
+                selectedActivityIds.push($(this).val());
+            });
+            
+            if (selectedActivityIds.length > 0) {
+                console.log('Pre-selected activities:', selectedActivityIds);
+            }
+            
+            // Load activities if component is already selected
+            const initialComponentId = $('#rp_component_id').val();
+            if (initialComponentId) {
+                console.log('Loading activities for initial component:', initialComponentId);
+                // Small delay to ensure DOM is ready
+                setTimeout(() => {
+                    loadRPActivitiesByComponent(initialComponentId);
+                }, 300);
+            }
+        });
+        
+        function validateField() {
+            if (!this.value.trim()) {
+                this.classList.add('is-invalid');
                 return false;
             } else {
-                field.classList.remove('is-invalid');
+                this.classList.remove('is-invalid');
                 return true;
             }
         }
         
-        // Auto-focus on first field
-        if (form) {
-            const firstField = form.querySelector('input:not([type="hidden"]):not([type="checkbox"]), select, textarea');
-            if (firstField) {
-                setTimeout(() => {
-                    firstField.focus();
-                }, 100);
-            }
-        }
-        
-        // Ensure Select2 inherits validation classes
-        $('#reporting_activities_select, #focal_points_select').on('change', function() {
+        // Select2 validation
+        $('#programs_select, #projects_select, #reporting_activities_select, #focal_points_select').on('change', function() {
             if ($(this).val() && $(this).val().length > 0) {
                 $(this).removeClass('is-invalid');
             }
@@ -857,7 +1198,6 @@
         const checkboxes = document.querySelectorAll('input[name="operational_support[]"]');
         checkboxes.forEach(checkbox => {
             checkbox.addEventListener('change', function() {
-                // Remove invalid class from all checkboxes when one is changed
                 checkboxes.forEach(cb => {
                     cb.classList.remove('is-invalid');
                 });
@@ -869,7 +1209,6 @@
         if (noneCheckbox) {
             noneCheckbox.addEventListener('change', function() {
                 if (this.checked) {
-                    // Uncheck all other checkboxes when "None" is selected
                     checkboxes.forEach(cb => {
                         if (cb.id !== 'support_none') {
                             cb.checked = false;
@@ -878,7 +1217,6 @@
                 }
             });
 
-            // When any other checkbox is checked, uncheck "None"
             checkboxes.forEach(cb => {
                 if (cb.id !== 'support_none') {
                     cb.addEventListener('change', function() {
@@ -890,5 +1228,5 @@
             });
         }
     });
-</script>
+</script> 
 @endsection

@@ -7,7 +7,7 @@ use App\Http\Controllers\Reporting\{
     ReportingImportController
 };
 use App\Http\Controllers\API\UserController as APIUserController;
-use App\Http\Controllers\API\ActivityController;
+
 
 Route::prefix('users')->name('users.')->group(function () {
     Route::get('/', [APIUserController::class, 'index'])->name('index');
@@ -31,11 +31,16 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/activities/edit', function () {
-    return view('activities.edit');
-})->name('activities.edit');
+use App\Http\Controllers\API\ActivityController;
 
-// =======================
+// Activity Routes
+Route::get('/activities/edit', [ActivityController::class, 'edit'])->name('activities.edit');
+Route::get('/activities/get-rp-activities', [ActivityController::class, 'getRPActivities'])
+    ->name('activities.get-rp-activities');
+Route::post('/activities/{id}', [ActivityController::class, 'update'])->name('activities.update');
+Route::post('/activities', [ActivityController::class, 'store'])->name('activities.store');
+Route::get('/activities/create', [ActivityController::class, 'create'])->name('activities.create');
+Route::get('/activities', [ActivityController::class, 'index'])->name('activities.index');// =======================
 // Reporting Routes Group
 // =======================
 Route::prefix('reporting')->name('reporting.')->group(function () {
