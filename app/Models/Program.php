@@ -39,31 +39,63 @@ class Program extends Model
 
             // Generate a unique external ID if not provided
             if (empty($program->external_id)) {
-
-                $year = now()->format('Y');
-                $month = now()->format('m');
-
-                // FIX: Get the MAXIMUM sequence number, not just the last one
-                $lastProgram = Program::where('external_id', 'like', "PRG_{$year}_{$month}_%")
-                    ->orderByRaw('CAST(SUBSTRING(external_id FROM \'[0-9]+$\') AS INTEGER) DESC')
-                    ->first();
-
-                // Extract last sequence number safely
-                $lastNumber = 0;
-                if ($lastProgram && $lastProgram->external_id && preg_match('/_(\d+)$/', $lastProgram->external_id, $matches)) {
-                    $lastNumber = (int) $matches[1];
-                }
-
-                $nextNumber = $lastNumber + 1;
-
-                $program->external_id = sprintf(
-                    "PRG_%s_%s_%03d",
-                    $year,
-                    $month,
-                    $nextNumber
-                );
+                $program->external_id = self::generateExternalId($program->program_type);
             }
         });
+    }
+
+    /**
+     * Generate external_id based on program_type
+     */
+    public static function generateExternalId($programType = null)
+    {
+        // Map program types to prefixes
+        $typePrefixes = [
+            'Sub-Program' => 'SP',
+            'Local Program' => 'LP',
+            'Local Program/Network' => 'LP',
+            'flagship' => 'FP',
+            'Center' => 'CP',
+            // Add more mappings as needed
+        ];
+
+        // Default prefix if type not found
+        $prefix = 'PRG';
+        
+        if ($programType) {
+            // Normalize program_type (lowercase, trim)
+            $normalizedType = strtolower(trim($programType));
+            
+            if (isset($typePrefixes[$normalizedType])) {
+                $prefix = $typePrefixes[$normalizedType];
+            } elseif (isset($typePrefixes[$programType])) {
+                $prefix = $typePrefixes[$programType];
+            }
+        }
+
+        $year = now()->format('Y');
+        $month = now()->format('m');
+
+        // Get the MAXIMUM sequence number for this prefix-year-month combination
+        $lastProgram = Program::where('external_id', 'like', "{$prefix}_{$year}_{$month}_%")
+            ->orderByRaw('CAST(SUBSTRING(external_id FROM \'[0-9]+$\') AS INTEGER) DESC')
+            ->first();
+
+        // Extract last sequence number safely
+        $lastNumber = 0;
+        if ($lastProgram && $lastProgram->external_id && preg_match('/_(\d+)$/', $lastProgram->external_id, $matches)) {
+            $lastNumber = (int) $matches[1];
+        }
+
+        $nextNumber = $lastNumber + 1;
+
+        return sprintf(
+            "%s_%s_%s_%03d",
+            $prefix,
+            $year,
+            $month,
+            $nextNumber
+        );
     }
 
     /**
@@ -73,6 +105,7 @@ class Program extends Model
     {
         return $this->hasMany(Project::class, 'program_id', 'program_id');
     }
+    
     public function parentProgram()
     {
         return $this->belongsTo(Program::class, 'parent_program_id', 'program_id');
@@ -82,5 +115,4 @@ class Program extends Model
     {
         return $this->hasMany(Program::class, 'parent_program_id', 'program_id');
     }
-
 }
