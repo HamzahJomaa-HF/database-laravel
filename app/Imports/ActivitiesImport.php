@@ -18,21 +18,18 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
         'errors' => []
     ];
 
-    private $actionsMap = [];
+    private $hierarchyMap = [];
+    
+    
+    
 
     public function collection(Collection $rows)
     {
-        Log::info('=== STARTING ACTIVITIES IMPORT ===');
+        Log::info('=== STARTING ACTIVITIES IMPORT WITH MAPPING ===');
         Log::info('Total rows: ' . $rows->count());
 
-        // Debug: Log first row headers
-        if ($rows->count() > 0) {
-            $firstRow = $rows->first()->toArray();
-            Log::info('First row headers:', array_keys($firstRow));
-        }
-
-        // Pre-load all actions from database
-        $this->loadActions();
+        // Pre-load hierarchy mapping
+        $this->loadHierarchyMap();
 
         foreach ($rows as $index => $row) {
             $rowNumber = $index + 2;
@@ -42,22 +39,20 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
 
                 // Get values from Excel
                 $actionReference = $this->findColumnValue($rowArray, [
-                    'acion reference',
+                    'Action Reference',
                     'action reference', 
                     'action_reference', 
-                    'reference', 
-                    'action_code',
-                    'action code'
+                    'reference'
                 ]);
                 
                 $activityCode = $this->findColumnValue($rowArray, [
-                    'activity code', 
+                    'Activity Code',
                     'activity_code', 
                     'activity'
                 ]);
                 
                 $activityName = $this->findColumnValue($rowArray, [
-                    'activity', 
+                    'Activity', 
                     'activity_name', 
                     'activity name'
                 ]);
@@ -98,36 +93,47 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
                     continue;
                 }
 
-                // Extract action code from reference
-                $actionCodeFromReference = $this->extractActionCode($actionReference);
+                Log::info("Row {$rowNumber}: Processing reference '{$actionReference}'");
+
+                // Parse the full hierarchy from reference
+                $parsedHierarchy = $this->parseActionReference($actionReference, $rowNumber);
                 
-                if (!$actionCodeFromReference) {
-                    $errorMsg = "Row {$rowNumber}: Could not extract action code from reference '{$actionReference}'";
+                if (!$parsedHierarchy) {
+                    $errorMsg = "Row {$rowNumber}: Could not parse action reference '{$actionReference}'";
                     $this->results['errors'][] = $errorMsg;
                     Log::warning($errorMsg);
                     continue;
                 }
 
-                Log::debug("Row {$rowNumber}: Reference '{$actionReference}' → Extracted action code '{$actionCodeFromReference}'");
-
-                // 1. Find Action using the extracted action code
-                $action = $this->findActionByCode($actionCodeFromReference, $actionReference, $rowNumber);
+                // APPLY PROGRAM MAPPING if needed
+                $mappedHierarchy = $this->applyProgramMapping($parsedHierarchy, $rowNumber);
+                
+                // Find the action using MAPPED hierarchy
+                $action = $this->findActionByHierarchy($mappedHierarchy, $rowNumber);
                 
                 if (!$action) {
-                    $errorMsg = "Row {$rowNumber}: Action not found for code '{$actionCodeFromReference}' (from reference '{$actionReference}')";
-                    $this->results['errors'][] = $errorMsg;
-                    Log::warning($errorMsg);
-                    continue;
+                    // Try one more time with original hierarchy (in case mapping is wrong)
+                    $action = $this->findActionByHierarchy($parsedHierarchy, $rowNumber);
+                    
+                    if (!$action) {
+                        $errorMsg = "Row {$rowNumber}: Action not found for reference '{$actionReference}'";
+                        $this->results['errors'][] = $errorMsg;
+                        Log::warning($errorMsg);
+                        
+                        // Debug: List actual available programs
+                        $this->debugActualPrograms($parsedHierarchy['component_code'], $rowNumber);
+                        continue;
+                    }
                 }
 
-                Log::info("Row {$rowNumber}: Found action '{$action->code}' for reference '{$actionReference}'");
+                Log::info("Row {$rowNumber}: Found action '{$action->action_code}' for reference '{$actionReference}'");
 
                 // Create unique activity code: action_code + activity_code
-                $uniqueActivityCode = $this->generateUniqueActivityCode($action->code, $activityCode, $action->rp_actions_id);
+                $uniqueActivityCode = $this->generateUniqueActivityCode($action->action_code, $activityCode, $action->rp_actions_id);
                 
                 Log::debug("Row {$rowNumber}: Original activity code '{$activityCode}' → Unique code '{$uniqueActivityCode}'");
 
-                // 2. Create/Update Activity
+                // Create/Update Activity
                 $activity = $this->createOrUpdateActivity($action, $uniqueActivityCode, $activityName, $status, $rowNumber);
                 
                 if (!$activity) {
@@ -136,13 +142,13 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
                 
                 $activityId = $activity->rp_activities_id;
 
-                // 3. Process indicators
+                // Process indicators
                 if ($indicatorsText) {
                     $indicatorsCount = $this->processIndicators($activityId, $indicatorsText);
                     Log::info("Row {$rowNumber}: Linked {$indicatorsCount} indicators");
                 }
 
-                // 4. Process focal points
+                // Process focal points
                 if ($focalPointsText) {
                     $focalPointsCount = $this->processFocalPoints($activityId, $focalPointsText);
                     Log::info("Row {$rowNumber}: Linked {$focalPointsCount} focal points");
@@ -153,7 +159,8 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
                 $this->results['errors'][] = $errorMsg;
                 Log::error($errorMsg, [
                     'error' => $e->getMessage(),
-                    'data' => $row->toArray()
+                    'data' => $row->toArray(),
+                    'trace' => $e->getTraceAsString()
                 ]);
             }
         }
@@ -162,14 +169,379 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
     }
 
     /**
+     * Apply program code mapping
+     */
+    private function applyProgramMapping(array $hierarchy, int $rowNumber): array
+    {
+        $originalProgram = $hierarchy['program_code'];
+        
+        if (isset($this->programMapping[$originalProgram])) {
+            $mappedProgram = $this->programMapping[$originalProgram];
+            Log::info("Row {$rowNumber}: Mapped program '{$originalProgram}' → '{$mappedProgram}'");
+            
+            // Update the hierarchy with mapped program
+            $hierarchy['program_code'] = $mappedProgram;
+            $hierarchy['original_program'] = $originalProgram; 
+        } else {
+            Log::info("Row {$rowNumber}: No mapping found for program '{$originalProgram}'");
+        }
+        
+        return $hierarchy;
+    }
+
+    /**
+     * Debug: Show actual programs in database
+     */
+    private function debugActualPrograms(string $componentCode, int $rowNumber): void
+    {
+        Log::warning("Row {$rowNumber}: DEBUG - Checking actual programs in component '{$componentCode}'");
+        
+        $actualPrograms = DB::table('rp_programs AS p')
+            ->join('rp_components AS c', 'p.rp_components_id', '=', 'c.rp_components_id')
+            ->where('c.code', $componentCode)
+            ->whereNull('p.deleted_at')
+            ->select('p.code', 'p.name')
+            ->orderBy('p.code')
+            ->get();
+        
+        if ($actualPrograms->count() > 0) {
+            Log::warning("Row {$rowNumber}: Actual programs in component '{$componentCode}':");
+            foreach ($actualPrograms as $program) {
+                Log::warning("  - {$program->code}: {$program->name}");
+            }
+            
+            // Also check for any programs starting with similar letters
+            $firstLetter = substr($componentCode, -1); // Get last letter (A, B, C, D, E)
+            $similarPrograms = DB::table('rp_programs AS p')
+                ->join('rp_components AS c', 'p.rp_components_id', '=', 'c.rp_components_id')
+                ->where('c.code', 'like', 'AD%')
+                ->where('p.code', 'like', $firstLetter . '%')
+                ->whereNull('p.deleted_at')
+                ->select('c.code as component', 'p.code as program', 'p.name')
+                ->orderBy('c.code')
+                ->orderBy('p.code')
+                ->get();
+            
+            if ($similarPrograms->count() > 0) {
+                Log::warning("Row {$rowNumber}: Programs starting with '{$firstLetter}' across all AD components:");
+                foreach ($similarPrograms as $program) {
+                    Log::warning("  - {$program->component}.{$program->program}: {$program->name}");
+                }
+            }
+        } else {
+            Log::warning("Row {$rowNumber}: No programs found in component '{$componentCode}'");
+        }
+    }
+
+    /**
+     * Parse action reference like "AD.A1.iv.1"
+     */
+    private function parseActionReference(string $reference, int $rowNumber): ?array
+{
+    $reference = trim($reference);
+    Log::info("DEBUG Row {$rowNumber}: Parsing reference '{$reference}'");
+    
+    $reference = preg_replace('/\s+/', '', $reference);
+    
+   
+    if (preg_match('/^AD\.(A\d+|B\d+)\.([ivx]+)\.(\d+)$/i', $reference, $matches)) {
+        // Programs A1-A8, B1-B3 are in component AD.A or AD.B
+        $program = $matches[1];
+        $unit = $matches[2];
+        $action = $matches[3];
+        
+        // Determine which component based on program
+        $component = str_starts_with($program, 'A') ? 'AD.A' : 'AD.B';
+        
+        Log::info("DEBUG Row {$rowNumber}: Pattern 1 - C='{$component}', P='{$program}', U='{$unit}', A='{$action}'");
+        return $this->buildHierarchyArray($component, $program, $unit, $action, $reference);
+    }
+    
+   
+    if (preg_match('/^AD\.(C0|D0|E0)\.([ivx]+)\.(\d+)$/i', $reference, $matches)) {
+        $program = $matches[1]; 
+        $unit = $matches[2];
+        $action = $matches[3];
+        
+        
+        $componentMap = [
+            'C0' => 'AD.C',
+            'D0' => 'AD.D', 
+            'E0' => 'AD.E'
+        ];
+        
+        $component = $componentMap[$program];
+        
+        Log::info("DEBUG Row {$rowNumber}: Pattern 2 - C='{$component}', P='{$program}', U='{$unit}', A='{$action}'");
+        return $this->buildHierarchyArray($component, $program, $unit, $action, $reference);
+    }
+    
+    Log::error("Row {$rowNumber}: Cannot parse reference '{$reference}'");
+    return null;
+}
+
+   private function buildHierarchyArray(string $component, string $program, string $unit, string $action, string $originalReference): array
+{
+  
+    $unitCode = strtoupper($unit); 
+    
+    return [
+        'component_code' => $component,
+        'program_code' => $program,
+        'unit_code' => $unitCode, 
+        'unit_original' => $unit, 
+        'action_code' => $action,
+        'original_reference' => $originalReference,
+        'original_program' => $program
+    ];
+}
+
+    /**
+     * Load hierarchy map from database
+     */
+    private function loadHierarchyMap(): void
+    {
+        Log::info("Loading hierarchy map from database...");
+        
+        // Load ALL components starting with AD
+        $hierarchy = DB::table('rp_actions AS a')
+            ->join('rp_units AS u', 'a.rp_units_id', '=', 'u.rp_units_id')
+            ->join('rp_programs AS p', 'u.rp_programs_id', '=', 'p.rp_programs_id')
+            ->join('rp_components AS c', 'p.rp_components_id', '=', 'c.rp_components_id')
+            ->where('c.code', 'like', 'AD%') // Get all AD components
+            ->whereNull('a.deleted_at')
+            ->whereNull('u.deleted_at')
+            ->whereNull('p.deleted_at')
+            ->whereNull('c.deleted_at')
+            ->select(
+                'a.rp_actions_id',
+                'a.code AS action_code',
+                'a.name AS action_name',
+                'u.code AS unit_code',
+                'u.name AS unit_name',
+                'p.code AS program_code',
+                'p.name AS program_name',
+                'c.code AS component_code',
+                'c.name AS component_name'
+            )
+            ->get();
+        
+        foreach ($hierarchy as $item) {
+            // Create key for exact lookup: Component.Program.Unit.Action
+            $key = "{$item->component_code}.{$item->program_code}.{$item->unit_code}.{$item->action_code}";
+            $this->hierarchyMap[$key] = $item;
+            
+            // Also store with roman numerals
+            $unitRoman = $this->numberToRoman($item->unit_code);
+            if ($unitRoman) {
+                $keyRoman = "{$item->component_code}.{$item->program_code}.{$unitRoman}.{$item->action_code}";
+                $this->hierarchyMap[$keyRoman] = $item;
+            }
+        }
+        
+        Log::info("Loaded " . $hierarchy->count() . " actions from AD components into hierarchy map");
+        
+        // Log how many from each component
+        $componentCounts = [];
+        foreach ($hierarchy as $item) {
+            $componentCounts[$item->component_code] = ($componentCounts[$item->component_code] ?? 0) + 1;
+        }
+        
+        foreach ($componentCounts as $component => $count) {
+            Log::info("  - Component {$component}: {$count} actions");
+        }
+    }
+
+    /**
+     * Convert number to roman numeral (for reverse lookup)
+     */
+    private function numberToRoman(string $number): ?string
+    {
+        $number = trim($number);
+        if (!is_numeric($number)) return null;
+        
+        $intVal = intval($number);
+        $romanNumerals = [
+            1 => 'i', 2 => 'ii', 3 => 'iii', 4 => 'iv', 5 => 'v',
+            6 => 'vi', 7 => 'vii', 8 => 'viii', 9 => 'ix', 10 => 'x'
+        ];
+        
+        return $romanNumerals[$intVal] ?? null;
+    }
+
+    /**
+     * Find action by full hierarchy
+     */
+    private function findActionByHierarchy(array $hierarchy, int $rowNumber)
+    {
+        $component = $hierarchy['component_code'];
+        $program = $hierarchy['program_code'];
+        $unit = $hierarchy['unit_code'];
+        $action = $hierarchy['action_code'];
+        $unitOriginal = $hierarchy['unit_original'];
+        
+        Log::info("DEBUG Row {$rowNumber}: Looking for C='{$component}', P='{$program}', U='{$unit}', A='{$action}'");
+        
+        // First, try exact match as before
+        $exactMatch = $this->findExactAction($component, $program, $unit, $unitOriginal, $action, $rowNumber);
+        if ($exactMatch) {
+            return $exactMatch;
+        }
+        
+        // If not found, try to find any action with the same unit and action codes
+        // This handles cases where the program code might be wrong
+        $similarActions = DB::table('rp_actions AS a')
+            ->join('rp_units AS u', 'a.rp_units_id', '=', 'u.rp_units_id')
+            ->join('rp_programs AS p', 'u.rp_programs_id', '=', 'p.rp_programs_id')
+            ->join('rp_components AS c', 'p.rp_components_id', '=', 'c.rp_components_id')
+            ->where('c.code', 'like', 'AD%')
+            ->where('u.code', $unit)
+            ->where('a.code', $action)
+            ->whereNull('a.deleted_at')
+            ->whereNull('u.deleted_at')
+            ->whereNull('p.deleted_at')
+            ->whereNull('c.deleted_at')
+            ->select(
+                'a.rp_actions_id',
+                'a.code AS action_code',
+                'a.name AS action_name',
+                'u.code AS unit_code',
+                'p.code AS program_code',
+                'c.code AS component_code'
+            )
+            ->first();
+        
+        if ($similarActions) {
+            Log::warning("Row {$rowNumber}: Found similar action (different program): C='{$similarActions->component_code}', P='{$similarActions->program_code}', U='{$similarActions->unit_code}', A='{$similarActions->action_code}'");
+            return $similarActions;
+        }
+        
+        Log::warning("DEBUG Row {$rowNumber}: NOT FOUND for any component variation");
+        return null;
+    }
+
+    /**
+     * Helper method to find exact action match
+     */
+   private function findExactAction($component, $program, $unit, $unitOriginal, $action, $rowNumber)
+{
+    $componentVariations = $this->getComponentVariations($component, $program);
+    
+    // Create ALL possible unit code variations
+    $unitVariations = [
+        $unit,                    // Uppercase from buildHierarchyArray
+        strtoupper($unit),        // Force uppercase
+        strtolower($unit),        // Lowercase
+        $unitOriginal,            // Original from reference (lowercase)
+        strtoupper($unitOriginal) // Original in uppercase
+    ];
+    
+    // Also try Roman numeral to number conversion (just in case)
+    $romanToNumber = [
+        'i' => '1', 'ii' => '2', 'iii' => '3', 'iv' => '4', 'v' => '5',
+        'vi' => '6', 'vii' => '7', 'viii' => '8', 'ix' => '9', 'x' => '10',
+        'I' => '1', 'II' => '2', 'III' => '3', 'IV' => '4', 'V' => '5',
+        'VI' => '6', 'VII' => '7', 'VIII' => '8', 'IX' => '9', 'X' => '10'
+    ];
+    
+    $unitLower = strtolower($unit);
+    if (isset($romanToNumber[$unitLower])) {
+        $unitVariations[] = $romanToNumber[$unitLower]; // Number version
+    }
+    
+    // Remove duplicates
+    $unitVariations = array_unique($unitVariations);
+    
+    Log::info("DEBUG Row {$rowNumber}: Trying unit variations: " . implode(', ', $unitVariations));
+    
+    foreach ($componentVariations as $compVar) {
+        foreach ($unitVariations as $unitVar) {
+            // Try exact match in cache
+            $key = "{$compVar}.{$program}.{$unitVar}.{$action}";
+            if (isset($this->hierarchyMap[$key])) {
+                Log::info("DEBUG Row {$rowNumber}: FOUND in cache with key '{$key}'");
+                return $this->hierarchyMap[$key];
+            }
+            
+            // Try database lookup
+            $foundAction = DB::table('rp_actions AS a')
+                ->join('rp_units AS u', 'a.rp_units_id', '=', 'u.rp_units_id')
+                ->join('rp_programs AS p', 'u.rp_programs_id', '=', 'p.rp_programs_id')
+                ->join('rp_components AS c', 'p.rp_components_id', '=', 'c.rp_components_id')
+                ->where('c.code', $compVar)
+                ->where('p.code', $program)
+                ->where('u.code', $unitVar)
+                ->where('a.code', $action)
+                ->whereNull('a.deleted_at')
+                ->whereNull('u.deleted_at')
+                ->whereNull('p.deleted_at')
+                ->whereNull('c.deleted_at')
+                ->select(
+                    'a.rp_actions_id',
+                    'a.code AS action_code',
+                    'a.name AS action_name',
+                    'u.code AS unit_code',
+                    'p.code AS program_code',
+                    'c.code AS component_code'
+                )
+                ->first();
+            
+            if ($foundAction) {
+                Log::info("DEBUG Row {$rowNumber}: FOUND in database with C='{$foundAction->component_code}', P='{$foundAction->program_code}', U='{$foundAction->unit_code}', A='{$foundAction->action_code}'");
+                
+                // Cache it
+                $cacheKey = "{$foundAction->component_code}.{$foundAction->program_code}.{$foundAction->unit_code}.{$foundAction->action_code}";
+                $this->hierarchyMap[$cacheKey] = $foundAction;
+                
+                return $foundAction;
+            }
+        }
+    }
+    
+    return null;
+}
+
+    /**
+     * Get component variations based on program
+     */
+    private function getComponentVariations(string $component, string $program): array
+    {
+        if ($component === 'AD') {
+            $programPrefix = substr($program, 0, 1); // Get first letter of program
+            
+            $componentMap = [
+                'A' => ['AD.A'],
+                'B' => ['AD.B'],
+                'C' => ['AD.C', 'AD.A'], 
+                'D' => ['AD.D', 'AD.A'],
+                'E' => ['AD.E', 'AD.A'], 
+                'default' => ['AD.A', 'AD.B']
+            ];
+            
+            $variations = $componentMap[$programPrefix] ?? $componentMap['default'];
+            Log::info("Mapped 'AD' with program '{$program}' to component variations: " . implode(', ', $variations));
+            
+            // Also try case variations
+            $caseVariations = [];
+            foreach ($variations as $comp) {
+                $caseVariations[] = strtoupper($comp);
+                $caseVariations[] = strtolower($comp);
+                $caseVariations[] = ucfirst(strtolower($comp));
+            }
+            
+            return array_unique(array_merge($variations, $caseVariations));
+        }
+        
+        return [$component];
+    }
+
+    /**
      * Generate unique activity code
      */
     private function generateUniqueActivityCode(string $actionCode, string $activityCode, string $actionId): string
     {
-        // Option 1: Simple concatenation
         $uniqueCode = "{$actionCode}-{$activityCode}";
         
-        // Check if this code already exists for this action
         $existing = DB::table('rp_activities')
             ->where('rp_actions_id', $actionId)
             ->where('code', $uniqueCode)
@@ -179,7 +551,6 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
             return $uniqueCode;
         }
         
-        // If exists, add incremental number
         $counter = 1;
         while (true) {
             $proposedCode = "{$actionCode}-{$activityCode}-{$counter}";
@@ -195,132 +566,11 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
             
             $counter++;
             if ($counter > 100) {
-                // Fallback: add timestamp
                 $proposedCode = "{$actionCode}-{$activityCode}-" . time();
                 Log::warning("Generated unique code with timestamp: {$proposedCode}");
                 return $proposedCode;
             }
         }
-    }
-
-    /**
-     * Extract action code from reference
-     */
-    private function extractActionCode(string $actionReference): ?string
-    {
-        $cleanReference = trim($actionReference);
-        $cleanReference = preg_replace('/\s+/', '', $cleanReference);
-        
-        // Split by dots
-        $parts = explode('.', $cleanReference);
-        
-        // Get the last part
-        $lastPart = end($parts);
-        
-        // Check if numeric
-        if (is_numeric($lastPart)) {
-            return $lastPart;
-        }
-        
-        // Roman numerals
-        $romanToNumber = [
-            'i' => '1', 'ii' => '2', 'iii' => '3', 'iv' => '4', 'v' => '5',
-            'vi' => '6', 'vii' => '7', 'viii' => '8', 'ix' => '9', 'x' => '10'
-        ];
-        
-        $lowerLastPart = strtolower($lastPart);
-        if (isset($romanToNumber[$lowerLastPart])) {
-            return $romanToNumber[$lowerLastPart];
-        }
-        
-        // Find any number
-        if (preg_match('/\d+/', $cleanReference, $matches)) {
-            return $matches[0];
-        }
-        
-        // Try second last part
-        if (count($parts) > 1) {
-            $secondLast = $parts[count($parts) - 2];
-            if (is_numeric($secondLast)) {
-                return $secondLast;
-            }
-        }
-        
-        return null;
-    }
-
-    /**
-     * Load all actions from database
-     */
-    private function loadActions(): void
-    {
-        $actions = DB::table('rp_actions')
-            ->select('rp_actions_id', 'code', 'name')
-            ->whereNotNull('code')
-            ->get();
-        
-        Log::info("Found " . $actions->count() . " actions in database");
-        
-        foreach ($actions as $action) {
-            $this->actionsMap['code:' . $action->code] = $action;
-            $cleanedCode = trim($action->code);
-            if ($cleanedCode !== $action->code) {
-                $this->actionsMap['code_cleaned:' . $cleanedCode] = $action;
-            }
-        }
-    }
-
-    /**
-     * Find action by code
-     */
-    private function findActionByCode(string $actionCode, string $originalReference, int $rowNumber)
-    {
-        Log::debug("Row {$rowNumber}: Searching action for code '{$actionCode}'");
-        
-        $cleanActionCode = trim($actionCode);
-        
-        // Try cached
-        if (isset($this->actionsMap['code:' . $cleanActionCode])) {
-            return $this->actionsMap['code:' . $cleanActionCode];
-        }
-        
-        if (isset($this->actionsMap['code_cleaned:' . $cleanActionCode])) {
-            return $this->actionsMap['code_cleaned:' . $cleanActionCode];
-        }
-        
-        // Try database
-        try {
-            $action = DB::table('rp_actions')
-                ->where('code', $cleanActionCode)
-                ->select('rp_actions_id', 'code', 'name')
-                ->first();
-            
-            if ($action) return $action;
-            
-            // Case-insensitive
-            $action = DB::table('rp_actions')
-                ->whereRaw('LOWER(code) = LOWER(?)', [$cleanActionCode])
-                ->select('rp_actions_id', 'code', 'name')
-                ->first();
-            
-            if ($action) return $action;
-            
-            // Partial match
-            $action = DB::table('rp_actions')
-                ->where('code', 'LIKE', '%' . $cleanActionCode . '%')
-                ->select('rp_actions_id', 'code', 'name')
-                ->first();
-            
-            if ($action) {
-                Log::info("Found partial match: '{$action->code}' contains '{$cleanActionCode}'");
-                return $action;
-            }
-            
-        } catch (\Exception $e) {
-            Log::error("Error searching for action: " . $e->getMessage());
-        }
-        
-        return null;
     }
 
     /**
@@ -349,7 +599,7 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
                     ]);
                 $this->results['updated']['activities']++;
                 $activityId = $existingActivity->rp_activities_id;
-                Log::info("Updated activity: {$activityId} for action {$action->code}");
+                Log::info("Updated activity: {$activityId} for action {$action->action_code}");
             } else {
                 // Create new activity
                 $activityId = (string) Str::uuid();
@@ -361,7 +611,7 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
                     'external_type' => null,
                     'name' => $this->truncateForDb($activityName ?: "Activity {$activityCode}"),
                     'code' => $activityCode,
-                    'description' => null,
+                    'description' => $this->truncateForDb($activityName, 'text'),
                     'activity_type' => null,
                     'status' => $this->mapStatus($status),
                     'created_at' => now(),
@@ -370,7 +620,7 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
                 ]);
                 $this->results['created']['activities']++;
                 $isNew = true;
-                Log::info("Created new activity: {$activityId} for action {$action->code}");
+                Log::info("Created new activity: {$activityId} for action {$action->action_code}");
             }
             
             return (object) [

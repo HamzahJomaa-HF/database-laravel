@@ -167,6 +167,7 @@
                                                 multiple
                                                 class="form-control @error('projects') is-invalid @enderror"
                                                 name="projects[]">
+                                            {{-- Projects will be dynamically loaded here --}}
                                             <option value="" disabled>Select a program first to see available projects</option>
                                         </select>
                                         @error('projects')
@@ -266,60 +267,61 @@
                         </div>
 
                         {{-- ====================================== --}}
-                        {{-- SECTION 5: REPORTING ACTIVITIES (STATIC DATA WITH ACTIONS AS TITLES) --}}
-                        {{-- ====================================== --}}
-                        <div class="section-card mb-4">
-                            <div class="section-header">
-                                <h6 class="mb-0 fw-semibold">Reporting Activities</h6>
-                                <span class="text-muted small">Select reporting component and activities (grouped by Actions)</span>
-                            </div>
-                            <div class="section-body">
-                                <div class="row g-3">
-                                    {{-- RP Components Dropdown (STATIC) --}}
-                                    <div class="col-md-12">
-                                        <label for="rp_component_id" class="form-label fw-semibold mb-2">Reporting Component</label>
-                                        <select id="rp_component_id" 
-                                                class="form-control form-select @error('rp_component_id') is-invalid @enderror"
-                                                name="rp_component_id">
-                                            <option value="">Select a Reporting Component</option>
-                                            <option value="b4848eb6-f46d-40f9-bcac-58736ae015fe">AD.A - برامج مؤسسة الحريري التربوية والإنمائية</option>
-                                            <option value="7458b148-2dc6-4811-acd9-eea3ec5c04a0">AD.B - المساعدة الاجتماعية والصحية والتعليمية</option>
-                                            <option value="63f1df7a-42b5-4062-950b-589c66584d23">AD.C - أكاديمية الدولة الوطنية</option>
-                                            <option value="cb9f2e6c-3823-49e1-aab1-973cbb80351f">AD.D - منتدى شباب نهوض لبنان</option>
-                                            <option value="a96ae126-80b6-454f-bf0d-c14f95b06442">AD.E - منصة "إنمائية"</option>
-                                        </select>
-                                        @error('rp_component_id')
-                                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                                        @enderror
-                                        <div class="form-text mt-1">
-                                            <i class="bi bi-info-circle me-1"></i>
-                                            Select a reporting component to see related activities grouped by their Actions
-                                        </div>
-                                    </div>
+{{-- SECTION 5: REPORTING ACTIVITIES (Connected to Database) --}}
+{{-- ====================================== --}}
+<div class="section-card mb-4">
+    <div class="section-header">
+        <h6 class="mb-0 fw-semibold">Reporting Activities</h6>
+        <span class="text-muted small">Select reporting component and activities</span>
+    </div>
+    <div class="section-body">
+        <div class="row g-3">
+            {{-- RP Components Dropdown --}}
+            <div class="col-md-12">
+                <label for="rp_component_id" class="form-label fw-semibold mb-2">Reporting Component</label>
+                <select id="rp_component_id" 
+                        class="form-control form-select @error('rp_component_id') is-invalid @enderror"
+                        name="rp_component_id">
+                    <option value="">Select a Reporting Component</option>
+                    @foreach($rpComponents as $component)
+                        <option value="{{ $component->rp_components_id }}" 
+                                {{ old('rp_component_id') == $component->rp_components_id ? 'selected' : '' }}>
+                            {{ $component->code }} - {{ $component->name }}
+                        </option>
+                    @endforeach
+                </select>
+                @error('rp_component_id')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+                <div class="form-text mt-1">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Select a reporting component to see related activities
+                </div>
+            </div>
 
-                                    {{-- RP Activities Multi-Select (STATIC - Grouped by Actions) --}}
-                                    <div class="col-md-12">
-                                        <label for="rp_activities_select" class="form-label fw-semibold mb-2">Reporting Activities</label>
-                                        <select id="rp_activities_select" 
-                                                multiple
-                                                class="form-control @error('rp_activities') is-invalid @enderror"
-                                                name="rp_activities[]">
-                                            <option value="" disabled>Select a reporting component first</option>
-                                        </select>
-                                        @error('rp_activities')
-                                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                                        @enderror
-                                        @error('rp_activities.*')
-                                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                                        @enderror
-                                        <div class="form-text mt-1">
-                                            <i class="bi bi-info-circle me-1"></i>
-                                            Activities are grouped under their parent Action titles
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+            {{-- RP Activities Multi-Select (Grouped by Actions) --}}
+            <div class="col-md-12">
+                <label for="rp_activities_select" class="form-label fw-semibold mb-2">Reporting Activities</label>
+                <select id="rp_activities_select" 
+                        multiple
+                        class="form-control @error('rp_activities') is-invalid @enderror"
+                        name="rp_activities[]">
+                    <option value="" disabled>Select a reporting component first</option>
+                </select>
+                @error('rp_activities')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+                @error('rp_activities.*')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+                <div class="form-text mt-1">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Activities are grouped by their parent actions
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
                         {{-- ====================================== --}}
                         {{-- SECTION 6: FOCAL POINTS (Multiple Select) --}}
@@ -338,12 +340,23 @@
                                                     multiple
                                                     class="form-control @error('focal_points') is-invalid @enderror"
                                                     name="focal_points[]">
-                                                <option value="1" selected>Mohamad Ismail</option>
-                                                <option value="2" selected>Mohammad Harriri</option>
-                                                <option value="3">Lilia Chahine</option>
-                                                <option value="4">Nadine Zaidan</option>
-                                                <option value="5">Hatem Assii</option>
-                                                <option value="6">Ahmad Chami</option>
+                                                @php
+                                                    // Reduced to 4 key focal points
+                                                    $focalPoints = [
+                                                         ['id' => 1, 'name' => 'Mohamad Ismail'],
+                                                        ['id' => 2, 'name' => 'Mohammad Harriri'],
+                                                        ['id' => 3, 'name' => 'Lilia Chahine'],
+                                                        ['id' => 4, 'name' => 'Nadine Zaidan'],
+                                                        ['id' => 5, 'name' => 'Hatem Assii'],
+                                                        ['id' => 6, 'name' => 'Ahmad Chami'],
+                                                    ];
+                                                @endphp
+                                                @foreach($focalPoints as $point)
+                                                    <option value="{{ $point['id'] }}" 
+                                                            {{ in_array($point['id'], [1, 2]) ? 'selected' : '' }}>
+                                                        {{ $point['name'] }}
+                                                    </option>
+                                                @endforeach
                                             </select>
                                             @error('focal_points')
                                                 <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -378,7 +391,8 @@
                                                                name="operational_support[]" 
                                                                id="support_logistics" 
                                                                checked
-                                                               value="Logistics">
+                                                               value="Logistics"
+                                                               {{ is_array(old('operational_support')) && in_array('Logistics', old('operational_support')) ? 'checked' : '' }}>
                                                         <label class="form-check-label" for="support_logistics">
                                                             Logistics
                                                         </label>
@@ -390,7 +404,8 @@
                                                                type="checkbox" 
                                                                name="operational_support[]" 
                                                                id="support_media" 
-                                                               value="Media">
+                                                               value="Media"
+                                                               {{ is_array(old('operational_support')) && in_array('Media', old('operational_support')) ? 'checked' : '' }}>
                                                         <label class="form-check-label" for="support_media">
                                                             Media
                                                         </label>
@@ -402,12 +417,15 @@
                                                                type="checkbox" 
                                                                name="operational_support[]" 
                                                                id="support_pr" 
-                                                               value="Public Relations">
+                                                               value="Public Relations"
+                                                               {{ is_array(old('operational_support')) && in_array('Public Relations', old('operational_support')) ? 'checked' : '' }}>
                                                         <label class="form-check-label" for="support_pr">
                                                             Public Relations
                                                         </label>
                                                     </div>
                                                 </div>
+                                            </div>
+                                            <div class="row mt-2">
                                                 <div class="col-md-6 col-lg-3 mb-2">
                                                     <div class="form-check">
                                                         <input class="form-check-input @error('operational_support') is-invalid @enderror" 
@@ -466,631 +484,465 @@
 
 @section('styles')
 <style>
+    /* ============================================= */
+/* ENHANCED SELECT2 STYLING - PROFESSIONAL LOOK */
+/* ============================================= */
+
+/* 1. BASE & RESET */
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-border: #dee2e6;
+    --focus-border: #86b7fe;
+    --focus-shadow: rgba(13, 110, 253, 0.25);
+    --invalid-color: #dc3545;
+    --valid-color: #198754;
+    --placeholder-color: #6c757d;
+    --text-color: #495057;
+    --bg-light: #f8f9fa;
+    --transition-speed: 0.15s;
+}
+
+/* 2. BASE SELECT2 CONTAINERS */
+.select2-container {
+    width: 100% !important;
+    min-height: 42px;
+    margin-top: 0.25rem;
+    z-index: 1055 !important;
+}
+
+/* 3. SINGLE SELECT STYLING */
+.select2-container--default .select2-selection--single {
+    background-color: #fff;
+    border: 1px solid var(--primary-border);
+    border-radius: 6px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    transition: all var(--transition-speed) ease-in-out;
+}
+
+.select2-container--default .select2-selection--single:hover {
+    border-color: #adb5bd;
+}
+
+/* 4. MULTIPLE SELECT STYLING */
+.select2-container--default .select2-selection--multiple {
+    display: flex;
+    align-items: center;
+    
+}
+
+.select2-container--default .select2-selection--multiple:hover {
+    border-color: #adb5bd;
+}
+
+/* 5. FOCUS STATES (Consolidated) */
+.select2-container--default.select2-container--focus .select2-selection--single,
+.select2-container--default.select2-container--focus .select2-selection--multiple {
+    border-color: var(--focus-border);
+    box-shadow: 0 0 0 0.2rem var(--focus-shadow);
+    outline: 0;
+}
+
+/* 6. TEXT & PLACEHOLDER STYLING */
+.select2-container--default .select2-selection__rendered {
+    color: var(--text-color);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    padding-left: 12px;
+    padding-right: 30px;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__placeholder {
+    position: static;
+    transform: none;
+    line-height: normal;
+    margin: 0;
+}
+
+/* 7. DROPDOWN STYLING */
+.select2-container--default .select2-dropdown {
+    border: 1px solid var(--primary-border);
+    border-radius: 6px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+    margin-top: 4px;
+    z-index: 1060 !important;
+}
+
+/* 8. OPTIONS & OPTGROUPS */
+.select2-container--default .select2-results__option {
+    padding: 8px 12px;
+    font-size: 0.95rem;
+    color: var(--text-color);
+    transition: background-color var(--transition-speed);
+}
+
+.select2-container--default .select2-results__option[aria-selected=true] {
+    background-color: var(--bg-light);
+    color: var(--text-color);
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #e9ecef;
+    color: var(--text-color);
+}
+
+.select2-container--default .select2-results__group {
+    background-color: var(--bg-light);
+    color: var(--text-color);
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 8px 12px;
+    border-bottom: 1px solid #e9ecef;
+    cursor: default;
+}
+
+/* 9. SELECTED TAGS (Multiple Select) */
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: var(--bg-light);
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    color: var(--text-color);
+    font-size: 0.95rem;
+    font-weight: 500;
+    padding: 3px 8px;
+    display: flex;
+    align-items: center;
+    margin: 2px 0;
+}
+
+/* 10. VALIDATION STATES */
+.select2-container--default .select2-selection--single.is-invalid,
+.select2-container--default .select2-selection--multiple.is-invalid {
+    border-color: var(--invalid-color) !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+    padding-right: calc(1.5em + 0.75rem);
+}
+
+.select2-container--default.select2-container--focus .select2-selection--single.is-invalid,
+.select2-container--default.select2-container--focus .select2-selection--multiple.is-invalid {
+    border-color: var(--invalid-color) !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+/* 11. CUSTOM SCROLLBAR */
+.select2-results__options {
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.select2-results__options::-webkit-scrollbar {
+    width: 8px;
+}
+
+.select2-results__options::-webkit-scrollbar-track {
+    background: var(--bg-light);
+    border-radius: 4px;
+}
+
+.select2-results__options::-webkit-scrollbar-thumb {
+    background: #adb5bd;
+    border-radius: 4px;
+}
+
+.select2-results__options::-webkit-scrollbar-thumb:hover {
+    background: #6c757d;
+}
+
+/* 12. FORM CONTROLS ENHANCEMENT */
+.form-control, .form-select {
+    border: 1px solid var(--primary-border);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.95rem;
+    color: var(--text-color);
+    background-color: #fff;
+    transition: all 0.3s ease;
+    min-height: 42px;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--focus-border);
+    box-shadow: 0 0 0 0.25rem var(--focus-shadow);
+    outline: 0;
+}
+
+/* 13. SECTION CARDS IMPROVEMENT */
+.section-card {
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid #e0e0e0;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+    transition: box-shadow 0.3s ease;
+}
+
+.section-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.section-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.section-body {
+    padding: 1.5rem;
+}
+
+/* 14. BUTTON IMPROVEMENTS */
+.btn-success {
+    background: linear-gradient(135deg, #198754 0%, #157347 100%);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-success:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(25, 135, 84, 0.3);
+}
+
+.btn-outline-secondary:hover {
+    background-color: #6c757d;
+    color: white;
+    transform: translateY(-1px);
+}
+
+/* 15. CHECKBOX & RADIO IMPROVEMENT */
+.form-check-input {
+    width: 1.1em;
+    height: 1.1em;
+    margin-top: 0.15em;
+    margin-right: 0.5em;
+    border: 2px solid var(--primary-border);
+    cursor: pointer;
+}
+
+.form-check-input:checked {
+    background-color: var(--valid-color);
+    border-color: var(--valid-color);
+}
+
+.form-check-input:focus {
+    box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
+    border-color: var(--valid-color);
+}
+
+/* 16. FORM VALIDATION ENHANCEMENT */
+.is-invalid {
+    border-color: var(--invalid-color) !important;
+    animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+    20%, 40%, 60%, 80% { transform: translateX(2px); }
+}
+
+.invalid-feedback {
+    color: var(--invalid-color);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    font-weight: 500;
+}
+
+/* 17. LOADING STATES */
+.btn.loading {
+    position: relative;
+    color: transparent;
+    pointer-events: none;
+}
+
+.btn.loading::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    top: 50%;
+    left: 50%;
+    margin-left: -10px;
+    margin-top: -10px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* 18. ARROW STYLING (Optimized) */
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 40px;
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    width: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow b {
+    border-color: #adb5bd transparent transparent transparent;
+    border-style: solid;
+    border-width: 5px 4px 0 4px;
+    margin-top: -2px;
+    transition: border-color 0.2s ease;
+}
+
+/* 19. REMOVE BUTTON HOVER EFFECT */
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+    color: var(--invalid-color);
+    background-color: transparent;
+    transform: scale(1.1);
+}
+
+/* 20. RESPONSIVE IMPROVEMENTS */
+@media (max-width: 768px) {
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+        font-size: 0.8rem;
+        padding: 2px 6px;
+    }
+    
+    .select2-container--default .select2-selection--multiple .select2-selection__rendered {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    width: 100%;
+}
+    
     .section-card {
-        background: #fff;
-        border-radius: 10px;
-        border: 1px solid #e0e0e0;
-        overflow: hidden;
-    }
-    
-    .section-header {
-        background: #f8f9fa;
-        padding: 1rem 1.5rem;
-        border-bottom: 1px solid #e0e0e0;
-    }
-    
-    .section-body {
-        padding: 1.5rem;
-    }
-    
-    .form-control, .form-select {
-        border: 1px solid #dee2e6;
         border-radius: 8px;
-        padding: 0.5rem 0.75rem;
-        font-size: 0.95rem;
-        color: #495057;
-        background-color: #fff;
-        transition: all 0.3s ease;
-        min-height: 42px;
     }
     
-    .form-control:focus, .form-select:focus {
-        border-color: #86b7fe;
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
-        outline: 0;
+    .section-header,
+    .section-body {
+        padding: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .form-control, .form-select {
+        font-size: 0.875rem;
     }
     
     .form-label.fw-semibold {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-size: 0.95rem;
-        color: #495057;
-        font-weight: 600;
+        font-size: 0.9rem;
     }
-    
-    .form-check-input {
-        width: 1.1em;
-        height: 1.1em;
-        margin-top: 0.15em;
-        margin-right: 0.5em;
-        border: 2px solid #dee2e6;
-    }
-    
-    .form-check-input:checked {
-        background-color: #198754;
-        border-color: #198754;
-    }
-    
-    .form-check-input:focus {
-        box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
-    }
-    
-    .form-check-label {
-        font-size: 0.95rem;
-        color: #495057;
-        font-weight: 500;
-    }
-    
-    .select2-container--default .select2-selection--multiple,
-    .select2-container--default .select2-selection--single {
-        border: 1px solid #dee2e6 !important;
-        border-radius: 8px !important;
-        padding: 0.25rem 0.5rem !important;
-        background-color: #fff !important;
-        transition: all 0.3s ease !important;
-        font-size: 0.95rem !important;
-        min-height: 42px !important;
-    }
-    
-    .select2-container--default.select2-container--focus .select2-selection--multiple,
-    .select2-container--default.select2-container--focus .select2-selection--single {
-        border-color: #86b7fe !important;
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15) !important;
-        outline: 0 !important;
-    }
-    
-    .select2-container--default .select2-selection--multiple .select2-selection__choice {
-        background-color: #f8f9fa !important;
-        border: 1px solid #dee2e6 !important;
-        border-radius: 50px !important;
-        color: #495057 !important;
-        padding: 0.25rem 0.75rem !important;
-        font-size: 0.85rem !important;
-        font-weight: 500 !important;
-        display: flex !important;
-        align-items: center !important;
-        margin: 1px !important;
-    }
-    
-    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
-        color: #6c757d !important;
-        font-size: 1rem !important;
-        line-height: 1 !important;
-        margin-right: 4px !important;
-        opacity: 0.7 !important;
-        transition: opacity 0.2s !important;
-        order: -1 !important;
-        padding: 0 !important;
-    }
-    
-    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
-        color: #495057 !important;
-        opacity: 1 !important;
-        background: transparent !important;
-    }
-    
-    .select2-container--default .select2-dropdown {
-        border: 1px solid #dee2e6 !important;
-        border-radius: 0 0 8px 8px !important;
-        margin-top: -1px !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
-    }
-    
-    .select2-container--default .select2-results__option[disabled] {
-        background-color: #f8f9fa !important;
-        color: #6c757d !important;
-        font-weight: 600 !important;
-        cursor: default !important;
-        border-top: 1px solid #dee2e6 !important;
-        margin-top: 5px !important;
-    }
-    
-    .btn.loading {
-        position: relative;
-        color: transparent;
-    }
-    
-    .btn.loading::after {
-        content: '';
-        position: absolute;
-        width: 20px;
-        height: 20px;
-        top: 50%;
-        left: 50%;
-        margin-left: -10px;
-        margin-top: -10px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        border-radius: 50%;
-        border-top-color: #fff;
-        animation: spin 0.8s linear infinite;
-    }
-    
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
-    
-    .is-invalid {
-        border-color: #dc3545 !important;
-    }
-    
-    .is-invalid:focus {
-        border-color: #dc3545 !important;
-        box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.15) !important;
-    }
-    
-    .invalid-feedback {
-        color: #dc3545;
-        font-size: 0.875rem;
-        margin-top: 0.25rem;
-    }
-    
-    .select2-container--default .select2-selection--multiple.is-invalid,
-    .select2-container--default .select2-selection--single.is-invalid {
-        border-color: #dc3545 !important;
-    }
-    
-    .form-check-input.is-invalid {
-        border-color: #dc3545 !important;
-    }
-    
-    .form-control:not(textarea) {
-        height: 42px;
-    }
-    
-    .select2-container .select2-selection--multiple,
-    .select2-container .select2-selection--single {
-        min-height: 42px;
-        height: auto;
-    }
-    
-    .select2-container {
-        z-index: 1055 !important;
-    }
-    
-    .select2-dropdown {
-        z-index: 1060 !important;
-    }
-    
-    .select2-results__group {
-        background-color: #f8f9fa;
-        font-weight: 600;
-        color: #495057;
-        padding: 8px 12px;
-        border-bottom: 1px solid #dee2e6;
-        margin-top: 5px;
-    }
+}
+
+/* 21. DISABLED STATE ENHANCEMENT */
+.select2-container--default .select2-selection--single[aria-disabled=true],
+.select2-container--default .select2-selection--multiple[aria-disabled=true] {
+    background-color: #e9ecef;
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* 22. CLEAR BUTTON STYLING */
+.select2-container--default .select2-selection__clear {
+    color: var(--placeholder-color);
+    font-size: 1rem;
+    transition: color 0.2s ease;
+}
+
+.select2-container--default .select2-selection__clear:hover {
+    color: var(--invalid-color);
+}
+
+/* 23. SEARCH FIELD IMPROVEMENT */
+.select2-container--default .select2-search--inline .select2-search__field {
+    color: var(--text-color);
+    font-size: 0.95rem;
+    margin-top: 4px;
+    min-height: 28px;
+    padding: 0 4px;
+    font-family: inherit;
+}
+
+.select2-container--default .select2-search--inline .select2-search__field::placeholder {
+    color: var(--placeholder-color);
+    opacity: 0.7;
+}
+
+/* 24. SMOOTH TRANSITIONS */
+.select2-container * {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 25. ACCESSIBILITY IMPROVEMENTS */
+.select2-container--default .select2-selection--single:focus,
+.select2-container--default .select2-selection--multiple:focus {
+    outline: 2px solid var(--focus-border);
+    outline-offset: 2px;
+}
+
+/* Hide default dropdown arrow for consistency */
+.form-select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+}
 </style>
 @endsection
 
 @section('scripts')
+<!-- jQuery -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Select2 -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // STATIC RP COMPONENTS AND ACTIVITIES DATA WITH ACTIONS AS TITLES
-        const rpComponentsData = {
-            // AD.A - برامج مؤسسة الحريري التربوية والإنمائية
-            'b4848eb6-f46d-40f9-bcac-58736ae015fe': {
-                name: 'AD.A - برامج مؤسسة الحريري التربوية والإنمائية',
-                actions: [
-                    {
-                        title: 'إجراء تدريب للهيئات العاملة في المدرسة حول استراتيجيات وسبل التدريس',
-                        activities: [
-                            {id: 'activity-aa-1', text: 'تدريبات لهيئة القيادة البيداغولوجية في المدرسة بالتعاون مع خبراء وجهات تدريبية متخصصة'},
-                            {id: 'activity-aa-2', text: 'إجراء دورة تدريبية للهيئة التعليمية في الثانوية بالتعاون مع خبراء وجهات تدريبية متخصصة'}
-                        ]
-                    },
-                    {
-                        title: 'مواصلة التقديم للحصول على اعتماد NEASC',
-                        activities: [
-                            {id: 'activity-aa-3', text: 'تغطية التكاليف اللوجستية للزيارة التفقدية للجنة اعتماد جمعية نيو إنجلاند للمدارس والكليات NEASC'}
-                        ]
-                    },
-                    {
-                        title: 'تأهيل وتحديث مباني الحرم المدرسي من أجل تطوير البنية التحتية التعليمية وتأمين السلامة العامة',
-                        activities: [
-                            {id: 'activity-aa-4', text: 'تنفيذ أعمال صيانة شاملة ضمن مباني القسم الابتدائي والقسم المتوسط والإدارة'},
-                            {id: 'activity-aa-5', text: 'تنفيذ أعمال صيانة شاملة (ترميم ودهان وجلي بلاط) ضمن مباني القسم الابتدائي والقسم المتوسط والإدارة'}
-                        ]
-                    },
-                    {
-                        title: 'مواصلة تجهيز الفصول الدراسية لتعزيز التعليم الرقمي في المدرسة',
-                        activities: [
-                            {id: 'activity-aa-6', text: 'تجهيز فصلين دراسيين بأجهزة العرض الذكي والتفاعلي'},
-                            {id: 'activity-aa-7', text: 'تجهيز 6 فصول دراسية بأجهزة العرض الذكي والتفاعلي'}
-                        ]
-                    },
-                    {
-                        title: 'إنشاء وتجهيز فصول دراسية جديدة وإطلاق برامج تعليمية جديدة في معهد رفيق الحريري التقني',
-                        activities: [
-                            {id: 'activity-aa-8', text: 'إنشاء فصلين جديدين وتوفير التجهيزات اللوجستية والتقنية اللازمة'},
-                            {id: 'activity-aa-9', text: 'تطوير برامج تعليمية جديدة والتعليمية للتعليم التقني عبر إعداد مناهج الجديدة'},
-                            {id: 'activity-aa-10', text: 'الحصول على الترخيص من مديرية التعليم المهني والتقني في وزارة التربية والتعليم العالي'},
-                            {id: 'activity-aa-11', text: 'إطلاق البرامج الجديدة وفتح باب الانتساب'}
-                        ]
-                    },
-                    {
-                        title: 'إجراء حملة إعلامية وتشاركية لتعميم مبادئ التعليم المهني والتقني الخاص والتسويق لبرامج معهد رفيق الحريري التقني',
-                        activities: [
-                            {id: 'activity-aa-12', text: 'حملة إعلامية وتشاركية عبارة عن عدة منشورات على اللوحات الإعلانية وصفحات التواصل الاجتماعي'}
-                        ]
-                    },
-                    {
-                        title: 'التقديم للحصول على اعتماد برنامج البكالوريا الدولية للمرحلة الابتدائية',
-                        activities: [
-                            {id: 'activity-aa-13', text: 'تقديم طلب الترشيح للحصول على اعتماد برنامج البكالوريا الدولية للمرحلة الابتدائية IB PYP'},
-                            {id: 'activity-aa-14', text: 'عقد إجتماعات تنسيقية وورش عمل تدريبية لدمج معايير الـIB في التعليم الابتدائي PYP'}
-                        ]
-                    },
-                    {
-                        title: 'تجهيز مختبر للتعليم على فنون الموسيقى',
-                        activities: [
-                            {id: 'activity-aa-15', text: 'تجهيز المختبر بآلات موسيقية أساسية'},
-                            {id: 'activity-aa-16', text: 'توفير أجهزة صوت وتقنيات تسجيل رقمية'}
-                        ]
-                    },
-                    {
-                        title: 'إجراء حملة إعلامية وتشاركية لتسويق برامج الثانوية',
-                        activities: [
-                            {id: 'activity-aa-17', text: 'تطوير وتنفيذ حملة إعلامية وتشاركية حول المستوى التعليمي والبيئة التعلمية في الثانوية'},
-                            {id: 'activity-aa-18', text: 'تطوير وتنفيذ فيلم وثائقي'},
-                            {id: 'activity-aa-19', text: 'تأليف وتسجيل وتعميم نشيد خاص بالثانوية'}
-                        ]
-                    },
-                    {
-                        title: 'إنشاء منصة إلكترونية للثانوية لتحسين التواصل',
-                        activities: [
-                            {id: 'activity-aa-20', text: 'تجهيز المدرسة بنظام Eduware لتنظيم ومتابعة العملية التعليمية'},
-                            {id: 'activity-aa-21', text: 'تصميم وتطوير منصة إلكترونية متعددة المستخدمين تسمح بمتابعة العملية التعليمية والأنشطة اللامنهجية'}
-                        ]
-                    }
-                ]
-            },
-            // AD.B - المساعدة الاجتماعية والصحية والتعليمية
-            '7458b148-2dc6-4811-acd9-eea3ec5c04a0': {
-                name: 'AD.B - المساعدة الاجتماعية والصحية والتعليمية',
-                actions: [
-                    {
-                        title: 'القيام بحملة للتوعية والتشخيص والوقاية الصحية',
-                        activities: [
-                            {id: 'activity-ab-1', text: 'جلسات توعوية وأيام صحية في المركز وفي المجتمعات المحلية'}
-                        ]
-                    },
-                    {
-                        title: 'إجراء دورات تدريبية متخصصة للكادر الصحي والطبي',
-                        activities: [
-                            {id: 'activity-ab-2', text: 'دورات تدريبية بالاستعانة بخبراء طبيين'}
-                        ]
-                    },
-                    {
-                        title: 'إجراء حملة إلكترونية للمركز حول الخدمات وأفضل الممارسات',
-                        activities: [
-                            {id: 'activity-ab-3', text: 'حملة إلكترونية توعوية عبارة عن عدة منشورات على صفحات التواصل الاجتماعي على Facebook وInstagram'}
-                        ]
-                    },
-                    {
-                        title: 'توفير خدمة العيادات النقالة المجانية',
-                        activities: [
-                            {id: 'activity-ab-4', text: 'عيادة نقالة عبارة عن فريق متخصص جوال (طبيب صحة عامة وممرض/ة وفريق تطوعي)'},
-                            {id: 'activity-ab-5', text: 'زيارة مراكز في المجتمعات المحلية بحسب جدول زمني يحدّد أسبوعياً'}
-                        ]
-                    },
-                    {
-                        title: 'توسيع فريق الجهاز الطبي المتنقل وتوفير التجهيزات اللازمة',
-                        activities: [
-                            {id: 'activity-ab-6', text: 'تدريب 15 مسعف/ة جدد للانضمام إلى فريق عمل الجهاز عبر برامج تدريبية (إسعافات أولية، مستجيب أول)'},
-                            {id: 'activity-ab-7', text: 'توفير المعدات اللازمة والمستلزمات الطبية الأساسية'}
-                        ]
-                    },
-                    {
-                        title: 'تشغيل الجهاز الطبي المتنقل لنقل الحالات الباردة والحالات الطارئة ومواكبة الفعاليات',
-                        activities: [
-                            {id: 'activity-ab-8', text: 'توفير النقل الطبي المجاني عبر سيارات مخصّصة وفريق إسعافي مجهّز'},
-                            {id: 'activity-ab-9', text: 'تفعيل غرفة عمليات الجهاز الطبي المتنقل'},
-                            {id: 'activity-ab-10', text: 'عقد الشراكات وتقديم الدعم والتغطية الطبية في الفعاليات العامة وأنشطة المشروع'},
-                            {id: 'activity-ab-11', text: 'تأمين التجهيزات اللوجستية، وتوفير اللوازم الطبية والوقود والصيانة الدائمة لسيارات الإسعاف'}
-                        ]
-                    },
-                    {
-                        title: 'العمل على تحسين خدمات المركز ضمن معايير وزارة الصحة العامة',
-                        activities: [
-                            {id: 'activity-ab-12', text: 'تقييم العمليات التشغيلية للمركز ودراسة الاحتياجات'},
-                            {id: 'activity-ab-13', text: 'تطوير وتطبيق خطط وإجراءات تشغيلية تماشياً مع المعايير الوطنية لوزارة الصحة العامّة'}
-                        ]
-                    },
-                    {
-                        title: 'تأهيل وتجهيز مساحات المركز',
-                        activities: [
-                            {id: 'activity-ab-14', text: 'تنفيذ أعمال إنشائية لصيانة المساحات القائمة (15 غرفة وقاعة) ضمن نطاق المركز (348 متر مربع) تماشياً مع الخطط الموضوعة لرفع تصنيف المركز'},
-                            {id: 'activity-ab-15', text: 'أعمال الترميم والتأهيل الإنشائي والخارجي للمركز | دهان القناطر والجدران (535 متر مربع) ودهان خارجي (172 متر مربع) | معالجة الأجزاء التالفة وتأهيل المداخل والمحيط'},
-                            {id: 'activity-ab-16', text: 'أعمال الصيانة الداخلية | التجهيزات الكهربائية والتقنية | الحفاظ على الوظائف التشغيلية للأجهزة والأنظمة'}
-                        ]
-                    },
-                    {
-                        title: 'مواصلة توسيع مساحات المركز لتطوير الخدمات والآليات التدريبية والتشاركية',
-                        activities: [
-                            {id: 'activity-ab-17', text: 'المرحلة الثانية من أصل خمسة مراحل للأعمال الإنشائية'},
-                            {id: 'activity-ab-18', text: 'تأهيل مساحات إضافية ملاصقة للمركز (15 غرفة وقاعة)'},
-                            {id: 'activity-ab-19', text: 'أعمال الترميم والتأهيل الإنشائي والخارجي | إصلاح السقف والعقد الرملي | تنفيذ أعمال العزل ومعالجة الرطوبة | إعادة تأهيل الأرصفة والدرج والأرضيات | تسكير الفتحات الخارجية | ترميم الأحجار والمداخل'},
-                            {id: 'activity-ab-20', text: 'أعمال التشطيب الداخلي (730 متر مربع) | تأهيل الواجهة الخارجية (170 متر مربع) | التجهيزات التقنية والخدمية | تركيب الزجاج والأبواب | تجهيزات المطبخ والحمام | تمديدات الكهرباء والتكييف'},
-                            {id: 'activity-ab-21', text: 'تسوية الساحات الخارجية وتبليطها (1200 متر مربع) | صيانة التصوينة والمداخل لضمان الجهوزية التشغيلية الكاملة للمبنى'}
-                        ]
-                    },
-                    {
-                        title: 'تأمين المستلزمات الطبية واللوجستية لتوسيع الخدمات المقدمة للمرضى',
-                        activities: [
-                            {id: 'activity-ab-22', text: 'تأمين جهاز بصري رقمي Redsun Autolensmeter'}
-                        ]
-                    },
-                    {
-                        title: 'مواصلة تطوير نظام المعلوماتية والإنترنت لتنظيم عمليات المركز وجهازه المتنقل',
-                        activities: [
-                            {id: 'activity-ab-23', text: 'تطوير نظام المعلوماتية Meta soft لتنظيم العمليات الإدارية والمالية للمركز وجهازه المتنقل'},
-                            {id: 'activity-ab-24', text: 'تطوير نظام الإنترنت لتوسيع التغطية والسرعة'},
-                            {id: 'activity-ab-25', text: 'تركيب كاميرات للمراقبة'}
-                        ]
-                    },
-                    {
-                        title: 'متابعة تجهيز وتشغيل المركز كمساحة آمنة ومحفزة للتعلم والابتكار',
-                        activities: [
-                            {id: 'activity-ab-26', text: 'تأهيل مساحات المركز وتشغيلها لاستضافة الدورات والعمليات الإدارية'},
-                            {id: 'activity-ab-27', text: 'تجهيز المساحات بأدوات تعليمية تتماشى مع دورات المركز'}
-                        ]
-                    },
-                    {
-                        title: 'إجراء عدة دورات مهنية معجلة في المركز',
-                        activities: [
-                            {id: 'activity-ab-28', text: 'تنظيم 8 دورات مهنية معجلة تشمل تدريب نظري وتطبيقي'}
-                        ]
-                    },
-                    {
-                        title: 'متابعة تطوير وتجهيز وتشغيل أكاديمية سيسكو للذكاء الاصطناعي',
-                        activities: [
-                            {id: 'activity-ab-29', text: 'تأهيل مساحات المركز وتشغيلها لاستضافة الدورات والعمليات الإدارية'},
-                            {id: 'activity-ab-30', text: 'تطوير إطار عمل الأكاديمية ومجالات تخصصها'},
-                            {id: 'activity-ab-31', text: 'تطوير شعار خاص بالأكاديمية'},
-                            {id: 'activity-ab-32', text: 'توفير أدوات وتقنيات تعليمية حديثة بما يتماشى مع المعايير التربوية والتقنية'}
-                        ]
-                    },
-                    {
-                        title: 'إجراء عدة دورات تقنية معجلة في المركز',
-                        activities: [
-                            {id: 'activity-ab-33', text: 'تنظيم 5 دورات مهنية معجلة تشمل تدريب نظري وتطبيقي'}
-                        ]
-                    },
-                    {
-                        title: 'إجراء دورات تدريبية إضافية للمستفيدين من التدريب المهني والتقني',
-                        activities: [
-                            {id: 'activity-ab-34', text: 'تنظيم حفل تخرّج جامع لطلاب التدريب المهني والتقني في المركز وفتح باب التسجيل للدورات التدريبية الجديدة'},
-                            {id: 'activity-ab-35', text: 'تنظيم عدّة دورات تدريبية للمستفيدين من تدريبات المركز'}
-                        ]
-                    },
-                    {
-                        title: 'إقامة ورشة عمل حول أحدث آليات التدريب التقني',
-                        activities: [
-                            {id: 'activity-ab-36', text: 'تنظيم ورشة عمل تشاركية حول أحدث آليات التدريب التقني ومجالات تكنولوجيا المعلومات والشبكات الإلكترونية والذكاء الاصطناعي'}
-                        ]
-                    },
-                    {
-                        title: 'إجراء عدة دورات مهنية معجلة للمركز في المجتمعات المهمشة',
-                        activities: [
-                            {id: 'activity-ab-37', text: 'تنظيم 5 دورات تقنية معجلة في المجتمعات المهمشة'}
-                        ]
-                    },
-                    {
-                        title: 'إجراء عدة دورات تقنية معجلة لأكاديمية سيسكو للذكاء الاصطناعي في المجتمعات المهمشة',
-                        activities: [
-                            {id: 'activity-ab-38', text: 'تنظيم 4 دورات تقنية معجلة في المجتمعات المهمشة'}
-                        ]
-                    },
-                    {
-                        title: 'تنفيذ خطة عمل برنامج أناملنا',
-                        activities: [
-                            {id: 'activity-ab-39', text: 'تطوير العلامة التسويقية لبرنامج "أناملنا" تحاكي التراث الثقافي وتحسّن جودة المنتجات الحرفية وتحويلها إلى تصاميم للمشغل'},
-                            {id: 'activity-ab-40', text: 'تنفيذ خطة عمل الإنتاج المستدام باستخدام مواد وتقنيات إنتاجية تراعي المعايير البيئية'},
-                            {id: 'activity-ab-41', text: 'إشراك مجموعة من النساء في أنشطة برنامج أناملنا لزيادة الدخل بإشراف وتوجيه من المركز'}
-                        ]
-                    },
-                    {
-                        title: 'إجراء دورات تدريبية للنساء حول أساليب الخياطة والحياكة والتطريز',
-                        activities: [
-                            {id: 'activity-ab-42', text: 'تنظيم دورات تدريبية حول حياكة المكرمة وأساليب الخياطة المستدامة'}
-                        ]
-                    },
-                    {
-                        title: 'تسويق منتجات النساء المشاركات في التدريب عبر بناء الشراكات والمشاركة في المعارض',
-                        activities: [
-                            {id: 'activity-ab-43', text: 'تنظيم معرض متنقّل للمشغل'},
-                            {id: 'activity-ab-44', text: 'إشراك فريق المشغل في المعارض المتحركة والفعاليات الثقافية والبيئية'},
-                            {id: 'activity-ab-45', text: 'استدامة وتجديد الشراكات لزيادة وتوجيه إنتاج المشغل'},
-                            {id: 'activity-ab-46', text: 'تشغيل المعرض الدائم لبرنامج أناملنا لعرض وبيع المنتوجات'}
-                        ]
-                    },
-                    {
-                        title: 'متابعة تطوير التسويق الإلكتروني لمنتجات النساء المشاركات في التدريب',
-                        activities: [
-                            {id: 'activity-ab-47', text: 'استكمال حملة التسويق الإلكتروني للعلامة التجارية Brand Image لبرنامج أناملنا ولمنتجات المشغل على منصّتي إنستغرام وتيك توك'}
-                        ]
-                    },
-                    {
-                        title: 'تطوير نظام معلوماتية ومحاسبة لتنظيم العمليات الإدارية والتجارية للبرنامج',
-                        activities: [
-                            {id: 'activity-ab-48', text: 'تصميم نظام إلكتروني لإدارة بيانات برنامج أناملنا'}
-                        ]
-                    }
-                ]
-            },
-            // AD.C - أكاديمية الدولة الوطنية (Activities based on your provided data)
-            '63f1df7a-42b5-4062-950b-589c66584d23': {
-                name: 'AD.C - أكاديمية الدولة الوطنية',
-                actions: [
-                    {
-                        title: 'إجراء مقررات تعليمية ودورات تدريبية حول موضوعات متنوعة',
-                        activities: [
-                            {id: 'activity-ac-1', text: 'تنظيم مقرّر تعليمي حول الدولة ومنع التطرف العنيف'},
-                            {id: 'activity-ac-2', text: 'تنظيم دورة تدريبية حول الموطانة ومنع التطرف العنيف'},
-                            {id: 'activity-ac-3', text: 'تنظيم دورة تدريبية حول التربية على الدولة والتربية على الديمقراطية'}
-                        ]
-                    },
-                    {
-                        title: 'متابعة الآليات التفاعلية حول توثيق التجارب الوطنية في بناء الدولة باستخدام آليات الذكاء الاصطناعي',
-                        activities: [
-                            {id: 'activity-ac-4', text: 'إنجاز آليات توثيق التجارب الوطنية في بناء الدولة واستشراف المستقبل باستخدام آليات الذكاء الاصطناعي'},
-                            {id: 'activity-ac-5', text: 'تطوير أدوات ذكية وتفاعلية لعرض ومناقشة نتائج التوثيق في الجلسات التشاركية للأكاديمية'}
-                        ]
-                    },
-                    {
-                        title: 'إجراء ورش تشاركية',
-                        activities: [
-                            {id: 'activity-ac-6', text: 'تنظيم ورشة عمل تشاركية حول التربية على الدولة'},
-                            {id: 'activity-ac-7', text: 'تنظيم ورشة عمل تشاركية حول التربية على الديمقراطية'},
-                            {id: 'activity-ac-8', text: 'تنظيم ورشة عمل تشاركية حول المواطنة ومنع التطرف العنيف'}
-                        ]
-                    }
-                ]
-            },
-            // AD.D - منتدى شباب نهوض لبنان (Activities based on your provided data)
-            'cb9f2e6c-3823-49e1-aab1-973cbb80351f': {
-                name: 'AD.D - منتدى شباب نهوض لبنان',
-                actions: [
-                    {
-                        title: 'تطوير أدوات رقمية وتنظيم ورش عمل تشاركية للشباب حول التعامل مع الذكاء الاصطناعي',
-                        activities: [
-                            {id: 'activity-ad-1', text: 'إشراك الشباب في تنفيذ مشاريع للبحث والتطوير عبر الذكاء الاصطناعي ضمن أولويات المنتدى'},
-                            {id: 'activity-ad-2', text: 'تنظيم عدة ورش عمل للشباب حول التعامل مع الذكاء الاصطناعي'},
-                            {id: 'activity-ad-3', text: 'تصميم أدوات تفاعلية تساعد الشباب على فهم تطبيقات الذكاء الاصطناعي في البحث والتطوير وتوظيفها في المنتديات'}
-                        ]
-                    },
-                    {
-                        title: 'تنظيم ورش عمل تدريبية للشباب حول آليات العمل البحثية في مجالات التنمية المستدامة والإنذار المبكر',
-                        activities: [
-                            {id: 'activity-ad-4', text: 'تنفيذ 4 ورش عمل تدريبية وتفاعلية تُمكّن الشباب من استخدام أدوات البحث وتحليل البيانات ضمن مجالات إدارة البيانات التنموية Env Data Management'},
-                            {id: 'activity-ad-5', text: 'تنفيذ 4 ورش عمل تدريبية وتفاعلية تُمكّن الشباب من استخدام أدوات البحث وتحليل البيانات ضمن مجالات النيوجغرافيا وجمع البيانات الجماعية Neogeography'},
-                            {id: 'activity-ad-6', text: 'تنفيذ 4 ورش عمل تدريبية وتفاعلية تُمكّن الشباب من استخدام أدوات البحث وتحليل البيانات ضمن مجالات أنظمة الإنذار المبكر Early Warning Systems DRM TOOLS'}
-                        ]
-                    }
-                ]
-            },
-            // AD.E - منصة "إنمائية" (Activities based on your provided data)
-            'a96ae126-80b6-454f-bf0d-c14f95b06442': {
-                name: 'AD.E - منصة "إنمائية"',
-                actions: [
-                    {
-                        title: 'تطوير تطبيق الهاتف المحمول للمنصة',
-                        activities: [
-                            {id: 'activity-ae-1', text: 'تصميم وتطوير تطبيق مخصص للهواتف الذكية لأنظمة iOS وAndroid يعكس خدمات ومحتوى منصة "إنمائية"'},
-                            {id: 'activity-ae-2', text: 'توفير التطبيق عبر متجري App Store وGoogle Play'}
-                        ]
-                    },
-                    {
-                        title: 'تطوير صفحات متخصصة للمجالات القطاعية على المنصة',
-                        activities: [
-                            {id: 'activity-ae-3', text: 'إنشاء صفحات مخصصة داخل المنصة لكل قطاع تنموي رئيسي (التعليم، الصحة، البيئة، الاقتصاد)'},
-                            {id: 'activity-ae-4', text: 'تصنيف المحتوى القطاعي للمنصة ضمن الصفحات القطاعية على مقالات وتحليلات وبيانات ومؤشرات مرئية'}
-                        ]
-                    },
-                    {
-                        title: 'تطوير صفحة جديدة حول فرص العمل وفرص تمويل المبادرات الشبابية في مجالات التنمية',
-                        activities: [
-                            {id: 'activity-ae-5', text: 'إنشاء صفحة ضمن المنصة لنشر فرص العمل وفرص التدريب المتاحة للشباب في القطاعات التنموية محليًا وإقليميًا'}
-                        ]
-                    },
-                    {
-                        title: 'تطوير صفحة "القطاع بالأرقام" لإبراز بيانات وإحصاءات القطاعات',
-                        activities: [
-                            {id: 'activity-ae-6', text: 'تصميم صفحة تفاعلية ضمن المنصة بعنوان "القطاع بالأرقام" تتضمن عرضًا بصريًا مبسطًا ومحدثًا لبيانات وإحصاءات رسمية وغير رسمية'}
-                        ]
-                    },
-                    {
-                        title: 'تطوير غرفة دردشة تفاعلية للنقاشات القطاعية واستطلاع الرأي',
-                        activities: [
-                            {id: 'activity-ae-7', text: 'إنشاء غرفة دردشة رقمية تفاعلية ضمن المنصة مخصصة للنقاشات المفتوحة حول القضايا القطاعية'}
-                        ]
-                    },
-                    {
-                        title: 'تقويم الأيام العالمية لتسليط الضوء على المناسبات المرتبطة بالتنمية وقطاعات المنصة',
-                        activities: [
-                            {id: 'activity-ae-8', text: 'إعداد تقويم سنوي تفاعلي يُدرج الأيام العالمية ذات الصلة بالتنمية المستدامة وقطاعات المنصة'},
-                            {id: 'activity-ae-9', text: 'تخصيص محتوى رقمي في كل مناسبة (مقالات، حملات، مقابلات، إحصاءات، منشورات تفاعلية)'}
-                        ]
-                    },
-                    {
-                        title: 'تطبيق التحسينات لمحركات البحث SEO وتطوير أداة تصفح ذكية لتسهيل الوصول إلى المواضيع',
-                        activities: [
-                            {id: 'activity-ae-10', text: 'تحسين بنية المنصة ومحتواها لتكون متوافقة مع معايير محركات البحث (SEO)'},
-                            {id: 'activity-ae-11', text: 'تطوير أداة تصفح ذكية (Smart Navigator) تعتمد على التصنيف التلقائي والاقتراحات السياقية'}
-                        ]
-                    },
-                    {
-                        title: 'تطوير مساعد ذكي مخصص للتقارير للتفاعل مع محتوى التقارير المنفردة وتوفير إجابات وتحليلات مختصة',
-                        activities: [
-                            {id: 'activity-ae-12', text: 'تصميم مساعد ذكي تفاعلي داخل المنصة، يعتمد على الذكاء الاصطناعي، يوفر قراءة وفهم التقارير بشكل منفرد ويتيح للمستخدمين طرح أسئلة مباشرة والحصول على إجابات دقيقة وتحليلات متعمّقة'}
-                        ]
-                    },
-                    {
-                        title: 'تطوير مساعد البحث الشامل ليتيح للمستخدمين البحث عبر جميع التقارير المتوفرة على المنصة، ويجمع المعلومات من مختلف القطاعات وأنواع المحتوى',
-                        activities: [
-                            {id: 'activity-ae-13', text: 'تصميم وتطوير مساعد بحث ذكي لإجراء بحث شامل ودقيق في جميع التقارير والوثائق والمقالات المنشورة'}
-                        ]
-                    },
-                    {
-                        title: 'إطلاق روبوت دردشة لمساعدة المستخدمين وتوجيههم للمحتوى',
-                        activities: [
-                            {id: 'activity-ae-14', text: 'تطوير وإطلاق روبوت دردشة ذكي (Chatbot) مدمج في واجهة المنصة، يعمل بالذكاء الاصطناعي، ويقدّم إجابات فورية على أسئلة المستخدمين'}
-                        ]
-                    },
-                    {
-                        title: 'تطبيق خرائط معرفية لتتبع الكلمات المفتاحية لربط المواضيع التنموية والبيانات والجهات المعنية بصريًا',
-                        activities: [
-                            {id: 'activity-ae-15', text: 'تصميم وتفعيل خرائط معرفية تفاعلية Knowledge Graphs داخل المنصة تعتمد على الذكاء الاصطناعي لتحديد الكلمات المفتاحية والكيانات'}
-                        ]
-                    },
-                    {
-                        title: 'إصدار نشرة أسبوعية للمنصة تضم أحدث الأخبار والمحتوى',
-                        activities: [
-                            {id: 'activity-ae-16', text: 'إعداد وإطلاق نشرة إلكترونية أسبوعية Newsletter تصل إلى مشتركي المنصة عبر البريد الإلكتروني'}
-                        ]
-                    },
-                    {
-                        title: 'تطوير لوحة بيانات وتحليلات للمستخدمين والمحتوى',
-                        activities: [
-                            {id: 'activity-ae-17', text: 'تصميم وتفعيل لوحة تحكم تفاعلية (Dashboard) داخل المنصة تُظهر إحصاءات وبيانات لحظية حول أداء المحتوى وسلوك المستخدمين'}
-                        ]
-                    }
-                ]
-            }
-        };
-
-        // Program-Project relationship mapping
+        // Complete Program-Project relationship mapping based on provided data
         const programProjects = {
+            // PROG001: Rafic Hariri High School
             'PROG001': [
                 {id: 'PROG001-P01', text: 'PROG001-P01 - Rafic Hariri Technical Institute', subProgram: null},
                 {id: 'PROG001-P02', text: 'PROG001-P02 - RHHS Teachers & Staff Capacity Building', subProgram: null}
             ],
+            
+            // PROG002: Hajj Bahaa Hariri High School
             'PROG002': [
                 {id: 'PROG002-P01', text: 'PROG002-P01 - HBHS Teachers & Staff Capacity Building', subProgram: null},
                 {id: 'PROG002-P02', text: 'PROG002-P02 - IB PYP Accreditation', subProgram: null}
             ],
+            
+            // PROG010: School Network of Saida & Neighboring Towns
             'PROG010': [
                 {id: 'PROG010-P01', text: 'PROG010-P01 - Remedial Education Courses', subProgram: null},
                 {id: 'PROG010-P02', text: 'PROG010-P02 - Educational Conference of Saida & Neighbouring Towns', subProgram: null}
             ],
+            
+            // PROG019: National State Academy (with sub-programs)
             'PROG019': [
+                // Sub-program: PROG020 - National State University Academy
                 {id: 'PROG020-P01', text: 'PROG020-P01 - University Academy Legal Registration', subProgram: 'PROG020'},
+                
+                // Sub-program: PROG021 - National State Forum
                 {id: 'PROG021-P01', text: 'PROG021-P01 - Saida Discusses the Ministerial Statement', subProgram: 'PROG021'},
                 {id: 'PROG021-P02', text: 'PROG021-P02 - Readings in the Inaugural Speech', subProgram: 'PROG021'},
+                
+                // Sub-program: PROG022 - Prevention of Violent Extremism Program
                 {id: 'PROG022-P01', text: 'PROG022-P01 - Rafic Hariri Forum for PVE', subProgram: 'PROG022'},
                 {id: 'PROG022-P02', text: 'PROG022-P02 - Hariri Foundation Award for PVE', subProgram: 'PROG022'},
                 {id: 'PROG023-P03', text: 'PROG023-P03 - Early Warning Network for PVE - Saida', subProgram: 'PROG022'},
@@ -1098,13 +950,14 @@
             ]
         };
 
+        // Sub-program display names
         const subProgramDisplayNames = {
             'PROG020': 'National State University Academy',
             'PROG021': 'National State Forum',
             'PROG022': 'Prevention of Violent Extremism Program'
         };
 
-        // Initialize Select2 for all dropdowns
+        // Initialize the single select for programs
         $('#programs_select').select2({
             placeholder: 'Select a program...',
             allowClear: true,
@@ -1112,14 +965,15 @@
             minimumResultsForSearch: 10
         });
 
+        // Initialize projects select with empty placeholder
         $('#projects_select').select2({
-            placeholder: 'Select a program first to see available projects',
+            placeholder: 'Select a project...',
             allowClear: true,
             width: '100%',
             closeOnSelect: false,
             multiple: true
         });
-
+       // Initialize RP Components Select2
         $('#rp_component_id').select2({
             placeholder: 'Select a reporting component...',
             allowClear: true,
@@ -1127,29 +981,35 @@
             minimumResultsForSearch: 10
         });
 
-        $('#rp_activities_select').select2({
-            placeholder: 'Select a reporting component first',
-            allowClear: true,
-            width: '100%',
-            closeOnSelect: false,
-            multiple: true
-        });
 
+        // Initialize the custom multiple select for reporting activities
+       $('#rp_activities_select').select2({
+    placeholder: 'Select reporting activities...',
+    allowClear: true,
+    width: '100%',
+    closeOnSelect: false,
+    tags: false,
+    multiple: true
+});
+        
+        // Initialize the custom multiple select for focal points
         $('#focal_points_select').select2({
             placeholder: 'Select focal points...',
             allowClear: true,
             width: '100%',
             closeOnSelect: false,
+            tags: false,
             multiple: true
         });
-
-        // Function to load RP Activities based on selected component (GROUPED BY ACTIONS)
+// AJAX function to load RP Activities based on selected component
         function loadRPActivitiesByComponent(componentId) {
             const activitiesSelect = $('#rp_activities_select');
             
-            if (!componentId || !rpComponentsData[componentId]) {
+            if (!componentId) {
                 activitiesSelect.empty();
                 activitiesSelect.append('<option value="" disabled>Select a reporting component first</option>');
+                activitiesSelect.trigger('change');
+                
                 activitiesSelect.select2({
                     placeholder: 'Select a reporting component first',
                     allowClear: true,
@@ -1160,62 +1020,124 @@
                 return;
             }
             
-            const component = rpComponentsData[componentId];
+            // Show loading state
             activitiesSelect.empty();
+            activitiesSelect.append('<option value="">Loading activities...</option>');
+            activitiesSelect.prop('disabled', true);
+            activitiesSelect.trigger('change');
             
-            if (component.actions && component.actions.length > 0) {
-                component.actions.forEach(action => {
-                    // Create optgroup for each action (this will show as a disabled group header)
-                    const actionGroup = $('<optgroup>').attr('label', action.title);
+            // Get CSRF token
+            const csrfToken = $('meta[name="csrf-token"]').attr('content');
+            
+            // AJAX call to fetch activities
+            $.ajax({
+                url: '{{ route("activities.get-rp-activities") }}',
+                type: 'GET',
+                data: {
+                    component_id: componentId,
+                    _token: csrfToken
+                },
+                cache: false,
+                success: function(response) {
+                    console.log('AJAX Response:', response);
                     
-                    // Add each activity under this action
-                    if (action.activities && action.activities.length > 0) {
-                        action.activities.forEach(activity => {
-                            actionGroup.append($('<option>').val(activity.id).text(activity.text));
+                    activitiesSelect.empty();
+                    
+                    if (response.success && response.data && response.data.length > 0) {
+                        // Group activities by action
+                        const groupedActivities = {};
+                        
+                        response.data.forEach(activity => {
+                            const actionId = activity.rp_action_id || 'general';
+                            const actionName = activity.action_name || 'General Activities';
+                            
+                            if (!groupedActivities[actionId]) {
+                                groupedActivities[actionId] = {
+                                    name: actionName,
+                                    activities: []
+                                };
+                            }
+                            
+                            groupedActivities[actionId].activities.push({
+                                id: activity.rp_activities_id,
+                                text: activity.code + ' - ' + activity.name
+                            });
+                        });
+                        
+                        // Create optgroups for each action
+                        Object.keys(groupedActivities).forEach(actionId => {
+                            const group = groupedActivities[actionId];
+                            
+                            // Sort activities alphabetically
+                            group.activities.sort((a, b) => a.text.localeCompare(b.text));
+                            
+                            // Create optgroup for this action
+                            const actionGroup = $('<optgroup>').attr('label', group.name);
+                            group.activities.forEach(activity => {
+                                actionGroup.append($('<option>').val(activity.id).text(activity.text));
+                            });
+                            activitiesSelect.append(actionGroup);
+                        });
+                        
+                        // Re-initialize Select2 with new options
+                        activitiesSelect.select2({
+                            placeholder: 'Select reporting activities...',
+                            allowClear: true,
+                            width: '100%',
+                            closeOnSelect: false,
+                            multiple: true,
+                            dropdownAutoWidth: true
+                        });
+                        
+                    } else {
+                        console.log('No activities found for component');
+                        activitiesSelect.append('<option value="">No activities found for this component</option>');
+                        activitiesSelect.select2({
+                            placeholder: 'No activities available',
+                            allowClear: true,
+                            width: '100%',
+                            closeOnSelect: false,
+                            multiple: true
                         });
                     }
                     
-                    activitiesSelect.append(actionGroup);
-                });
-                
-                // Reinitialize Select2 with the new grouped options
-                activitiesSelect.select2({
-                    placeholder: 'Select reporting activities...',
-                    allowClear: true,
-                    width: '100%',
-                    closeOnSelect: false,
-                    multiple: true,
-                    templateResult: function(data) {
-                        // If it's an optgroup (disabled), return the text as a group header
-                        if (data.disabled) {
-                            return $('<span style="font-weight: 600; color: #6c757d;">').text(data.text);
-                        }
-                        return data.text;
-                    }
-                });
-            } else {
-                activitiesSelect.append('<option value="">No activities found for this component</option>');
-                activitiesSelect.select2({
-                    placeholder: 'No activities available',
-                    allowClear: true,
-                    width: '100%',
-                    closeOnSelect: false,
-                    multiple: true
-                });
-            }
-            
-            activitiesSelect.trigger('change');
+                    activitiesSelect.prop('disabled', false);
+                    activitiesSelect.trigger('change');
+                    
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX error:', xhr.responseText);
+                    
+                    activitiesSelect.empty();
+                    activitiesSelect.append('<option value="">Error loading activities. Please try again.</option>');
+                    activitiesSelect.prop('disabled', false);
+                    
+                    // Reinitialize Select2
+                    activitiesSelect.select2({
+                        placeholder: 'Error loading activities',
+                        allowClear: true,
+                        width: '100%',
+                        closeOnSelect: false,
+                        multiple: true
+                    });
+                    
+                    activitiesSelect.trigger('change');
+                }
+            });
         }
-
         // Function to update projects based on selected program
         function updateProjectsBasedOnProgram() {
             const selectedProgram = $('#programs_select').val();
             const projectsSelect = $('#projects_select');
             
+            // Clear current projects
             projectsSelect.empty();
             
             if (!selectedProgram) {
                 projectsSelect.append('<option value="">Select a program first to see available projects</option>');
+                projectsSelect.trigger('change');
+                
+                // Update Select2 to show placeholder properly
                 projectsSelect.select2({
                     placeholder: 'Select a program first to see available projects',
                     allowClear: true,
@@ -1226,11 +1148,13 @@
                 return;
             }
             
+            // Get projects for selected program
             const projects = programProjects[selectedProgram] || [];
             
             if (projects.length === 0) {
                 projectsSelect.append('<option value="">No projects available for selected program</option>');
             } else {
+                // Group projects by sub-program
                 const groupedProjects = {};
                 projects.forEach(project => {
                     const groupKey = project.subProgram || 'general';
@@ -1240,54 +1164,70 @@
                     groupedProjects[groupKey].push(project);
                 });
                 
+                // Create optgroups for better organization
+                
+                // First, add general projects (not under any sub-program)
                 if (groupedProjects['general'] && groupedProjects['general'].length > 0) {
+                    // Sort general projects alphabetically
+                    groupedProjects['general'].sort((a, b) => a.text.localeCompare(b.text));
+                    
+                    // Create optgroup for general projects
                     const generalGroup = $('<optgroup>').attr('label', 'Direct Projects');
-                    groupedProjects['general'].sort((a, b) => a.text.localeCompare(b.text))
-                        .forEach(project => {
-                            generalGroup.append($('<option>').val(project.id).text(project.text));
-                        });
+                    groupedProjects['general'].forEach(project => {
+                        generalGroup.append($('<option>').val(project.id).text(project.text));
+                    });
                     projectsSelect.append(generalGroup);
                 }
                 
+                // Add projects grouped by sub-program
                 Object.keys(groupedProjects).forEach(groupKey => {
                     if (groupKey !== 'general' && groupedProjects[groupKey].length > 0) {
                         const groupName = subProgramDisplayNames[groupKey] || groupKey;
+                        
+                        // Sort projects in this group alphabetically
+                        groupedProjects[groupKey].sort((a, b) => a.text.localeCompare(b.text));
+                        
+                        // Create optgroup for this sub-program
                         const subProgramGroup = $('<optgroup>').attr('label', groupName);
-                        groupedProjects[groupKey].sort((a, b) => a.text.localeCompare(b.text))
-                            .forEach(project => {
-                                subProgramGroup.append($('<option>').val(project.id).text(project.text));
-                            });
+                        groupedProjects[groupKey].forEach(project => {
+                            subProgramGroup.append($('<option>').val(project.id).text(project.text));
+                        });
                         projectsSelect.append(subProgramGroup);
                     }
                 });
             }
-            
+            // Add RP Components and Activities to Select2 validation
+        $('#rp_component_id, #rp_activities_select').on('change', function() {
+            if ($(this).val() && $(this).val().length > 0) {
+                $(this).removeClass('is-invalid');
+            }
+        });
+            // Re-initialize Select2 with proper configuration for optgroups
             projectsSelect.select2({
                 placeholder: 'Select projects...',
                 allowClear: true,
                 width: '100%',
                 closeOnSelect: false,
-                multiple: true
+                multiple: true,
+                templateResult: function(data) {
+                    // If it's an optgroup (no id), return the text
+                    if (!data.id) {
+                        return data.text;
+                    }
+                    return data.text;
+                },
+                templateSelection: function(data) {
+                    return data.text;
+                }
             });
             
             projectsSelect.trigger('change');
         }
 
-        // Event Listeners
+        // Update projects when program is selected
         $('#programs_select').on('change', updateProjectsBasedOnProgram);
-        $('#rp_component_id').on('change', function() {
-            loadRPActivitiesByComponent($(this).val());
-        });
 
-        // Load activities if component is already selected on page load
-        $(document).ready(function() {
-            const initialComponentId = $('#rp_component_id').val();
-            if (initialComponentId) {
-                loadRPActivitiesByComponent(initialComponentId);
-            }
-        });
-
-        // Form Validation
+        // Form validation
         const form = document.getElementById('activityForm');
         const submitBtn = document.getElementById('submitBtn');
         const resetBtn = document.getElementById('resetBtn');
@@ -1301,6 +1241,7 @@
                     submitBtn.classList.add('loading');
                     submitBtn.disabled = true;
                 }
+                
                 form.classList.add('was-validated');
             });
         }
@@ -1309,17 +1250,21 @@
             resetBtn.addEventListener('click', function() {
                 if (form) {
                     form.classList.remove('was-validated');
-                    form.querySelectorAll('.is-invalid').forEach(field => {
+                    const invalidFields = form.querySelectorAll('.is-invalid');
+                    invalidFields.forEach(field => {
                         field.classList.remove('is-invalid');
                     });
                 }
                 
-                // Reset all Select2 fields
-                $('#programs_select, #projects_select, #rp_component_id, #rp_activities_select, #focal_points_select')
-                    .val(null).trigger('change');
+                // Reset Select2 fields
+                $('#programs_select').val(null).trigger('change');
+                $('#projects_select').val(null).trigger('change');
+                $('#reporting_activities_select').val(null).trigger('change');
+                $('#focal_points_select').val(null).trigger('change');
                 
                 // Reset checkboxes
-                form.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+                checkboxes.forEach(checkbox => {
                     checkbox.checked = false;
                 });
                 
@@ -1327,10 +1272,11 @@
                 submitBtn.disabled = false;
             });
         }
-
+        
         // Real-time validation
         if (form) {
-            form.querySelectorAll('[required]').forEach(field => {
+            const requiredFields = form.querySelectorAll('[required]');
+            requiredFields.forEach(field => {
                 field.addEventListener('blur', validateField);
                 field.addEventListener('input', function() {
                     if (this.value.trim()) {
@@ -1339,37 +1285,37 @@
                 });
             });
         }
-
-        // Select2 validation
-        $('#programs_select, #projects_select, #rp_component_id, #rp_activities_select, #focal_points_select')
-            .on('change', function() {
-                if ($(this).val() && $(this).val().length > 0) {
-                    $(this).removeClass('is-invalid');
-                }
-            });
-
-        // Handle "None" checkbox logic
-        const noneCheckbox = document.getElementById('support_none');
-        const otherCheckboxes = document.querySelectorAll('input[name="operational_support[]"]:not(#support_none)');
         
-        if (noneCheckbox) {
-            noneCheckbox.addEventListener('change', function() {
-                if (this.checked) {
-                    otherCheckboxes.forEach(cb => {
-                        cb.checked = false;
-                    });
-                }
-            });
+        // Event listener for component change
+        $('#rp_component_id').on('change', function() {
+            const componentId = $(this).val();
+            console.log('Component changed to:', componentId);
+            loadRPActivitiesByComponent(componentId);
+        });
 
-            otherCheckboxes.forEach(cb => {
-                cb.addEventListener('change', function() {
-                    if (this.checked) {
-                        noneCheckbox.checked = false;
-                    }
-                });
+        // Load activities if component is already selected on page load
+        $(document).ready(function() {
+            // Store currently selected activities for reference
+            const selectedActivityIds = [];
+            $('#rp_activities_select option:selected').each(function() {
+                selectedActivityIds.push($(this).val());
             });
-        }
-
+            
+            if (selectedActivityIds.length > 0) {
+                console.log('Pre-selected activities:', selectedActivityIds);
+            }
+            
+            // Load activities if component is already selected
+            const initialComponentId = $('#rp_component_id').val();
+            if (initialComponentId) {
+                console.log('Loading activities for initial component:', initialComponentId);
+                // Small delay to ensure DOM is ready
+                setTimeout(() => {
+                    loadRPActivitiesByComponent(initialComponentId);
+                }, 300);
+            }
+        });
+        
         function validateField() {
             if (!this.value.trim()) {
                 this.classList.add('is-invalid');
@@ -1379,6 +1325,47 @@
                 return true;
             }
         }
+        
+        // Select2 validation
+        $('#programs_select, #projects_select, #reporting_activities_select, #focal_points_select').on('change', function() {
+            if ($(this).val() && $(this).val().length > 0) {
+                $(this).removeClass('is-invalid');
+            }
+        });
+        
+        // Checkbox validation
+        const checkboxes = document.querySelectorAll('input[name="operational_support[]"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                checkboxes.forEach(cb => {
+                    cb.classList.remove('is-invalid');
+                });
+            });
+        });
+
+        // Handle "None" checkbox logic
+        const noneCheckbox = document.getElementById('support_none');
+        if (noneCheckbox) {
+            noneCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    checkboxes.forEach(cb => {
+                        if (cb.id !== 'support_none') {
+                            cb.checked = false;
+                        }
+                    });
+                }
+            });
+
+            checkboxes.forEach(cb => {
+                if (cb.id !== 'support_none') {
+                    cb.addEventListener('change', function() {
+                        if (this.checked) {
+                            noneCheckbox.checked = false;
+                        }
+                    });
+                }
+            });
+        }
     });
-</script>
+</script> 
 @endsection
