@@ -171,23 +171,28 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
     /**
      * Apply program code mapping
      */
-    private function applyProgramMapping(array $hierarchy, int $rowNumber): array
-    {
-        $originalProgram = $hierarchy['program_code'];
+   /**
+ * Apply program code mapping
+ */
+private function applyProgramMapping(array $hierarchy, int $rowNumber): array
+{
+    $originalProgram = $hierarchy['program_code'];
+    
+    // Check if program needs mapping (C0, D0, E0 to A8, A9, A10)
+    if (isset($this->programMapping[$originalProgram])) {
+        $mappedProgram = $this->programMapping[$originalProgram];
+        Log::info("Row {$rowNumber}: Mapped program '{$originalProgram}' → '{$mappedProgram}'");
         
-        if (isset($this->programMapping[$originalProgram])) {
-            $mappedProgram = $this->programMapping[$originalProgram];
-            Log::info("Row {$rowNumber}: Mapped program '{$originalProgram}' → '{$mappedProgram}'");
-            
-            // Update the hierarchy with mapped program
-            $hierarchy['program_code'] = $mappedProgram;
-            $hierarchy['original_program'] = $originalProgram; 
-        } else {
-            Log::info("Row {$rowNumber}: No mapping found for program '{$originalProgram}'");
-        }
-        
-        return $hierarchy;
+        // Update the hierarchy with mapped program
+        $hierarchy['program_code'] = $mappedProgram;
+        $hierarchy['original_program'] = $originalProgram; 
+    } else {
+        // For programs like A4, no mapping needed
+        Log::info("Row {$rowNumber}: No mapping needed for program '{$originalProgram}'");
     }
+    
+    return $hierarchy;
+}
 
     /**
      * Debug: Show actual programs in database
@@ -236,33 +241,30 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
     /**
      * Parse action reference like "AD.A1.iv.1"
      */
-    private function parseActionReference(string $reference, int $rowNumber): ?array
+  /**
+ * Parse action reference like "AD.A1.iv.1"
+ */
+private function parseActionReference(string $reference, int $rowNumber): ?array
 {
     $reference = trim($reference);
-    Log::info("DEBUG Row {$rowNumber}: Parsing reference '{$reference}'");
-    
     $reference = preg_replace('/\s+/', '', $reference);
     
-   
+    // Pattern 1: AD.A1.iv.1 (AD.A1 to AD.A8, AD.B1 to AD.B3)
     if (preg_match('/^AD\.(A\d+|B\d+)\.([ivx]+)\.(\d+)$/i', $reference, $matches)) {
-        // Programs A1-A8, B1-B3 are in component AD.A or AD.B
         $program = $matches[1];
         $unit = $matches[2];
         $action = $matches[3];
         
-        // Determine which component based on program
         $component = str_starts_with($program, 'A') ? 'AD.A' : 'AD.B';
         
-        Log::info("DEBUG Row {$rowNumber}: Pattern 1 - C='{$component}', P='{$program}', U='{$unit}', A='{$action}'");
         return $this->buildHierarchyArray($component, $program, $unit, $action, $reference);
     }
     
-   
+    // Pattern 2: AD.C0.iv.1 (AD.C0, AD.D0, AD.E0)
     if (preg_match('/^AD\.(C0|D0|E0)\.([ivx]+)\.(\d+)$/i', $reference, $matches)) {
         $program = $matches[1]; 
         $unit = $matches[2];
         $action = $matches[3];
-        
         
         $componentMap = [
             'C0' => 'AD.C',
@@ -272,11 +274,67 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
         
         $component = $componentMap[$program];
         
-        Log::info("DEBUG Row {$rowNumber}: Pattern 2 - C='{$component}', P='{$program}', U='{$unit}', A='{$action}'");
         return $this->buildHierarchyArray($component, $program, $unit, $action, $reference);
     }
     
-    Log::error("Row {$rowNumber}: Cannot parse reference '{$reference}'");
+    // Pattern 3: AD.A.4.i.5 - FIXED: The "i" is the unit, not the action!
+    if (preg_match('/^AD\.(A|B|C|D|E)\.(\d+)\.([ivx]+)\.(\d+)$/i', $reference, $matches)) {
+        $programLetter = $matches[1]; // A, B, C, D, or E
+        $programNumber = $matches[2]; // The number after the letter (4 in AD.A.4.i.5)
+        $unit = $matches[3];  // Roman numeral (i in AD.A.4.i.5) - THIS IS THE UNIT!
+        $action = $matches[4]; // The actual action number (5 in AD.A.4.i.5)
+        
+        // Construct program code: A4 (not A1!)
+        $programCode = $programLetter . $programNumber;
+        
+        // Determine component based on program
+        $component = 'AD.' . $programLetter;
+        
+        Log::info("DEBUG Row {$rowNumber}: Pattern 3 - Reference '{$reference}' → C='{$component}', P='{$programCode}', U='{$unit}', A='{$action}'");
+        
+        return [
+            'component_code' => $component,
+            'program_code' => $programCode,
+            'unit_code' => strtoupper($unit), // Unit as uppercase roman
+            'unit_original' => $unit,
+            'action_code' => $action,
+            'original_reference' => $reference,
+            'original_program' => $programCode
+        ];
+    }
+    
+    // Pattern 4: AD.A.iv.1 (simplified version)
+    if (preg_match('/^AD\.(A|B|C|D|E)\.([ivx]+)\.(\d+)$/i', $reference, $matches)) {
+        $programLetter = $matches[1];
+        $unit = $matches[2];
+        $action = $matches[3];
+        
+        // For this pattern, we need to know what program number to use
+        // Since it's not specified, default to 1
+        $programCode = $programLetter . '1';
+        
+        $component = 'AD.' . $programLetter;
+        
+        return $this->buildHierarchyArray($component, $programCode, $unit, $action, $reference);
+    }
+    
+    // Pattern 5: AD.A4.i.5 (alternative format)
+    if (preg_match('/^AD\.(A\d+|B\d+|C0|D0|E0)\.([ivx]+)\.(\d+)$/i', $reference, $matches)) {
+        $program = $matches[1];
+        $unit = $matches[2];
+        $action = $matches[3];
+        
+        $component = str_starts_with($program, 'A') ? 'AD.A' : 
+                    (str_starts_with($program, 'B') ? 'AD.B' :
+                    (str_starts_with($program, 'C') ? 'AD.C' :
+                    (str_starts_with($program, 'D') ? 'AD.D' : 'AD.E')));
+        
+        return $this->buildHierarchyArray($component, $program, $unit, $action, $reference);
+    }
+    
+    $errorMsg = "Row {$rowNumber}: Cannot parse reference '{$reference}'";
+    $this->results['errors'][] = $errorMsg;
+    Log::warning($errorMsg);
     return null;
 }
 
