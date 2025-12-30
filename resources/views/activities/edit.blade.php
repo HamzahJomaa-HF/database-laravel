@@ -727,10 +727,8 @@
         // Update projects when program is selected
         $('#programs_select').on('change', updateProjectsBasedOnProgram);
 
-        // Pre-loaded RP activities data from PHP
-const rpActivitiesData = {!! $rpActivitiesJson !!};
-
-// Function to load RP Activities based on selected component
+                       // Function to load RP Activities based on selected component using AJAX
+               // Function to load RP Activities based on selected component using AJAX
 function loadRPActivitiesByComponent(componentId) {
     const activitiesSelect = $('#rp_activities_select');
     
@@ -751,85 +749,158 @@ function loadRPActivitiesByComponent(componentId) {
     
     // Clear current activities
     activitiesSelect.empty();
-    
-    // Get activities for selected component
-    const componentActivities = rpActivitiesData[componentId] || {};
-    
-    if (Object.keys(componentActivities).length === 0) {
-        activitiesSelect.append('<option value="">No activities found for this component</option>');
-        activitiesSelect.select2({
-            placeholder: 'No activities available',
-            allowClear: true,
-            width: '100%',
-            closeOnSelect: false,
-            multiple: true
-        });
-        return;
-    }
-    
-    // Create optgroups for each action
-    Object.keys(componentActivities).forEach(actionId => {
-        const actionGroup = componentActivities[actionId];
-        const optgroup = $('<optgroup>').attr('label', actionGroup.action_name);
-        
-        // Sort activities alphabetically
-        actionGroup.activities.sort((a, b) => a.full_name.localeCompare(b.full_name));
-        
-        actionGroup.activities.forEach(activity => {
-            optgroup.append(
-                $('<option>')
-                    .val(activity.rp_activities_id)
-                    .text(activity.full_name)
-            );
-        });
-        
-        activitiesSelect.append(optgroup);
-    });
-    
-    // Re-initialize Select2
-    activitiesSelect.select2({
-        placeholder: 'Select reporting activities...',
-        allowClear: true,
-        width: '100%',
-        closeOnSelect: false,
-        multiple: true,
-        dropdownAutoWidth: true
-    });
-    
-    // Select activities that are already associated
-    const selectedActivityIds = {!! json_encode($selectedRpActivities ?? []) !!};
-    if (selectedActivityIds.length > 0) {
-        activitiesSelect.val(selectedActivityIds).trigger('change');
-    }
-    
+    activitiesSelect.append('<option value="">Loading activities...</option>');
     activitiesSelect.trigger('change');
+    
+    console.log('Loading activities for component ID:', componentId);
+    
+    // CHANGE THIS LINE: Use the actions endpoint instead
+    $.ajax({
+        url: '{{ route("activities.get-rp-actions-with-activities") }}', // CHANGED
+        method: 'GET',
+        data: { component_id: componentId },
+        dataType: 'json',
+        beforeSend: function() {
+            console.log('Sending AJAX request to actions endpoint');
+        },
+        success: function(response) {
+            console.log('AJAX response received:', response);
+            
+            // Clear the loading message
+            activitiesSelect.empty();
+            
+            if (response.success && response.data && Array.isArray(response.data)) {
+                console.log('Found', response.data.length, 'actions with activities');
+                
+                if (response.data.length === 0) {
+                    activitiesSelect.append('<option value="">No activities found for this component</option>');
+                } else {
+                    // NEW: Process grouped data by actions
+                    response.data.forEach(action => {
+                        if (action.activities && action.activities.length > 0) {
+                            // Create optgroup for each action
+                            const optgroup = $('<optgroup>')
+                                .attr('label', action.action_code + ' - ' + action.action_name);
+                            
+                            // Sort activities within each action
+                            action.activities.sort((a, b) => {
+                                const codeA = a.code || '';
+                                const codeB = b.code || '';
+                                return codeA.localeCompare(codeB);
+                            });
+                            
+                            // Add each activity as an option
+                            action.activities.forEach(activity => {
+                                const activityText = activity.code + ' - ' + activity.name;
+                                console.log('Adding activity:', activity.rp_activities_id, activityText);
+                                
+                                optgroup.append(
+                                    $('<option>')
+                                        .val(activity.rp_activities_id)
+                                        .text(activityText)
+                                        .data('action_id', action.action_id)
+                                        .data('action_name', action.action_name)
+                                );
+                            });
+                            
+                            activitiesSelect.append(optgroup);
+                        }
+                    });
+                    
+                    // Re-initialize Select2
+                    activitiesSelect.select2({
+                        placeholder: 'Select reporting activities...',
+                        allowClear: true,
+                        width: '100%',
+                        closeOnSelect: false,
+                        multiple: true,
+                        dropdownAutoWidth: true
+                    });
+                    
+                    // Select activities that are already associated
+                    const selectedActivityIds = {!! json_encode($selectedRpActivities ?? []) !!};
+                    console.log('Selected activity IDs:', selectedActivityIds);
+                    
+                    if (selectedActivityIds.length > 0) {
+                        // Get all activity IDs from the response
+                        const allActivityIds = [];
+                        response.data.forEach(action => {
+                            if (action.activities) {
+                                action.activities.forEach(activity => {
+                                    allActivityIds.push(activity.rp_activities_id);
+                                });
+                            }
+                        });
+                        
+                        // Filter out any IDs that don't exist in the response
+                        const validIds = selectedActivityIds.filter(id => 
+                            allActivityIds.includes(id)
+                        );
+                        
+                        if (validIds.length > 0) {
+                            activitiesSelect.val(validIds).trigger('change');
+                            console.log('Selected', validIds.length, 'existing activities');
+                        }
+                    }
+                }
+            } else {
+                console.log('Response not successful or no data:', response);
+                activitiesSelect.append('<option value="">No activities found for this component</option>');
+            }
+            
+            activitiesSelect.select2({
+                placeholder: 'Select reporting activities...',
+                allowClear: true,
+                width: '100%',
+                closeOnSelect: false,
+                multiple: true
+            });
+            activitiesSelect.trigger('change');
+        },
+        error: function(xhr, status, error) {
+            console.error('AJAX error:', error);
+            activitiesSelect.empty();
+            activitiesSelect.append('<option value="">Error loading activities</option>');
+            activitiesSelect.select2({
+                placeholder: 'Error loading activities',
+                allowClear: true,
+                width: '100%',
+                closeOnSelect: false,
+                multiple: true
+            });
+            activitiesSelect.trigger('change');
+        }
+    });
 }
 
-// Event listener for component change
-$('#rp_component_id').on('change', function() {
-    const componentId = $(this).val();
-    console.log('Component changed to:', componentId);
-    loadRPActivitiesByComponent(componentId);
-});
+        // Event listener for component change
+        $('#rp_component_id').on('change', function() {
+            const componentId = $(this).val();
+            console.log('Component changed to:', componentId);
+            loadRPActivitiesByComponent(componentId);
+        });
 
-// Load activities on page load if component is already selected
-$(document).ready(function() {
-    const initialComponentId = $('#rp_component_id').val();
-    if (initialComponentId) {
-        console.log('Loading activities for initial component:', initialComponentId);
-        // Small delay to ensure DOM is ready
-        setTimeout(() => {
-            loadRPActivitiesByComponent(initialComponentId);
-        }, 300);
-    }
-});
+        // Load activities on page load if component is already selected
+        $(document).ready(function() {
+            const initialComponentId = $('#rp_component_id').val();
+            if (initialComponentId) {
+                console.log('Loading activities for initial component:', initialComponentId);
+                // Small delay to ensure DOM is ready
+                setTimeout(() => {
+                    loadRPActivitiesByComponent(initialComponentId);
+                }, 300);
+            }
+            
+            // Also load projects on page load
+            updateProjectsBasedOnProgram();
+        });
 
-        // Form validation
+              // Form validation - Check if elements exist first
         const form = document.getElementById('activityForm');
         const submitBtn = document.getElementById('submitBtn');
         const resetBtn = document.getElementById('resetBtn');
         
-        if (form) {
+        if (form && submitBtn) {
             form.addEventListener('submit', function(e) {
                 if (!form.checkValidity()) {
                     e.preventDefault();
@@ -853,8 +924,10 @@ $(document).ready(function() {
                     });
                 }
                 
-                submitBtn.classList.remove('loading');
-                submitBtn.disabled = false;
+                if (submitBtn) {
+                    submitBtn.classList.remove('loading');
+                    submitBtn.disabled = false;
+                }
             });
         }
         
