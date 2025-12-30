@@ -318,11 +318,7 @@
                                                    title="Edit">
                                                     <i class="bi bi-pencil"></i>
                                                 </a>
-                                                <a href="{{ route('activities.show', $activity->activity_id) }}" 
-                                                   class="btn btn-sm btn-outline-info"
-                                                   title="View">
-                                                    <i class="bi bi-eye"></i>
-                                                </a>
+                                               
                                                 <form method="POST" 
                                                       action="{{ route('activities.destroy', $activity->activity_id) }}" 
                                                       class="d-inline"
