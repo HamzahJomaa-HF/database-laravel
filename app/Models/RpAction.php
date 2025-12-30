@@ -17,6 +17,7 @@ class RpAction extends Model
 
     protected $fillable = [
         'rp_units_id',           
+        'rp_component_id', // ADD THIS - it's in your schema!
         'external_id',
         'name',
         'code',
@@ -34,19 +35,20 @@ class RpAction extends Model
     protected $dates = ['deleted_at'];
 
     /**
-     * CORRECTED Relationships - using ACTUAL column names from your schema
+     * Relationships
      */
     public function unit()
     {
-       
         return $this->belongsTo(RpUnit::class, 'rp_units_id', 'rp_units_id');
+    }
+
+    public function component()
+    {
+        return $this->belongsTo(RpComponent::class, 'rp_component_id', 'rp_components_id');
     }
 
     public function activities()
     {
-        
         return $this->hasMany(RpActivity::class, 'rp_actions_id', 'rp_actions_id');
     }
-
-   
 }

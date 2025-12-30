@@ -33,14 +33,17 @@ Route::get('/', function () {
 
 use App\Http\Controllers\API\ActivityController;
 
-// Activity Routes
-Route::get('/activities/edit', [ActivityController::class, 'edit'])->name('activities.edit');
-Route::get('/activities/get-rp-activities', [ActivityController::class, 'getRPActivities'])
-    ->name('activities.get-rp-activities');
-Route::post('/activities/{id}', [ActivityController::class, 'update'])->name('activities.update');
-Route::post('/activities', [ActivityController::class, 'store'])->name('activities.store');
+// routes/web.php
+
+Route::get('/activities', [ActivityController::class, 'index'])->name('activities.index');
 Route::get('/activities/create', [ActivityController::class, 'create'])->name('activities.create');
-Route::get('/activities', [ActivityController::class, 'index'])->name('activities.index');// =======================
+Route::post('/activities', [ActivityController::class, 'store'])->name('activities.store');
+Route::get('/activities/{activity}', [ActivityController::class, 'show'])->name('activities.show'); // Add this line
+Route::get('/activities/{activity}/edit', [ActivityController::class, 'edit'])->name('activities.edit');
+Route::put('/activities/{activity}', [ActivityController::class, 'update'])->name('activities.update');
+Route::delete('/activities/{activity}', [ActivityController::class, 'destroy'])->name('activities.destroy');
+Route::delete('/activities/bulk-destroy', [ActivityController::class, 'bulkDestroy'])->name('activities.bulk.destroy');
+Route::get('/activities/get-rp-activities', [ActivityController::class, 'getRpActivities'])->name('activities.get-rp-activities');
 // Reporting Routes Group
 // =======================
 Route::prefix('reporting')->name('reporting.')->group(function () {

@@ -16,7 +16,7 @@ class RpActivity extends Model
     public $incrementing = false;
 
     protected $fillable = [
-        'rp_actions_id',      // ← FIXED: was 'action_id'
+        'rp_actions_id',
         'external_id',
         'external_type',
         'name',
@@ -28,27 +28,32 @@ class RpActivity extends Model
 
     protected $casts = [
         'status' => 'string',
-        // REMOVE all date/budget casts - those fields don't exist!
     ];
 
     protected $dates = ['deleted_at'];
 
     /**
-     * CORRECTED Relationships
+     * Relationships
      */
     public function action()
     {
         return $this->belongsTo(RpAction::class, 'rp_actions_id', 'rp_actions_id');
     }
 
-    // CORRECT pivot relationships based on your schema:
+    // Add this method to get component through action
+    public function component()
+    {
+        return $this->action ? $this->action->component : null;
+    }
+
+    // Keep pivot relationships if needed
     public function indicators()
     {
         return $this->belongsToMany(
             RpIndicator::class, 
             'rp_activity_indicators', 
-            'rp_activities_id',  // Foreign key in pivot table
-            'rp_indicators_id'   // Related key in pivot table
+            'rp_activities_id',
+            'rp_indicators_id'
         )->withPivot('notes');
     }
 
@@ -57,8 +62,8 @@ class RpActivity extends Model
         return $this->belongsToMany(
             RpFocalpoint::class, 
             'rp_activity_focalpoints', 
-            'rp_activities_id',  // Foreign key in pivot table  
-            'rp_focalpoints_id'  // Related key in pivot table
+            'rp_activities_id',  
+            'rp_focalpoints_id'
         )->withPivot(['role', 'end_date']);
     }
 
@@ -67,44 +72,8 @@ class RpActivity extends Model
         return $this->belongsToMany(
             Activity::class,
             'rp_activity_mappings',
-            'rp_activities_id',  // Foreign key in pivot table
-            'activity_id'        // Related key in pivot table
+            'rp_activities_id',
+            'activity_id'
         );
     }
-    // You need these relationships to traverse the hierarchy!
-public function unit()
-{
-    return $this->hasOneThrough(
-        RpUnit::class,
-        RpAction::class,
-        'rp_actions_id', // Foreign key on actions table
-        'rp_units_id',   // Foreign key on units table
-        'rp_activities_id', // Local key on activities table
-        'rp_actions_id'    // Local key on actions table
-    );
-}
-
-public function program()
-{
-    return $this->hasOneThrough(
-        RpProgram::class,
-        RpAction::class,
-        'rp_actions_id', // Foreign key on actions table
-        'rp_programs_id', // Foreign key on programs table (via unit)
-        'rp_activities_id',
-        'rp_actions_id'
-    )->through('unit'); // Need to chain through unit
-}
-
-public function component()
-{
-    return $this->hasOneThrough(
-        RpComponent::class,
-        RpAction::class,
-        'rp_actions_id',
-        'rp_components_id',
-        'rp_activities_id',
-        'rp_actions_id'
-    )->through('unit.program'); // Chain through unit and program
-}
 }
