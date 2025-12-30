@@ -145,10 +145,80 @@ class ProgramSeeder extends Seeder
             $folderToIdMap[$programData['folder_name']] = $program->program_id;
         }
 
-        // =============================================
-        // SECOND SET: Detailed/Child Programs (29 programs)
+         // =============================================
+        // SECOND SET: Detailed/Child Programs (44 programs)
         // =============================================
         $detailedPrograms = [
+            [
+                'name' => 'Rafic Hariri High School',
+                'folder_name' => 'PROG001',
+                'type' => 'Program',
+                'program_type' => 'Center Program',
+                'parent_folder' => 'CENT001',
+            ],
+            [
+                'name' => 'Hajj Bahaa Hariri High School',
+                'folder_name' => 'PROG002',
+                'type' => 'Program',
+                'program_type' => 'Center Program',
+                'parent_folder' => 'CENT002',
+                
+            ],
+            [
+                'name' => 'Hariri Social & Medical Center',
+                'folder_name' => 'PROG003',
+                'type' => 'Program',
+                'program_type' => 'Center Program',
+                'parent_folder' => 'CENT003',
+                
+            ],
+            [
+                'name' => 'Mobile Medical Unit',
+                'folder_name' => 'PROG004',
+                'type' => 'Program',
+                'program_type' => 'Center Program',
+                'parent_folder' => 'CENT004',
+            ],
+            [
+                'name' => 'Community Outreach & Support Office',
+                'folder_name' => 'PROG005',
+                'type' => 'Program',
+                'program_type' => 'Center Program',
+                'parent_folder' => 'CENT005',
+                
+            ],
+            [
+                'name' => 'Local Community Centers (Ente b Aman)',
+                'folder_name' => 'PROG006',
+                'type' => 'Program',
+                'program_type' => 'Center Program',
+                'parent_folder' => 'CENT006',
+                
+            ],
+            [
+                'name' => 'Vocational & Technical Training Center for Youth',
+                'folder_name' => 'PROG007',
+                'type' => 'Program',
+                'program_type' => 'Center Program',
+                'parent_folder' => 'CENT007',
+               
+            ],
+            [
+                'name' => 'Cisco Academy for Digital Skills & Artificial Intelligence',
+                'folder_name' => 'PROG008',
+                'type' => 'Program',
+                'program_type' => 'Center Program',
+                'parent_folder' => 'CENT008',
+                
+            ],
+            [
+                'name' => 'Anamilouna - Women Empowerment Center',
+                'folder_name' => 'PROG009',
+                'type' => 'Program',
+                'program_type' => 'Center Program',
+                'parent_folder' => 'CENT009',
+               
+            ],
           
             
             // Child programs of LPROG001
