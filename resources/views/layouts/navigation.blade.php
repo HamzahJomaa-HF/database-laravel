@@ -159,17 +159,13 @@
                 </span>
                 <i class="bi bi-chevron-down collapse-icon"></i>
             </a>
-            <div class="collapse" id="activityDirectoryCollapse">
+            <div class="collapse {{ request()->is('activities*') ? 'show' : '' }}" id="activityDirectoryCollapse">
                 <ul class="nav flex-column sub-menu ms-4">
                     {{-- Activity Management --}}
                     <li class="nav-item">
-                        <a class="nav-link" href="#">
+                        <a class="nav-link {{ request()->routeIs('activities.index') ? 'active' : '' }}" 
+                           href="{{ route('activities.index') }}">
                             <i class="bi bi-list-ul me-2"></i> All Activities
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="bi bi-plus-circle me-2"></i> Add New Activity
                         </a>
                     </li>
                     <li class="nav-item">

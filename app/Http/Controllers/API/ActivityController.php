@@ -145,34 +145,55 @@ class ActivityController extends Controller
     /**
      * Show the form for editing the specified activity.
      */
-    public function edit($id)
-    {
-        $activity = Activity::findOrFail($id);
-        
-        // Get RP Components for dropdown (limit to 5 as requested in first code)
-        $rpComponents = RpComponent::whereNull('deleted_at')
-            ->orderBy('code')
-            ->limit(5)
-            ->get(['rp_components_id', 'code', 'name']);
-        
-        // Get selected RP activities if any
-        $selectedRpActivities = json_decode($activity->rp_activities ?? '[]', true);
-        
-        // Initialize selected component
-        $selectedComponent = null;
-        
-        // Try to find the component from reporting activities or existing rp_component_id
-        if (!empty($activity->rp_component_id)) {
-            $selectedComponent = RpComponent::where('rp_components_id', $activity->rp_component_id)->first();
-        }
-        
-        return view('activities.edit', compact(
-            'activity', 
-            'rpComponents', 
-            'selectedRpActivities',
-            'selectedComponent'
-        ));
+    /**
+ * Show the form for editing the specified activity.
+ */
+public function edit($id)
+{
+    $activity = Activity::findOrFail($id);
+    
+    // Get RP Components for dropdown (limit to 5 as requested in first code)
+    $rpComponents = RpComponent::whereNull('deleted_at')
+        ->orderBy('code')
+        ->limit(5)
+        ->get(['rp_components_id', 'code', 'name']);
+    
+    // Get selected RP activities if any
+    $selectedRpActivities = json_decode($activity->rp_activities ?? '[]', true);
+    
+    // Initialize selected component
+    $selectedComponent = null;
+    
+    // Try to find the component from reporting activities or existing rp_component_id
+    if (!empty($activity->rp_component_id)) {
+        $selectedComponent = RpComponent::where('rp_components_id', $activity->rp_component_id)->first();
     }
+    
+    // NEW: Get all programs from database
+    $programs = \App\Models\Program::orderBy('name')->get(['program_id', 'name', 'external_id']);
+    
+    // NEW: Get projects related to selected program (if any)
+   // Get projects related to selected program (if any)
+$projects = collect([]);
+if ($activity->program) {
+    // Find program by external_id (assuming program field stores external_id)
+    $program = \App\Models\Program::where('external_id', $activity->program)->first();
+    if ($program) {
+        $projects = \App\Models\Project::where('program_id', $program->program_id)
+            ->orderBy('name')
+            ->get(['project_id', 'name', 'external_id', 'program_id']);
+    }
+}
+    
+    return view('activities.edit', compact(
+        'activity', 
+        'rpComponents', 
+        'selectedRpActivities',
+        'selectedComponent',
+        'programs', // NEW
+        'projects' // NEW
+    ));
+}
 
     /**
      * Update the specified activity in storage.
@@ -332,7 +353,70 @@ class ActivityController extends Controller
         ], 500);
     }
 }
-
+/**
+ * Get Projects by Program ID (AJAX endpoint)
+ */
+/**
+ * Get Projects by Program ID (AJAX endpoint)
+ */
+public function getProjectsByProgram(Request $request)
+{
+    try {
+        \Log::info('getProjectsByProgram called', $request->all());
+        
+        // Validate request
+        $request->validate([
+            'program_id' => 'required|uuid',
+            'program_external_id' => 'required|string'
+        ]);
+        
+        $programId = $request->program_id;
+        $programExternalId = $request->program_external_id;
+        
+        \Log::info('Loading projects', [
+            'program_id' => $programId,
+            'program_external_id' => $programExternalId
+        ]);
+        
+        // Get projects with program type using eager loading
+        $projects = \App\Models\Project::with('program') // Load the program relationship
+            ->where('program_id', $programId)
+            ->orderBy('name')
+            ->get()
+            ->map(function($project) {
+                return [
+                    'project_id' => $project->project_id,
+                    'name' => $project->name,
+                    'external_id' => $project->external_id,
+                    'project_group' => $project->project_group,
+                    'program_type' => $project->program ? $project->program->program_type : 'General'
+                ];
+            });
+        
+        \Log::info('Projects found: ' . $projects->count());
+        
+        return response()->json([
+            'success' => true,
+            'program_id' => $programId,
+            'program_external_id' => $programExternalId,
+            'projects' => $projects,
+            'count' => $projects->count()
+        ]);
+        
+    } catch (\Exception $e) {
+        \Log::error('Error in getProjectsByProgram', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+            'request' => $request->all()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Error: ' . $e->getMessage(),
+            'debug' => $request->all()
+        ], 500);
+    }
+}
     /**
      * Get RP Actions grouped by Component ID
      * Returns actions with their activities as sub-items

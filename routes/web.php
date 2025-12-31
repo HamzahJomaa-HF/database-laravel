@@ -42,6 +42,9 @@ Route::get('/activities/get-rp-activities', [ActivityController::class, 'getRPAc
 // Add this line with your other specific routes
 Route::get('/activities/rp-actions', [ActivityController::class, 'getRPActionsWithActivities'])
      ->name('activities.get-rp-actions-with-activities');
+     // Add this route
+Route::get('/activities/get-projects-by-program', [ActivityController::class, 'getProjectsByProgram'])
+    ->name('activities.get-projects-by-program');
 Route::get('/activities/{activity}', [ActivityController::class, 'show'])->name('activities.show');
 Route::get('/activities/{activity}/edit', [ActivityController::class, 'edit'])->name('activities.edit');
 Route::put('/activities/{activity}', [ActivityController::class, 'update'])->name('activities.update');
