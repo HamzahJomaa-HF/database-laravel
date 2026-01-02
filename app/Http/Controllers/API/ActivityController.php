@@ -90,8 +90,8 @@ class ActivityController extends Controller
     {
         // Validate the request
         $validated = $request->validate([
-            'activity_title_en' => 'required|string|max:255',
-            'activity_title_ar' => 'nullable|string|max:255',
+            'activity_title_en' => 'required_without:activity_title_ar|string|max:255',
+            'activity_title_ar' => 'required_without:activity_title_en|string|max:255',
             'activity_type' => 'required|string|max:100',
             'program' => 'required|string|max:50',
             'projects' => 'nullable|array',
