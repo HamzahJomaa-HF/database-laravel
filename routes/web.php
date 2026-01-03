@@ -41,7 +41,7 @@ Route::prefix('activities')->name('activities.')->group(function () {
     | Collection Routes
     |--------------------------------------------------------------
     */
-    Route::get('/', [ActivityController::class, 'index'])
+    Route::get('/', [WebActivityController::class, 'index'])
         ->name('index');
 
     Route::get('/create', [ActivityController::class, 'create'])
