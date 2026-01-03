@@ -31,8 +31,7 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-use App\Http\Controllers\API\ActivityController;
-use App\Http\Controllers\ActivityController as WebActivityController;
+use App\Http\Controllers\ActivityController;
 
 Route::prefix('activities')->name('activities.')->group(function () {
 
@@ -41,7 +40,7 @@ Route::prefix('activities')->name('activities.')->group(function () {
     | Collection Routes
     |--------------------------------------------------------------
     */
-    Route::get('/', [WebActivityController::class, 'index'])
+    Route::get('/', [ActivityController::class, 'index'])
         ->name('index');
 
     Route::get('/create', [ActivityController::class, 'create'])
