@@ -172,7 +172,7 @@
                                                 <option value="{{ $program->external_id }}" 
                                                         {{ old('program', $activity->program) == $program->external_id ? 'selected' : '' }}
                                                         data-program-id="{{ $program->program_id }}">
-                                                    {{ $program->external_id }} - {{ $program->name }}
+                                                    {{ $program->name }}
                                                 </option>
                                             @endforeach
                                         </select>
@@ -439,65 +439,55 @@
                                     <div class="col-md-12">
                                         <div class="form-group">
                                             <label class="form-label fw-semibold mb-2 d-block">Select Required Support</label>
+
                                             @php
-                                                $operationalSupport = json_decode($activity->operational_support ?? '[]', true) ?: [];
+                                                // Allowed keys (preferred: from config)
+                                                $allowedSupports = config('operational_support', [
+                                                    'logistics',
+                                                    'media',
+                                                    'public_relations',
+                                                    'none',
+                                                ]);
+
+                                                // If you cast operational_support as array in the model, this will already be an array.
+                                                // If it's still stored as JSON string, decode it.
+                                                $operationalSupport = $activity->operational_support;
+
+                                                if (is_string($operationalSupport)) {
+                                                    $operationalSupport = json_decode($operationalSupport, true);
+                                                }
+
+                                                $operationalSupport = is_array($operationalSupport) ? $operationalSupport : [];
+
+                                                // Labels for display
+                                                $labels = [
+                                                    'logistics' => 'Logistics',
+                                                    'media' => 'Media',
+                                                    'public_relations' => 'Public Relations',
+                                                    'none' => 'None',
+                                                ];
                                             @endphp
+
                                             <div class="row">
-                                                <div class="col-md-6 col-lg-3 mb-2">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input @error('operational_support') is-invalid @enderror" 
-                                                               type="checkbox" 
-                                                               name="operational_support[]" 
-                                                               id="support_logistics" 
-                                                               value="Logistics"
-                                                               {{ in_array('Logistics', $operationalSupport) ? 'checked' : '' }}>
-                                                        <label class="form-check-label" for="support_logistics">
-                                                            Logistics
-                                                        </label>
+                                                @foreach($allowedSupports as $key)
+                                                    <div class="col-md-6 col-lg-3 mb-2">
+                                                        <div class="form-check">
+                                                            <input
+                                                                class="form-check-input @error('operational_support') is-invalid @enderror @error("operational_support.$key") is-invalid @enderror"
+                                                                type="checkbox"
+                                                                name="operational_support[{{ $key }}]"
+                                                                id="support_{{ $key }}"
+                                                                value="1"
+                                                                {{ !empty($operationalSupport[$key]) ? 'checked' : '' }}
+                                                            >
+                                                            <label class="form-check-label" for="support_{{ $key }}">
+                                                                {{ $labels[$key] ?? ucfirst(str_replace('_', ' ', $key)) }}
+                                                            </label>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div class="col-md-6 col-lg-3 mb-2">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input @error('operational_support') is-invalid @enderror" 
-                                                               type="checkbox" 
-                                                               name="operational_support[]" 
-                                                               id="support_media" 
-                                                               value="Media"
-                                                               {{ in_array('Media', $operationalSupport) ? 'checked' : '' }}>
-                                                        <label class="form-check-label" for="support_media">
-                                                            Media
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-6 col-lg-3 mb-2">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input @error('operational_support') is-invalid @enderror" 
-                                                               type="checkbox" 
-                                                               name="operational_support[]" 
-                                                               id="support_pr" 
-                                                               value="Public Relations"
-                                                               {{ in_array('Public Relations', $operationalSupport) ? 'checked' : '' }}>
-                                                        <label class="form-check-label" for="support_pr">
-                                                            Public Relations
-                                                        </label>
-                                                    </div>
-                                                </div>
+                                                @endforeach
                                             </div>
-                                            <div class="row mt-2">
-                                                <div class="col-md-6 col-lg-3 mb-2">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input @error('operational_support') is-invalid @enderror" 
-                                                               type="checkbox" 
-                                                               name="operational_support[]" 
-                                                               id="support_none" 
-                                                               value="None"
-                                                               {{ in_array('None', $operationalSupport) ? 'checked' : '' }}>
-                                                        <label class="form-check-label" for="support_none">
-                                                            None
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </div>
+
                                             @error('operational_support')
                                                 <div class="invalid-feedback d-block">{{ $message }}</div>
                                             @enderror
@@ -505,6 +495,7 @@
                                                 <div class="invalid-feedback d-block">{{ $message }}</div>
                                             @enderror
                                         </div>
+
                                     </div>
                                 </div>
                             </div>
@@ -590,6 +581,7 @@
                     closeOnSelect: false,
                     multiple: true
                 });
+
                 return;
             }
             
@@ -603,8 +595,7 @@
                 url: '{{ route("activities.get-projects-by-program") }}',
                 method: 'GET',
                 data: { 
-                    program_id: programId,
-                    program_external_id: programExternalId 
+                    program_id: programId
                 },
                 dataType: 'json',
                 headers: {
@@ -701,7 +692,6 @@
             const selectedOption = $(this).find('option:selected');
             const programId = selectedOption.data('program-id');
             const programExternalId = selectedOption.val();
-            
             loadProjectsByProgram(programId, programExternalId);
         });
 

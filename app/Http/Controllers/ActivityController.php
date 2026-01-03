@@ -11,6 +11,8 @@ use App\Models\RpAction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Models\Program;
+use App\Models\Project;
 
 class ActivityController extends Controller
 {
@@ -174,16 +176,16 @@ class ActivityController extends Controller
         }
 
         // NEW: Get all programs from database
-        $programs = \App\Models\Program::orderBy('name')->get(['program_id', 'name', 'external_id']);
+        $programs = Program::whereIn('program_type', ['Center', 'Local Program/Network', 'Flagship'])->orderBy('name')->get(['program_id', 'name', 'external_id']);
 
         // NEW: Get projects related to selected program (if any)
         // Get projects related to selected program (if any)
         $projects = collect([]);
         if ($activity->program) {
             // Find program by external_id (assuming program field stores external_id)
-            $program = \App\Models\Program::where('external_id', $activity->program)->first();
+            $program = Program::where('external_id', $activity->program)->first();
             if ($program) {
-                $projects = \App\Models\Project::where('program_id', $program->program_id)
+                $projects = Project::where('program_id', $program->program_id)
                     ->orderBy('name')
                     ->get(['project_id', 'name', 'external_id', 'program_id']);
             }
@@ -365,43 +367,27 @@ class ActivityController extends Controller
     public function getProjectsByProgram(Request $request)
     {
         try {
+
             Log::info('getProjectsByProgram called', $request->all());
 
             // Validate request
             $request->validate([
                 'program_id' => 'required|uuid',
-                'program_external_id' => 'required|string'
             ]);
 
             $programId = $request->program_id;
-            $programExternalId = $request->program_external_id;
 
-            Log::info('Loading projects', [
-                'program_id' => $programId,
-                'program_external_id' => $programExternalId
-            ]);
-
-            // Get projects with program type using eager loading
-            $projects = \App\Models\Project::with('program') // Load the program relationship
-                ->where('program_id', $programId)
+            $projects = Project::with('program')
+                ->whereHas('program', function ($query) use ($programId) {
+                    $query->where('parent_program_id', $programId);
+                })
                 ->orderBy('name')
-                ->get()
-                ->map(function ($project) {
-                    return [
-                        'project_id' => $project->project_id,
-                        'name' => $project->name,
-                        'external_id' => $project->external_id,
-                        'project_group' => $project->project_group,
-                        'program_type' => $project->program ? $project->program->program_type : 'General'
-                    ];
-                });
+                ->get();
 
-            Log::info('Projects found: ' . $projects->count());
 
             return response()->json([
                 'success' => true,
                 'program_id' => $programId,
-                'program_external_id' => $programExternalId,
                 'projects' => $projects,
                 'count' => $projects->count()
             ]);
