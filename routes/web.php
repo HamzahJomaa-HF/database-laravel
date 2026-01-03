@@ -32,24 +32,73 @@ Route::get('/', function () {
 });
 
 use App\Http\Controllers\API\ActivityController;
+use App\Http\Controllers\ActivityController as WebActivityController;
 
-// SPECIFIC ROUTES FIRST
-Route::get('/activities', [ActivityController::class, 'index'])->name('activities.index');
-Route::get('/activities/create', [ActivityController::class, 'create'])->name('activities.create');
-Route::post('/activities', [ActivityController::class, 'store'])->name('activities.store');
-Route::delete('/activities/bulk-destroy', [ActivityController::class, 'bulkDestroy'])->name('activities.bulk.destroy');
-Route::get('/activities/get-rp-activities', [ActivityController::class, 'getRPActivities'])->name('activities.get-rp-activities');
-// Add this line with your other specific routes
-Route::get('/activities/rp-actions', [ActivityController::class, 'getRPActionsWithActivities'])
-     ->name('activities.get-rp-actions-with-activities');
-     // Add this route
-Route::get('/activities/get-projects-by-program', [ActivityController::class, 'getProjectsByProgram'])
-    ->name('activities.get-projects-by-program');
-Route::get('/activities/{activity}', [ActivityController::class, 'show'])->name('activities.show');
-Route::get('/activities/{activity}/edit', [ActivityController::class, 'edit'])->name('activities.edit');
-Route::put('/activities/{activity}', [ActivityController::class, 'update'])->name('activities.update');
-Route::delete('/activities/{activity}', [ActivityController::class, 'destroy'])->name('activities.destroy');
-//                                                       
+Route::prefix('activities')->name('activities.')->group(function () {
+
+    /*
+    |--------------------------------------------------------------
+    | Collection Routes
+    |--------------------------------------------------------------
+    */
+    Route::get('/', [ActivityController::class, 'index'])
+        ->name('index');
+
+    Route::get('/create', [ActivityController::class, 'create'])
+        ->name('create');
+
+    Route::post('/', [ActivityController::class, 'store'])
+        ->name('store');
+
+    Route::delete('/bulk-destroy', [ActivityController::class, 'bulkDestroy'])
+        ->name('bulk.destroy');
+
+    /*
+    |--------------------------------------------------------------
+    | Helper / AJAX Routes
+    |--------------------------------------------------------------
+    */
+    Route::get('/get-rp-activities', [ActivityController::class, 'getRPActivities'])
+        ->name('get-rp-activities');
+
+    Route::get('/rp-actions', [ActivityController::class, 'getRPActionsWithActivities'])
+        ->name('get-rp-actions-with-activities');
+
+    Route::get('/get-projects-by-program', [ActivityController::class, 'getProjectsByProgram'])
+        ->name('get-projects-by-program');
+
+    /*
+    |--------------------------------------------------------------
+    | Child Activities (Nested under Parent Activity)
+    |--------------------------------------------------------------
+    */
+    Route::prefix('{parentActivity}/children')->name('children.')->group(function () {
+
+        Route::get('/', [ActivityController::class, 'indexChildren'])
+            ->name('index');
+
+        Route::get('/create', [ActivityController::class, 'createChild'])
+            ->name('create');
+
+        Route::post('/', [ActivityController::class, 'storeChild'])
+            ->name('store');
+    });
+
+    /*
+    |--------------------------------------------------------------
+    | Single Activity Routes (MUST BE LAST)
+    |--------------------------------------------------------------
+    */
+    Route::get('/{activity}', [ActivityController::class, 'edit'])
+        ->name('edit');
+
+    Route::put('/{activity}', [ActivityController::class, 'update'])
+        ->name('update');
+
+    Route::delete('/{activity}', [ActivityController::class, 'destroy'])
+        ->name('destroy');
+});
+
 // =======================
 Route::prefix('reporting')->name('reporting.')->group(function () {
 

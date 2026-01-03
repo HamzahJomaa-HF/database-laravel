@@ -38,11 +38,12 @@ Route::put('/users/{id}', [UserController::class, 'update']);
 Route::delete('/users/{id}', [UserController::class, 'destroy']);
 
 // Activities
-Route::get('/activities', [ActivityController::class, 'index']);
-Route::post('/activities', [ActivityController::class, 'store']);
-Route::get('/activities/{id}', [ActivityController::class, 'show']);
-Route::put('/activities/{id}', [ActivityController::class, 'update']);
-Route::delete('/activities/{id}', [ActivityController::class, 'destroy']);
+Route::get('api/activities', [ActivityController::class, 'index']);
+Route::post('api/activities', [ActivityController::class, 'store']);
+Route::get('api/activities/{id}', [ActivityController::class, 'show']);
+Route::put('api/activities/{id}', [ActivityController::class, 'update']);
+Route::delete('api/activities/{id}', [ActivityController::class, 'destroy']);
+
 
 // Programs with prefix
 Route::prefix('programs')->group(function () {
