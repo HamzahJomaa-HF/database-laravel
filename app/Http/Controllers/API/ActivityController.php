@@ -5,6 +5,9 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Activity;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class ActivityController extends Controller
 {
@@ -57,74 +60,79 @@ class ActivityController extends Controller
         }
     }
 
-    /**
-     * @OA\Post(
-     *     path="/api/activities",
-     *     summary="Create a new activity",
-     *     tags={"Activities"},
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"activity_title_en", "activity_title_ar", "activity_type", "content_network", "start_date", "end_date"},
-     *             @OA\Property(property="activity_title_en", type="string", example="Workshop on AI"),
-     *             @OA\Property(property="activity_title_ar", type="string", example="ورشة عمل حول الذكاء الاصطناعي"),
-     *             @OA\Property(property="folder_name", type="string", example="AI_Workshop_Folder"),
-     *             @OA\Property(property="activity_type", type="string", example="Training"),
-     *             @OA\Property(property="content_network", type="string", example="Online"),
-     *             @OA\Property(property="start_date", type="string", format="date", example="2025-10-20"),
-     *             @OA\Property(property="end_date", type="string", format="date", example="2025-10-22"),
-     *             @OA\Property(property="parent_activity", type="string", format="uuid", example="a1b2c3d4-5678-90ab-cdef-1234567890ab"),
-     *             @OA\Property(property="target_cop", type="string", format="uuid", example="b2c3d4e5-6789-0abc-def1-234567890bcd")
-     *         )
-     *     ),
-     *     @OA\Response(response=201, description="Activity created successfully"),
-     *     @OA\Response(response=400, description="Invalid input data")
-     * )
-     */
-    public function store(Request $request)
+        public function store(Request $request)
     {
+        $allowedSupports = config('operational_support');
+
         try {
-            $allowed = ['logistics', 'financial', 'technical', 'coordination']; // later add more here
-
-
-
+            // 1️⃣ Validate request
             $validated = $request->validate([
-                'activity_title_en' => 'required_without:activity_title_ar|string|max:255',
-                'activity_title_ar' => 'required_without:activity_title_en|string|max:255',
-                'folder_name' => 'nullable|string|max:255',
-                'activity_type' => 'required|string|max:255',
-                'content_network' => 'nullable|string|max:255',
-                'start_date' => 'required|date',
-                'end_date' => 'required|date|after_or_equal:start_date',
-                'parent_activity' => 'nullable|uuid|exists:activities,activity_id',
-                'target_cop' => 'nullable|uuid|exists:users,user_id',
+                'external_id'         => ['nullable', 'string', 'max:255'],
+                'folder_name'         => ['nullable', 'string', 'max:255'],
+                'activity_title_en'   => ['nullable', 'string', 'max:255'],
+                'activity_title_ar'   => ['nullable', 'string', 'max:255'],
+                'activity_type'       => ['nullable', 'string', 'max:255'],
+                'content_network'     => ['nullable', 'string'],
+                'start_date'          => ['nullable', 'date'],
+                'end_date'            => ['nullable', 'date', 'after_or_equal:start_date'],
+                'parent_activity'     => ['nullable', 'uuid', 'exists:activities,activity_id'],
+                'target_cop'          => ['nullable', 'uuid'],
+                'operational_support' => ['nullable', 'array'],
+                'venue'               => ['nullable', 'string', 'max:255'],
 
-                // JSON operational support (4 checkboxes)
-                'operational_support' => 'nullable|array',
+                'portfolio_ids'       => ['nullable', 'array'],
+                'portfolio_ids.*'     => ['integer', 'exists:portfolios,portfolio_id'],
             ]);
 
+            $validated['operational_support'] = collect(
+                $request->input('operational_support', [])
+            )
+            ->only($allowedSupports)                 // ❌ removes "hamza"
+            ->map(fn ($v) => filter_var($v, FILTER_VALIDATE_BOOLEAN))
+            ->toArray();
 
-            $validated['operational_support'] = collect($request->input('operational_support', []))
-                ->only($allowed)
-                ->map(fn ($v) => filter_var($v, FILTER_VALIDATE_BOOLEAN))
-                ->toArray();
+            // 2️⃣ Transaction
+            $activity = DB::transaction(function () use ($validated) {
 
-            $activity = Activity::create($validated);
+                $portfolioIds = $validated['portfolio_ids'] ?? [];
+                unset($validated['portfolio_ids']);
+
+                $activity = Activity::create($validated);
+
+                if (!empty($portfolioIds)) {
+                    $activity->portfolios()->syncWithoutDetaching($portfolioIds);
+                }
+
+                return $activity;
+            });
+
+            // 3️⃣ Load relations
+            $activity->load('parent', 'children', 'portfolios');
 
             return response()->json([
-                'data' => $activity,
-                'message' => 'Activity created successfully'
+                'success' => true,
+                'message' => 'Activity created successfully.',
+                'data'    => $activity,
             ], 201);
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
+
+            // ❌ Validation error
             return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors'  => $e->errors(),
             ], 422);
-        } catch (\Exception $e) {
+
+        } catch (Throwable $e) {
+
+            // ❌ Any other error (DB, logic, etc.)
+            report($e); // logs to storage/logs/laravel.log
+
             return response()->json([
-                'message' => 'An unexpected error occurred',
-                'error' => $e->getMessage()
+                'success' => false,
+                'message' => 'Failed to create activity.',
+                'error'   => config('app.debug') ? $e->getMessage() : 'Internal server error.',
             ], 500);
         }
     }
