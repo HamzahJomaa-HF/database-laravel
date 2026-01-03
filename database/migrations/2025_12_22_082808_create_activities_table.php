@@ -20,7 +20,7 @@ return new class extends Migration
             $table->date('end_date')->nullable();
             $table->uuid('parent_activity')->nullable(); // COLUMN ONLY
             $table->uuid('target_cop')->nullable(); // COLUMN ONLY
-             $table->text('operational_support')->nullable();
+            $table->json('operational_support')->nullable();
             $table->string('venue', 255)->nullable();
             $table->timestamps();
         });
