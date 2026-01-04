@@ -900,4 +900,4 @@ private function parseActionReference(string $reference, int $rowNumber): ?array
             'errors' => $this->results['errors']
         ];
     }
-}
+} 
