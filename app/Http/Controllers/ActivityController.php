@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\Program;
 use App\Models\Project;
+use App\Models\ProjectActivity;
 
 class ActivityController extends Controller
 {
@@ -99,7 +100,6 @@ class ActivityController extends Controller
             'activity_title_en' => 'required_without:activity_title_ar|string|max:255',
             'activity_title_ar' => 'required_without:activity_title_en|string|max:255',
             'activity_type' => 'required|string|max:100',
-            'program' => 'required|string|max:50',
             'projects' => 'nullable|array',
             'start_date' => 'required|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
@@ -131,14 +131,27 @@ class ActivityController extends Controller
         // Generate a unique activity_id if not provided
         if (empty($validated['activity_id'])) {
             $validated['activity_id'] = (string) \Illuminate\Support\Str::uuid();
-        }
-
+            }
+            
         // Create the activity
         Activity::create($validated);
+            
+            return redirect()->route('activities.index')
+                ->with('success', 'Activity created successfully.');
+    
+     // Handle RP Activities mapping (NEW CODE)
+    if (!empty($rpActivities)) {
+        foreach ($rpActivities as $rpActivityId) {
+            DB::table('rp_activity_mappings')->insert([
+                'rp_activity_mappings_id' => (string) \Illuminate\Support\Str::uuid(),
+                'rp_activities_id' => $rpActivityId,
+                'activity_id' => $activity->activity_id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+    }}
 
-        return redirect()->route('activities.index')
-            ->with('success', 'Activity created successfully.');
-    }
 
     /**
      * Display the specified activity.
@@ -214,36 +227,33 @@ class ActivityController extends Controller
             'activity_title_en' => 'required|string|max:255',
             'activity_title_ar' => 'nullable|string|max:255',
             'activity_type' => 'required|string|max:100',
-            'program' => 'required|string|max:50',
             'projects' => 'nullable|array',
             'start_date' => 'required|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'venue' => 'nullable|string|max:255',
             'content_network' => 'nullable|string',
-            'rp_component_id' => 'nullable|exists:rp_components,rp_components_id',
             'rp_activities' => 'nullable|array',
             'focal_points' => 'nullable|array',
             'operational_support' => 'nullable|array',
         ]);
 
-        // Convert arrays to JSON
-        if (isset($validated['projects'])) {
-            $validated['projects'] = json_encode($validated['projects']);
-        } else {
-            $validated['projects'] = null;
-        }
+        // Extract the specific arrays from the request
+        $extractedData = [
+            'rp_activities' => $request->input('rp_activities', []),
+            'focal_points' => $request->input('focal_points', []),
+            'projects' => $request->input('projects', []),
+        ];
 
-        if (isset($validated['rp_activities'])) {
-            $validated['rp_activities'] = json_encode($validated['rp_activities']);
-        } else {
-            $validated['rp_activities'] = null;
-        }
+        // Or extract them to separate variables
+        $rpActivities = $request->input('rp_activities', []);
+        $focalPoints = $request->input('focal_points', []);
+        $projects = $request->input('projects', []);
 
-        if (isset($validated['focal_points'])) {
-            $validated['focal_points'] = json_encode($validated['focal_points']);
-        } else {
-            $validated['focal_points'] = null;
-        }
+        // Remove from validated array if they were included
+        unset($validated['rp_activities'], $validated['focal_points'], $validated['projects']);
+
+
+
 
         if (isset($validated['operational_support'])) {
             $validated['operational_support'] = json_encode($validated['operational_support']);
@@ -252,10 +262,51 @@ class ActivityController extends Controller
         }
 
         // Update the activity
-        $activity->update($validated);
+            $activity->update($validated);
+                    $activityProject = ProjectActivity::where('activity_id', $id)->first();
 
-        return redirect()->route('activities.index')
-            ->with('success', 'Activity updated successfully.');
+if (!empty($projects) && isset($projects[0])) {
+    if ($activityProject) {
+        // Update existing
+        $activityProject->update(['project_id' => $projects[0]]);
+    } else {
+        // Create new
+        ProjectActivity::create([
+            'activity_id' => $activity->activity_id,
+            'project_id' => $projects[0],
+            // Add any other required fields
+        ]);
+    }
+} elseif ($activityProject) {
+    // If projects array is empty but we have a record, delete it
+    $activityProject->delete();
+}
+// Handle RP Activities mapping (NEW CODE - similar to projects)
+    if (!empty($rpActivities)) {
+        // First, delete existing mappings for this activity
+        DB::table('rp_activity_mappings')
+            ->where('activity_id', $activity->activity_id)
+            ->delete();
+            
+        // Then create new mappings
+        foreach ($rpActivities as $rpActivityId) {
+            DB::table('rp_activity_mappings')->insert([
+                'rp_activity_mappings_id' => (string) \Illuminate\Support\Str::uuid(),
+                'rp_activities_id' => $rpActivityId,
+                'activity_id' => $activity->activity_id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+    } else {
+        // If no RP activities selected, delete any existing mappings
+        DB::table('rp_activity_mappings')
+            ->where('activity_id', $activity->activity_id)
+            ->delete();
+    }
+
+            return redirect()->route('activities.index')
+                ->with('success', 'Activity updated successfully.');
     }
 
     /**

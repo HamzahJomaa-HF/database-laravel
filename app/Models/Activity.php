@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 /**
  * @OA\Schema(
@@ -55,12 +56,22 @@ class Activity extends Model
         'target_cop',
         'operational_support',
         'venue',
+        'program',
+        'projects', 
+        'rp_component_id',
+        'rp_activities', 
+        'focal_points',
+        
+       
     ];
 
     protected $casts = [
         'start_date' => 'date',
         'end_date'   => 'date',
         'operational_support' => 'array', // json <-> array
+         'projects' => 'array',
+        'rp_activities' => 'array', 
+        'focal_points' => 'array',
     ];
 
     protected static function boot()
@@ -116,4 +127,80 @@ class Activity extends Model
             'portfolio_id'
         );
     }
+     /**
+     * ============================================
+     * NEW RELATIONSHIPS FOR PIVOT TABLES
+     * ============================================
+     */
+
+    /**
+     * Relationship with RpActivityMappings (for reporting activities)
+     */
+    public function rpActivityMappings()
+    {
+        return $this->hasMany(RpActivityMapping::class, 'activity_id', 'activity_id');
+    }
+
+    /**
+     * Relationship with ProjectActivities (for project assignments)
+     */
+    public function projectActivities()
+    {
+        return $this->hasMany(ProjectActivity::class, 'activity_id', 'activity_id');
+    }
+
+    /**
+     * Many-to-Many relationship with RpActivities through RpActivityMappings
+     */
+    public function reportingActivities()
+    {
+        return $this->belongsToMany(
+            RpActivity::class,
+            'rp_activity_mappings',
+            'activity_id',
+            'rp_activities_id',
+            'activity_id',
+            'rp_activities_id'
+        )->withTimestamps();
+    }
+
+    /**
+     * Many-to-Many relationship with Projects through ProjectActivities
+     */
+    public function assignedProjects()
+    {
+        return $this->belongsToMany(
+            Project::class,
+            'project_activities',
+            'activity_id',
+            'project_id',
+            'activity_id',
+            'project_id'
+        )->withTimestamps();
+    }
+
+    /**
+     * Relationship with ActivityFocalPoints (for focal points)
+     * Note: You need to create the ActivityFocalPoint model if it doesn't exist
+     */
+    public function activityFocalPoints()
+    {
+        return $this->hasMany(ActivityFocalPoint::class, 'activity_id', 'activity_id');
+    }
+
+    /**
+     * Many-to-Many relationship with focal points through ActivityFocalPoints
+     */
+    public function focalPoints()
+    {
+        return $this->belongsToMany(
+            RpFocalPoint::class,
+            'activity_focal_points',
+            'activity_id',
+            'rp_focalpoints_id',
+            'activity_id',
+            'rp_focalpoints_id'
+        )->withTimestamps();
+    }
 }
+

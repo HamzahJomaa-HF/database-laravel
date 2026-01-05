@@ -164,18 +164,18 @@
                                         <label for="programs_select" class="form-label fw-semibold mb-2">
                                             Program <span class="text-danger">*</span>
                                         </label>
-                                        <select id="programs_select" 
+                                       <select id="programs_select" 
                                                 class="form-control @error('program') is-invalid @enderror"
                                                 name="program">
-                                            <option value="">Select a Program</option>
-                                            @foreach($programs as $program)
+    <option value="">Select a Program</option>
+    @foreach($programs as $program)
                                                 <option value="{{ $program->external_id }}" 
                                                         {{ old('program', $activity->program) == $program->external_id ? 'selected' : '' }}
                                                         data-program-id="{{ $program->program_id }}">
-                                                    {{ $program->name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
+            {{ $program->name }}
+        </option>
+    @endforeach
+</select>
                                         @error('program')
                                             <div class="invalid-feedback d-block">{{ $message }}</div>
                                         @enderror
@@ -188,27 +188,27 @@
                                     {{-- Projects Multi-Select --}}
                                     <div class="col-md-12">
                                         <label for="projects_select" class="form-label fw-semibold mb-2">Projects</label>
-                                        <select id="projects_select" 
-                                                multiple
+                                       <select id="projects_select" 
+        multiple
                                                 class="form-control @error('projects') is-invalid @enderror"
                                                 name="projects[]">
-                                            @if($projects->count() > 0)
-                                                @foreach($projects as $project)
-                                                    <option value="{{ $project->external_id }}" 
-                                                            {{ in_array($project->external_id, json_decode($activity->projects ?? '[]', true) ?: []) ? 'selected' : '' }}>
-                                                        {{ $project->external_id }} - {{ $project->name }}
-                                                    </option>
-                                                @endforeach
-                                            @else
-                                                <option value="" disabled>Select a program first to see available projects</option>
-                                            @endif
-                                        </select>
+    @if($projects->count() > 0)
+        @foreach($projects as $project)
+                                                    <option value="{{ $project->project_id }}" 
+                                                            {{ in_array($project->project_id, json_decode($activity->projects ?? '[]', true) ?: []) ? 'selected' : '' }}>
+                                                         {{ $project->name }}
+            </option>
+        @endforeach
+    @else
+        <option value="" disabled>Select a program first to see available projects</option>
+    @endif
+</select>
                                         @error('projects')
-                                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                                        @enderror
+    <div class="invalid-feedback d-block">{{ $message }}</div>
+@enderror
                                         @error('projects.*')
-                                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                                        @enderror
+    <div class="invalid-feedback d-block">{{ $message }}</div>
+@enderror
                                         <div class="form-text mt-1">
                                             <i class="bi bi-info-circle me-1"></i>
                                             Only projects related to selected program are shown
@@ -647,8 +647,8 @@
                 const programGroup = $('<optgroup>').attr('label', groupKey);
                 groupedProjects[groupKey].forEach(project => {
                     programGroup.append($('<option>')
-                        .val(project.external_id)
-                        .text(project.external_id + ' - ' + project.name)
+                        .val(project.project_id)
+                        .text(project.name)
                     );
                 });
                 projectsSelect.append(programGroup);
