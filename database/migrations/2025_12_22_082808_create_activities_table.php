@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('activities', function (Blueprint $table) {
             $table->uuid('activity_id')->primary();
-             $table->string('external_id', 255)->nullable();
+            $table->string('external_id', 255)->nullable();
             $table->string('folder_name', 255)->nullable();
             $table->string('activity_title_en', 255)->nullable();
             $table->string('activity_title_ar', 255)->nullable();

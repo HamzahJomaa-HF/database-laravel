@@ -56,13 +56,7 @@ class Activity extends Model
         'target_cop',
         'operational_support',
         'venue',
-        'program',
-        'projects', 
-        'rp_component_id',
-        'rp_activities', 
-        'focal_points',
         
-       
     ];
 
     protected $casts = [

@@ -131,26 +131,27 @@ class ActivityController extends Controller
         // Generate a unique activity_id if not provided
         if (empty($validated['activity_id'])) {
             $validated['activity_id'] = (string) \Illuminate\Support\Str::uuid();
-            }
-            
+        }
+
         // Create the activity
         Activity::create($validated);
-            
-            return redirect()->route('activities.index')
-                ->with('success', 'Activity created successfully.');
-    
-     // Handle RP Activities mapping (NEW CODE)
-    if (!empty($rpActivities)) {
-        foreach ($rpActivities as $rpActivityId) {
-            DB::table('rp_activity_mappings')->insert([
-                'rp_activity_mappings_id' => (string) \Illuminate\Support\Str::uuid(),
-                'rp_activities_id' => $rpActivityId,
-                'activity_id' => $activity->activity_id,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+
+        return redirect()->route('activities.index')
+            ->with('success', 'Activity created successfully.');
+
+        // Handle RP Activities mapping (NEW CODE)
+        if (!empty($rpActivities)) {
+            foreach ($rpActivities as $rpActivityId) {
+                DB::table('rp_activity_mappings')->insert([
+                    'rp_activity_mappings_id' => (string) \Illuminate\Support\Str::uuid(),
+                    'rp_activities_id' => $rpActivityId,
+                    'activity_id' => $activity->activity_id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
-    }}
+    }
 
 
     /**
@@ -170,6 +171,18 @@ class ActivityController extends Controller
     public function edit($id)
     {
         $activity = Activity::findOrFail($id);
+        $projects = ProjectActivity::where('project_activities.activity_id', $id)
+            ->leftJoin('projects', 'projects.project_id', '=', 'project_activities.project_id')
+            ->leftJoin('programs as p', 'p.program_id', '=', 'projects.program_id')              // program
+            ->leftJoin('programs as pp', 'pp.program_id', '=', 'p.parent_program_id')    // parent program
+            ->select([
+                'project_activities.*',
+                'projects.*',
+                'p.program_id as program_id',
+                'p.name as program_name',
+                'pp.program_id as parent_program_id',
+                'pp.name as parent_program_name',
+            ])->get();
 
         // Get RP Components for dropdown (limit to 5 as requested in first code)
         $rpComponents = RpComponent::whereNull('deleted_at')
@@ -191,18 +204,7 @@ class ActivityController extends Controller
         // NEW: Get all programs from database
         $programs = Program::whereIn('program_type', ['Center', 'Local Program/Network', 'Flagship'])->orderBy('name')->get(['program_id', 'name', 'external_id']);
 
-        // NEW: Get projects related to selected program (if any)
-        // Get projects related to selected program (if any)
-        $projects = collect([]);
-        if ($activity->program) {
-            // Find program by external_id (assuming program field stores external_id)
-            $program = Program::where('external_id', $activity->program)->first();
-            if ($program) {
-                $projects = Project::where('program_id', $program->program_id)
-                    ->orderBy('name')
-                    ->get(['project_id', 'name', 'external_id', 'program_id']);
-            }
-        }
+        $selected_program = $projects->pluck('parent_program_id')->unique()->toArray();
 
         return view('activities.edit', compact(
             'activity',
@@ -210,7 +212,8 @@ class ActivityController extends Controller
             'selectedRpActivities',
             'selectedComponent',
             'programs', // NEW
-            'projects' // NEW
+            'projects', // NEW
+            'selected_program'
         ));
     }
 
@@ -219,7 +222,7 @@ class ActivityController extends Controller
      */
     public function update(Request $request, $id)
     {
-        
+
         $activity = Activity::findOrFail($id);
 
         // Validate the request
@@ -260,53 +263,64 @@ class ActivityController extends Controller
         } else {
             $validated['operational_support'] = null;
         }
-
         // Update the activity
-            $activity->update($validated);
-                    $activityProject = ProjectActivity::where('activity_id', $id)->first();
+        $activity->update($validated);
 
-if (!empty($projects) && isset($projects[0])) {
-    if ($activityProject) {
-        // Update existing
-        $activityProject->update(['project_id' => $projects[0]]);
-    } else {
-        // Create new
-        ProjectActivity::create([
-            'activity_id' => $activity->activity_id,
-            'project_id' => $projects[0],
-            // Add any other required fields
-        ]);
-    }
-} elseif ($activityProject) {
-    // If projects array is empty but we have a record, delete it
-    $activityProject->delete();
-}
-// Handle RP Activities mapping (NEW CODE - similar to projects)
-    if (!empty($rpActivities)) {
-        // First, delete existing mappings for this activity
-        DB::table('rp_activity_mappings')
-            ->where('activity_id', $activity->activity_id)
-            ->delete();
-            
-        // Then create new mappings
-        foreach ($rpActivities as $rpActivityId) {
-            DB::table('rp_activity_mappings')->insert([
-                'rp_activity_mappings_id' => (string) \Illuminate\Support\Str::uuid(),
-                'rp_activities_id' => $rpActivityId,
-                'activity_id' => $activity->activity_id,
-                'created_at' => now(),
-                'updated_at' => now(),
+        // Get project ids from request (ensure it's an array of ids)
+        $projects = $projects ?? [];
+        $projects = array_values(array_filter($projects)); // remove null/empty
+        $projects = array_unique($projects);               // avoid duplicates
+
+        // Existing project_ids for this activity
+        $existing = ProjectActivity::where('activity_id', $id)
+            ->pluck('project_id')
+            ->toArray();
+
+        // Add new ones
+        $toInsert = array_diff($projects, $existing);
+        foreach ($toInsert as $projectId) {
+            ProjectActivity::create([
+                'activity_id' => $id,
+                'project_id'  => $projectId,
             ]);
         }
-    } else {
-        // If no RP activities selected, delete any existing mappings
-        DB::table('rp_activity_mappings')
-            ->where('activity_id', $activity->activity_id)
-            ->delete();
-    }
 
-            return redirect()->route('activities.index')
-                ->with('success', 'Activity updated successfully.');
+        // Delete removed ones
+        $toDelete = array_diff($existing, $projects);
+        if (!empty($toDelete)) {
+            ProjectActivity::where('activity_id', $id)
+                ->whereIn('project_id', $toDelete)
+                ->delete();
+        }
+
+
+
+        // Handle RP Activities mapping (NEW CODE - similar to projects)
+        if (!empty($rpActivities)) {
+            // First, delete existing mappings for this activity
+            DB::table('rp_activity_mappings')
+                ->where('activity_id', $activity->activity_id)
+                ->delete();
+
+            // Then create new mappings
+            foreach ($rpActivities as $rpActivityId) {
+                DB::table('rp_activity_mappings')->insert([
+                    'rp_activity_mappings_id' => (string) \Illuminate\Support\Str::uuid(),
+                    'rp_activities_id' => $rpActivityId,
+                    'activity_id' => $activity->activity_id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        } else {
+            // If no RP activities selected, delete any existing mappings
+            DB::table('rp_activity_mappings')
+                ->where('activity_id', $activity->activity_id)
+                ->delete();
+        }
+
+        return redirect()->route('activities.index')
+            ->with('success', 'Activity updated successfully.');
     }
 
     /**

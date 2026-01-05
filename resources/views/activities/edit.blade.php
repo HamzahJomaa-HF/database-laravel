@@ -164,18 +164,23 @@
                                         <label for="programs_select" class="form-label fw-semibold mb-2">
                                             Program <span class="text-danger">*</span>
                                         </label>
-                                       <select id="programs_select" 
-                                                class="form-control @error('program') is-invalid @enderror"
-                                                name="program">
-    <option value="">Select a Program</option>
-    @foreach($programs as $program)
-                                                <option value="{{ $program->external_id }}" 
-                                                        {{ old('program', $activity->program) == $program->external_id ? 'selected' : '' }}
-                                                        data-program-id="{{ $program->program_id }}">
-            {{ $program->name }}
-        </option>
-    @endforeach
-</select>
+                                       <select id="programs_select"
+                                            class="form-control @error('program') is-invalid @enderror"
+                                            name="program">
+                                        <option value="">Select a Program</option>
+                                        
+                                        @foreach($programs as $program)
+                                            @php
+                                                $isSelected = in_array($program->program_id, $selected_program ?? []);
+                                            @endphp
+
+                                            <option value="{{ $program->program_id }}"
+                                                    {{ $isSelected ? 'selected' : '' }}
+                                                    data-program-id="{{ $program->program_id }}">
+                                                {{ $program->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
                                         @error('program')
                                             <div class="invalid-feedback d-block">{{ $message }}</div>
                                         @enderror
@@ -192,16 +197,7 @@
         multiple
                                                 class="form-control @error('projects') is-invalid @enderror"
                                                 name="projects[]">
-    @if($projects->count() > 0)
-        @foreach($projects as $project)
-                                                    <option value="{{ $project->project_id }}" 
-                                                            {{ in_array($project->project_id, json_decode($activity->projects ?? '[]', true) ?: []) ? 'selected' : '' }}>
-                                                         {{ $project->name }}
-            </option>
-        @endforeach
-    @else
-        <option value="" disabled>Select a program first to see available projects</option>
-    @endif
+
 </select>
                                         @error('projects')
     <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -568,12 +564,12 @@
         // Function to load projects based on selected program
         function loadProjectsByProgram(programId, programExternalId) {
             const projectsSelect = $('#projects_select');
-            
+
             if (!programId) {
                 projectsSelect.empty();
                 projectsSelect.append('<option value="" disabled>Select a program first to see available projects</option>');
                 projectsSelect.trigger('change');
-                
+
                 projectsSelect.select2({
                     placeholder: 'Select a program first to see available projects',
                     allowClear: true,
@@ -584,17 +580,17 @@
 
                 return;
             }
-            
+
             // Show loading state
             projectsSelect.empty();
             projectsSelect.append('<option value="">Loading projects...</option>');
             projectsSelect.trigger('change');
-            
+
             // Load projects via AJAX
             $.ajax({
                 url: '{{ route("activities.get-projects-by-program") }}',
                 method: 'GET',
-                data: { 
+                data: {
                     program_id: programId
                 },
                 dataType: 'json',
@@ -602,76 +598,84 @@
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
                 success: function(response) {
-    projectsSelect.empty();
-    
-    if (response.success && response.projects && response.projects.length > 0) {
-        // Group projects by program_type
-        const groupedProjects = {};
-        response.projects.forEach(project => {
-            const groupKey = project.program_type || 'General';
-            if (!groupedProjects[groupKey]) {
-                groupedProjects[groupKey] = [];
-            }
-            groupedProjects[groupKey].push(project);
-        });
-        
-        // Define order for program types
-        const programTypeOrder = [
-            'Flagship',
-            'Center',
-            'Center Program',
-            'Management',
-            'Local Program/Network',
-            'Sub-Program'
-        ];
-        
-        // Sort groups based on predefined order
-        const sortedGroupKeys = Object.keys(groupedProjects).sort((a, b) => {
-            const indexA = programTypeOrder.indexOf(a);
-            const indexB = programTypeOrder.indexOf(b);
-            
-            if (indexA !== -1 && indexB !== -1) {
-                return indexA - indexB;
-            }
-            if (indexA !== -1) return -1;
-            if (indexB !== -1) return 1;
-            return a.localeCompare(b);
-        });
-        
-        // Add projects grouped by program_type
-        sortedGroupKeys.forEach(groupKey => {
-            if (groupedProjects[groupKey] && groupedProjects[groupKey].length > 0) {
-                // Sort projects within each group alphabetically
-                groupedProjects[groupKey].sort((a, b) => a.name.localeCompare(b.name));
-                
-                const programGroup = $('<optgroup>').attr('label', groupKey);
-                groupedProjects[groupKey].forEach(project => {
-                    programGroup.append($('<option>')
-                        .val(project.project_id)
-                        .text(project.name)
-                    );
-                });
-                projectsSelect.append(programGroup);
-            }
-        });
-        
-        // Select existing projects for the activity
-        const selectedProjectIds = {!! json_encode(json_decode($activity->projects ?? '[]', true) ?: []) !!};
-        if (selectedProjectIds.length > 0) {
-            projectsSelect.val(selectedProjectIds).trigger('change');
-        }
-    } else {
-        projectsSelect.append('<option value="">No projects available for selected program</option>');
-    }
-    
-    projectsSelect.select2({
-        placeholder: 'Select projects...',
-        allowClear: true,
-        width: '100%',
-        closeOnSelect: false,
-        multiple: true
-    });
-},
+                    projectsSelect.empty();
+
+                    if (response.success && response.projects && response.projects.length > 0) {
+                        // Group projects by program_type
+                        const groupedProjects = {};
+                        response.projects.forEach(project => {
+                            const groupKey = project.program_type || 'General';
+                            if (!groupedProjects[groupKey]) {
+                                groupedProjects[groupKey] = [];
+                            }
+                            groupedProjects[groupKey].push(project);
+                        });
+
+                        // Define order for program types
+                        const programTypeOrder = [
+                            'Flagship',
+                            'Center',
+                            'Center Program',
+                            'Management',
+                            'Local Program/Network',
+                            'Sub-Program'
+                        ];
+
+                        // Sort groups based on predefined order
+                        const sortedGroupKeys = Object.keys(groupedProjects).sort((a, b) => {
+                            const indexA = programTypeOrder.indexOf(a);
+                            const indexB = programTypeOrder.indexOf(b);
+
+                            if (indexA !== -1 && indexB !== -1) {
+                                return indexA - indexB;
+                            }
+                            if (indexA !== -1) return -1;
+                            if (indexB !== -1) return 1;
+                            return a.localeCompare(b);
+                        });
+
+                                                // Select existing projects for the activity
+                        let selectedProjectIds = {!! json_encode(
+                            json_decode($projects ?? '[]', true) ?: []
+                        ) !!};
+
+                        selectedProjectIds = selectedProjectIds.map(item => item.project_id);
+
+                        // Add projects grouped by program_type
+                        sortedGroupKeys.forEach(groupKey => {
+
+                            if (groupedProjects[groupKey] && groupedProjects[groupKey].length > 0) {
+                                // Sort projects within each group alphabetically
+                                groupedProjects[groupKey].sort((a, b) => a.name.localeCompare(b.name));
+
+                                const programGroup = $('<optgroup>').attr('label', groupKey);
+                                groupedProjects[groupKey].forEach(project => {
+                                        
+                                    programGroup.append($('<option>')
+                                        .val(project.project_id)
+                                                  .prop('selected', selectedProjectIds.includes(project.project_id))
+                                        .text(project.name)
+                                    );
+                                });
+                                projectsSelect.append(programGroup);
+                            }
+                        });
+
+
+
+                        
+                    } else {
+                        projectsSelect.append('<option value="">No projects available for selected program</option>');
+                    }
+
+                    projectsSelect.select2({
+                        placeholder: 'Select projects...',
+                        allowClear: true,
+                        width: '100%',
+                        closeOnSelect: false,
+                        multiple: true
+                    });
+                },
                 error: function(xhr, status, error) {
                     console.error('Error loading projects:', error);
                     projectsSelect.empty();
@@ -687,27 +691,24 @@
             });
         }
 
-        // Update projects when program is selected
-        $('#programs_select').on('change', function() {
-            const selectedOption = $(this).find('option:selected');
-            const programId = selectedOption.data('program-id');
-            const programExternalId = selectedOption.val();
-            loadProjectsByProgram(programId, programExternalId);
-        });
 
-        // Load projects on page load if program is already selected
-        $(document).ready(function() {
-            const selectedProgramOption = $('#programs_select option:selected');
-            if (selectedProgramOption.length > 0 && selectedProgramOption.val()) {
-                const programId = selectedProgramOption.data('program-id');
-                const programExternalId = selectedProgramOption.val();
-                
-                // Small delay to ensure DOM is ready
-                setTimeout(() => {
-                    loadProjectsByProgram(programId, programExternalId);
-                }, 300);
+        function handleProgramSelection() {
+            const $select = $('#programs_select');
+            const selectedOption = $select.find('option:selected');
+            const programExternalId = $select.val();
+            const programId = selectedOption.data('program-id');
+
+            // No valid selection
+            if (!programExternalId || !programId) {
+                return;
             }
-        });
+
+            loadProjectsByProgram(programId, programExternalId);
+        }
+
+        $('#programs_select').on('change', handleProgramSelection);
+
+        handleProgramSelection()
 
         // Initialize RP Components Select2
         $('#rp_component_id').select2({
