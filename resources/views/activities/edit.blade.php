@@ -517,6 +517,7 @@
                                                     'logistics' => 'Logistics',
                                                     'media' => 'Media',
                                                     'public_relations' => 'Public Relations',
+                                                    'field_support' => 'Facilitation & Field Support',
                                                     'none' => 'None',
                                                 ];
                                             @endphp

@@ -5,4 +5,5 @@ return [
     'data',
     'public_relations',
     'media',
+    'field_support'
 ];
