@@ -44,7 +44,9 @@ return [
                  * Absolute paths to directory containing the swagger annotations are stored.
                  */
                 'annotations' => [
-                    base_path('app'),
+                    base_path('app/Http/Controllers/API'),
+                            base_path('app/Models'), // ✅ REQUIRED for Activity schema
+
                 ],
             ],
         ],

@@ -5,6 +5,33 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @OA\Schema(
+ *   schema="Activity",
+ *   type="object",
+ *   required={"activity_id", "activity_title_en", "activity_type"},
+ *
+ *   @OA\Property(property="activity_id", type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000"),
+ *   @OA\Property(property="external_id", type="string", example="EXT-12345"),
+ *   @OA\Property(property="folder_name", type="string", example="Workshop_Folder"),
+ *   @OA\Property(property="activity_title_en", type="string", example="English Workshop Title"),
+ *   @OA\Property(property="activity_title_ar", type="string", example="عنوان الورشة"),
+ *   @OA\Property(property="activity_type", type="string", example="Workshop"),
+ *   @OA\Property(property="content_network", type="string", example="Online"),
+ *   @OA\Property(property="start_date", type="string", format="date", example="2025-10-01"),
+ *   @OA\Property(property="end_date", type="string", format="date", example="2025-10-05"),
+ *   @OA\Property(
+ *      property="operational_support",
+ *      type="object",
+ *      @OA\Property(property="logistics", type="boolean", example=false),
+ *      @OA\Property(property="public_relations", type="boolean", example=false),
+ *      @OA\Property(property="media", type="boolean", example=false),
+ *      @OA\Property(property="data", type="boolean", example=false)
+ *   ),
+ *   @OA\Property(property="venue", type="string", example="Conference Hall A")
+ * )
+ */
+
 class Activity extends Model
 {
     use HasFactory;

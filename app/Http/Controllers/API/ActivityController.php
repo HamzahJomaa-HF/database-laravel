@@ -5,11 +5,6 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\Activity;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\ValidationException;
-
-use Throwable;
 
 /**
  * @OA\Info(
@@ -19,6 +14,8 @@ use Throwable;
  *      @OA\Contact(email="support@haririfoundation.com")
  * )
  */
+
+
 
 class ActivityController extends Controller
 {
@@ -34,16 +31,8 @@ class ActivityController extends Controller
      *         required=false,
      *         @OA\Schema(type="string", format="uuid")
      *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Activities retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Activity")),
-     *             @OA\Property(property="message", type="string", example="Activities retrieved successfully")
-     *         )
-     *     ),
-     *     @OA\Response(response=404, description="Activity not found"),
-     *     @OA\Response(response=500, description="Server error")
+     *     @OA\Response(response=200, description="Activities retrieved successfully"),
+     *     @OA\Response(response=404, description="Activity not found")
      * )
      */
     public function index(Request $request)
@@ -54,10 +43,7 @@ class ActivityController extends Controller
                 if (!$activity) {
                     return response()->json(['message' => 'Activity not found'], 404);
                 }
-                return response()->json([
-                    'data' => $activity,
-                    'message' => 'Activity retrieved successfully'
-                ]);
+                return response()->json($activity);
             }
 
             $activities = Activity::all();
@@ -68,52 +54,7 @@ class ActivityController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'An unexpected error occurred',
-                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
-            ], 500);
-        }
-    }
-
-    /**
-     * @OA\Get(
-     *     path="/api/activities/{id}",
-     *     summary="Get a specific activity by ID",
-     *     tags={"Activities"},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         description="Activity UUID",
-     *         required=true,
-     *         @OA\Schema(type="string", format="uuid")
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Activity retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="data", type="object"),
-     *             @OA\Property(property="message", type="string", example="Activity retrieved successfully")
-     *         )
-     *     ),
-     *     @OA\Response(response=404, description="Activity not found"),
-     *     @OA\Response(response=500, description="Server error")
-     * )
-     */
-    public function show($id)
-    {
-        try {
-            $activity = Activity::where('activity_id', $id)->first();
-            
-            if (!$activity) {
-                return response()->json(['message' => 'Activity not found'], 404);
-            }
-            
-            return response()->json([
-                'data' => $activity,
-                'message' => 'Activity retrieved successfully'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An unexpected error occurred',
-                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+                'error' => $e->getMessage()
             ], 500);
         }
     }
@@ -126,161 +67,73 @@ class ActivityController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"activity_title_en", "activity_type"},
-     *             @OA\Property(property="external_id", type="string", example="EXT-12345"),
-     *             @OA\Property(property="folder_name", type="string", example="Workshop_Folder"),
-     *             @OA\Property(property="activity_title_en", type="string", example="English Workshop Title"),
-     *             @OA\Property(property="activity_title_ar", type="string", example="عنوان الورشة بالعربية"),
-     *             @OA\Property(property="activity_type", type="string", example="Workshop"),
+     *             required={"activity_title_en", "activity_title_ar", "activity_type", "content_network", "start_date", "end_date"},
+     *             @OA\Property(property="activity_title_en", type="string", example="Workshop on AI"),
+     *             @OA\Property(property="activity_title_ar", type="string", example="ورشة عمل حول الذكاء الاصطناعي"),
+     *             @OA\Property(property="folder_name", type="string", example="AI_Workshop_Folder"),
+     *             @OA\Property(property="activity_type", type="string", example="Training"),
      *             @OA\Property(property="content_network", type="string", example="Online"),
-     *             @OA\Property(property="start_date", type="string", format="date", example="2025-10-01"),
-     *             @OA\Property(property="end_date", type="string", format="date", example="2025-10-05"),
-     *             @OA\Property(property="parent_activity", type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000"),
-     *             @OA\Property(property="target_cop", type="string", format="uuid", example="987e6543-b21d-43c1-a654-123456789abc"),
+     *             @OA\Property(property="start_date", type="string", format="date", example="2025-10-20"),
+     *             @OA\Property(property="end_date", type="string", format="date", example="2025-10-22"),
+     *             @OA\Property(property="parent_activity", type="string", format="uuid", example="a1b2c3d4-5678-90ab-cdef-1234567890ab"),
+     *             @OA\Property(property="target_cop", type="string", format="uuid", example="b2c3d4e5-6789-0abc-def1-234567890bcd"),
      *             @OA\Property(
-     *                 property="operational_support", 
-     *                 type="array", 
-     *                 @OA\Items(type="string", enum={"logistics", "catering", "transportation", "accommodation", "printing", "equipment", "media"}),
-     *                 example={"logistics", "catering"}
+     *                 property="operational_support",
+     *                 type="object",
+     *                 @OA\Property(property="logistics", type="boolean", example=false),
+     *                 @OA\Property(property="public_relations", type="boolean", example=false),
+     *                 @OA\Property(property="media", type="boolean", example=false),
+     *                 @OA\Property(property="data", type="boolean", example=false)
      *             ),
-     *             @OA\Property(property="venue", type="string", example="Conference Hall A"),
-     *             @OA\Property(
-     *                 property="portfolio_ids", 
-     *                 type="array", 
-     *                 @OA\Items(type="integer", example=1),
-     *                 example={1, 2}
-     *             )
+     *             @OA\Property(property="venue", type="string", example="Main Conference Hall")
      *         )
      *     ),
-     *     @OA\Response(
-     *         response=201,
-     *         description="Activity created successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Activity created successfully."),
-     *             @OA\Property(property="data", type="object")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Validation failed."),
-     *             @OA\Property(property="errors", type="object")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=500,
-     *         description="Server error"
-     *     )
+     *     @OA\Response(response=201, description="Activity created successfully"),
+     *     @OA\Response(response=400, description="Invalid input data")
      * )
      */
     public function store(Request $request)
     {
-        $allowedSupports = config('operational_support', []);
-
         try {
-            // Add debug logging
-            Log::info('Store Activity Request Received:', [
-                'request_data' => $request->all(),
-                'content_type' => $request->header('Content-Type'),
-                'raw_input' => file_get_contents('php://input')
+
+
+            $validated = $request->validate([
+                'activity_title_en' => 'required_without:activity_title_ar|string|max:255',
+                'activity_title_ar' => 'required_without:activity_title_en|string|max:255',
+                'folder_name' => 'nullable|string|max:255',
+                'activity_type' => 'required|string|max:255',
+                'content_network' => 'nullable|string|max:255',
+                'start_date' => 'required|date',
+                'end_date' => 'required|date|after_or_equal:start_date',
+                'parent_activity' => 'nullable|uuid|exists:activities,activity_id',
+                'target_cop' => 'nullable|uuid|exists:users,user_id',
+
+                // JSON operational support (4 checkboxes)
+                'operational_support' => 'nullable|array',
             ]);
 
-            // FIXED: Changed 'nullable' to 'required' for essential fields
-          $validated = $request->validate([
-    'external_id'         => ['nullable', 'string', 'max:255'],
-    'folder_name'         => ['nullable', 'string', 'max:255'],
-    'activity_title_en'   => ['required', 'string', 'max:255'],  // Changed to required
-    'activity_title_ar'   => ['nullable', 'string', 'max:255'],
-    'activity_type'       => ['required', 'string', 'max:255'],  // Changed to required
-    'content_network'     => ['nullable', 'string'],
-    'start_date'          => ['nullable', 'date'],
-    'end_date'            => ['nullable', 'date', 'after_or_equal:start_date'],
-    'parent_activity'     => ['nullable', 'uuid', 'exists:activities,activity_id'],
-    'target_cop'          => ['nullable', 'uuid'],
-    'operational_support' => ['nullable', 'array'],
-    'venue'               => ['nullable', 'string', 'max:255'],
-    'portfolio_ids'       => ['nullable', 'array'],
-    'portfolio_ids.*'     => ['integer', 'exists:portfolios,portfolio_id'],
-]);
 
-            Log::info('Validated Data:', $validated);
+            $validated['operational_support'] = collect($request->input('operational_support', []))
+                ->only(config('operational_support'))
+                ->map(fn ($v) => filter_var($v, FILTER_VALIDATE_BOOLEAN))
+                ->toArray();
 
-            // Filter operational_support values to only include allowed ones
-            if ($request->has('operational_support') && !empty($allowedSupports)) {
-                $validated['operational_support'] = collect($request->input('operational_support', []))
-                    ->filter(function ($value) use ($allowedSupports) {
-                        return in_array($value, $allowedSupports);
-                    })
-                    ->values()
-                    ->toArray();
-            }
-
-            // Check if operational_support should be JSON encoded
-            if (isset($validated['operational_support']) && is_array($validated['operational_support'])) {
-                $validated['operational_support'] = json_encode($validated['operational_support']);
-            }
-
-            // 2️⃣ Transaction
-            $activity = DB::transaction(function () use ($validated) {
-                $portfolioIds = $validated['portfolio_ids'] ?? [];
-                unset($validated['portfolio_ids']);
-
-                Log::info('Creating activity with data:', $validated);
-
-                // Create the activity
-                $activity = Activity::create($validated);
-
-                Log::info('Activity created:', [
-                    'id' => $activity->activity_id,
-                    'attributes' => $activity->getAttributes()
-                ]);
-
-                // Verify in database
-                $dbRecord = DB::table('activities')
-                    ->where('activity_id', $activity->activity_id)
-                    ->first();
-                Log::info('Database record:', (array)$dbRecord);
-
-                if (!empty($portfolioIds)) {
-                    $activity->portfolios()->attach($portfolioIds); // Changed from syncWithoutDetaching
-                }
-
-                return $activity;
-            });
-
-            // 3️⃣ Load relations
-            $activity->load('parent', 'children', 'portfolios');
+            $activity = Activity::create($validated);
 
             return response()->json([
-                'success' => true,
-                'message' => 'Activity created successfully.',
-                'data'    => $activity,
+                'data' => $activity,
+                'message' => 'Activity created successfully'
             ], 201);
 
-        } catch (ValidationException $e) {
-            // ❌ Validation error
-            Log::error('Validation failed:', $e->errors());
+        } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
-                'success' => false,
-                'message' => 'Validation failed.',
-                'errors'  => $e->errors(),
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
             ], 422);
-
-        } catch (Throwable $e) {
-            // ❌ Any other error (DB, logic, etc.)
-            Log::error('Store activity error:', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            report($e);
-
+        } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
-                'message' => 'Failed to create activity.',
-                'error'   => config('app.debug') ? $e->getMessage() : 'Internal server error.',
+                'message' => 'An unexpected error occurred',
+                'error' => $e->getMessage()
             ], 500);
         }
     }
@@ -295,138 +148,63 @@ class ActivityController extends Controller
      *         in="path",
      *         description="Activity UUID to update",
      *         required=true,
-     *         @OA\Schema(type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000")
+     *         @OA\Schema(type="string", format="uuid")
      *     ),
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             @OA\Property(property="external_id", type="string", example="EXT-12345"),
-     *             @OA\Property(property="folder_name", type="string", example="Updated_Folder_Name"),
      *             @OA\Property(property="activity_title_en", type="string", example="Updated Workshop Title"),
      *             @OA\Property(property="activity_title_ar", type="string", example="عنوان الورشة المحدث"),
+     *             @OA\Property(property="folder_name", type="string", example="Updated_Folder_Name"),
      *             @OA\Property(property="activity_type", type="string", example="Seminar"),
      *             @OA\Property(property="content_network", type="string", example="Offline"),
      *             @OA\Property(property="start_date", type="string", format="date", example="2025-10-21"),
      *             @OA\Property(property="end_date", type="string", format="date", example="2025-10-25"),
      *             @OA\Property(property="parent_activity", type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000"),
-     *             @OA\Property(property="target_cop", type="string", format="uuid", example="987e6543-b21d-43c1-a654-123456789abc"),
-     *             @OA\Property(
-     *                 property="operational_support", 
-     *                 type="array", 
-     *                 @OA\Items(type="string", enum={"logistics", "catering", "transportation", "accommodation", "printing", "equipment", "media"}),
-     *                 example={"logistics", "media"}
-     *             ),
-     *             @OA\Property(property="venue", type="string", example="Updated Venue Name")
+     *             @OA\Property(property="target_cop", type="string", format="uuid", example="987e6543-b21d-43c1-a654-123456789abc")
      *         )
      *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Activity updated successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="data", type="object"),
-     *             @OA\Property(property="message", type="string", example="Activity updated successfully")
-     *         )
-     *     ),
-     *     @OA\Response(response=404, description="Activity not found"),
-     *     @OA\Response(response=422, description="Validation error"),
-     *     @OA\Response(response=500, description="Server error")
+     *     @OA\Response(response=200, description="Activity updated successfully"),
+     *     @OA\Response(response=404, description="Activity not found")
      * )
      */
     public function update(Request $request, $id)
     {
-        $allowedSupports = config('operational_support', []);
-        
         try {
-            Log::info('Update Activity Request:', [
-                'activity_id' => $id,
-                'request_data' => $request->all()
-            ]);
-
             $activity = Activity::where('activity_id', $id)->first();
 
             if (!$activity) {
                 return response()->json(['message' => 'Activity not found'], 404);
             }
 
-            // Use 'sometimes' for partial updates
             $validated = $request->validate([
-                'external_id' => 'sometimes|string|max:255',
-                'folder_name' => 'sometimes|string|max:255',
-                'activity_title_en' => 'sometimes|string|max:255',
-                'activity_title_ar' => 'sometimes|string|max:255',
+                'activity_title_en' => 'sometimes|required_without:activity_title_ar|string|max:255',
+                'activity_title_ar' => 'sometimes|required_without:activity_title_en|string|max:255',
+                'folder_name' => 'nullable|string|max:255',
                 'activity_type' => 'sometimes|string|max:255',
-                'content_network' => 'sometimes|string|max:255',
-                'start_date' => 'sometimes|date',
-                'end_date' => 'sometimes|date|after_or_equal:start_date',
-                'parent_activity' => 'sometimes|uuid|exists:activities,activity_id',
-                'target_cop' => 'sometimes|uuid',
-                'operational_support' => 'sometimes|array',
-                'venue' => 'sometimes|string|max:255',
-                'portfolio_ids' => 'sometimes|array',
-                'portfolio_ids.*' => 'integer|exists:portfolios,portfolio_id',
+                'content_network' => 'nullable|string|max:255',
+                'start_date' => 'nullable|date',
+                'end_date' => 'nullable|date|after_or_equal:start_date',
+                'parent_activity' => 'nullable|uuid|exists:activities,activity_id',
+                'target_cop' => 'nullable|uuid|exists:users,user_id',
+
             ]);
 
-            Log::info('Update validated data:', $validated);
-
-            // Filter operational_support values to only include allowed ones
-            if ($request->has('operational_support')) {
-                if (!empty($allowedSupports)) {
-                    $validated['operational_support'] = collect($request->input('operational_support', []))
-                        ->filter(function ($value) use ($allowedSupports) {
-                            return in_array($value, $allowedSupports);
-                        })
-                        ->values()
-                        ->toArray();
-                } else {
-                    $validated['operational_support'] = $request->input('operational_support');
-                }
-                
-                // Convert array to JSON string if needed
-                if (is_array($validated['operational_support'])) {
-                    $validated['operational_support'] = json_encode($validated['operational_support']);
-                }
-            }
-
-            // Use transaction to ensure data consistency
-            DB::transaction(function () use ($activity, $validated) {
-                $portfolioIds = $validated['portfolio_ids'] ?? null;
-                unset($validated['portfolio_ids']);
-                
-                Log::info('Updating activity with:', $validated);
-                
-                // Update with validated data
-                $activity->update($validated);
-                
-                Log::info('Activity updated:', $activity->getAttributes());
-                
-                // Sync portfolios if provided
-                if ($portfolioIds !== null) {
-                    $activity->portfolios()->sync($portfolioIds);
-                }
-            });
-
-            // Reload the activity with relationships
-            $activity->refresh();
-            $activity->load('parent', 'children', 'portfolios');
+            $activity->update($validated);
 
             return response()->json([
                 'data' => $activity,
                 'message' => 'Activity updated successfully'
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Update validation failed:', $e->errors());
             return response()->json([
                 'message' => 'Validation failed',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
-            Log::error('Update error:', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             return response()->json([
                 'message' => 'An unexpected error occurred',
-                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+                'error' => $e->getMessage()
             ], 500);
         }
     }
@@ -441,17 +219,10 @@ class ActivityController extends Controller
      *         in="path",
      *         description="Activity UUID to delete",
      *         required=true,
-     *         @OA\Schema(type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000")
+     *         @OA\Schema(type="string", format="uuid")
      *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Activity deleted successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Activity deleted successfully")
-     *         )
-     *     ),
-     *     @OA\Response(response=404, description="Activity not found"),
-     *     @OA\Response(response=500, description="Server error")
+     *     @OA\Response(response=200, description="Activity deleted successfully"),
+     *     @OA\Response(response=404, description="Activity not found")
      * )
      */
     public function destroy($id)
@@ -469,7 +240,7 @@ class ActivityController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'An unexpected error occurred',
-                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+                'error' => $e->getMessage()
             ], 500);
         }
     }

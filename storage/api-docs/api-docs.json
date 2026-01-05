@@ -2,7 +2,7 @@
     "openapi": "3.0.0",
     "info": {
         "title": "Hariri Foundation API",
-        "description": "API documentation for Activity Management",
+        "description": "API documentation for Activities Management",
         "contact": {
             "email": "support@haririfoundation.com"
         },
@@ -30,32 +30,10 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Activities retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/Activity"
-                                            }
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Activities retrieved successfully"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Activities retrieved successfully"
                     },
                     "404": {
                         "description": "Activity not found"
-                    },
-                    "500": {
-                        "description": "Server error"
                     }
                 }
             },
@@ -72,28 +50,28 @@
                             "schema": {
                                 "required": [
                                     "activity_title_en",
-                                    "activity_type"
+                                    "activity_title_ar",
+                                    "activity_type",
+                                    "content_network",
+                                    "start_date",
+                                    "end_date"
                                 ],
                                 "properties": {
-                                    "external_id": {
-                                        "type": "string",
-                                        "example": "EXT-12345"
-                                    },
-                                    "folder_name": {
-                                        "type": "string",
-                                        "example": "Workshop_Folder"
-                                    },
                                     "activity_title_en": {
                                         "type": "string",
-                                        "example": "English Workshop Title"
+                                        "example": "Workshop on AI"
                                     },
                                     "activity_title_ar": {
                                         "type": "string",
-                                        "example": "عنوان الورشة بالعربية"
+                                        "example": "ورشة عمل حول الذكاء الاصطناعي"
+                                    },
+                                    "folder_name": {
+                                        "type": "string",
+                                        "example": "AI_Workshop_Folder"
                                     },
                                     "activity_type": {
                                         "type": "string",
-                                        "example": "Workshop"
+                                        "example": "Training"
                                     },
                                     "content_network": {
                                         "type": "string",
@@ -102,56 +80,47 @@
                                     "start_date": {
                                         "type": "string",
                                         "format": "date",
-                                        "example": "2025-10-01"
+                                        "example": "2025-10-20"
                                     },
                                     "end_date": {
                                         "type": "string",
                                         "format": "date",
-                                        "example": "2025-10-05"
+                                        "example": "2025-10-22"
                                     },
                                     "parent_activity": {
                                         "type": "string",
                                         "format": "uuid",
-                                        "example": "123e4567-e89b-12d3-a456-426614174000"
+                                        "example": "a1b2c3d4-5678-90ab-cdef-1234567890ab"
                                     },
                                     "target_cop": {
                                         "type": "string",
                                         "format": "uuid",
-                                        "example": "987e6543-b21d-43c1-a654-123456789abc"
+                                        "example": "b2c3d4e5-6789-0abc-def1-234567890bcd"
                                     },
                                     "operational_support": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string",
-                                            "enum": [
-                                                "logistics",
-                                                "catering",
-                                                "transportation",
-                                                "accommodation",
-                                                "printing",
-                                                "equipment",
-                                                "media"
-                                            ]
+                                        "properties": {
+                                            "logistics": {
+                                                "type": "boolean",
+                                                "example": false
+                                            },
+                                            "public_relations": {
+                                                "type": "boolean",
+                                                "example": false
+                                            },
+                                            "media": {
+                                                "type": "boolean",
+                                                "example": false
+                                            },
+                                            "data": {
+                                                "type": "boolean",
+                                                "example": false
+                                            }
                                         },
-                                        "example": [
-                                            "logistics",
-                                            "catering"
-                                        ]
+                                        "type": "object"
                                     },
                                     "venue": {
                                         "type": "string",
-                                        "example": "Conference Hall A"
-                                    },
-                                    "portfolio_ids": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "integer",
-                                            "example": 1
-                                        },
-                                        "example": [
-                                            1,
-                                            2
-                                        ]
+                                        "example": "Main Conference Hall"
                                     }
                                 },
                                 "type": "object"
@@ -161,53 +130,10 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Activity created successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Activity created successfully."
-                                        },
-                                        "data": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Activity created successfully"
                     },
-                    "422": {
-                        "description": "Validation error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Validation failed."
-                                        },
-                                        "errors": {
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Server error"
+                    "400": {
+                        "description": "Invalid input data"
                     }
                 }
             }
@@ -227,8 +153,7 @@
                         "required": true,
                         "schema": {
                             "type": "string",
-                            "format": "uuid",
-                            "example": "123e4567-e89b-12d3-a456-426614174000"
+                            "format": "uuid"
                         }
                     }
                 ],
@@ -238,14 +163,6 @@
                         "application/json": {
                             "schema": {
                                 "properties": {
-                                    "external_id": {
-                                        "type": "string",
-                                        "example": "EXT-12345"
-                                    },
-                                    "folder_name": {
-                                        "type": "string",
-                                        "example": "Updated_Folder_Name"
-                                    },
                                     "activity_title_en": {
                                         "type": "string",
                                         "example": "Updated Workshop Title"
@@ -253,6 +170,10 @@
                                     "activity_title_ar": {
                                         "type": "string",
                                         "example": "عنوان الورشة المحدث"
+                                    },
+                                    "folder_name": {
+                                        "type": "string",
+                                        "example": "Updated_Folder_Name"
                                     },
                                     "activity_type": {
                                         "type": "string",
@@ -281,29 +202,6 @@
                                         "type": "string",
                                         "format": "uuid",
                                         "example": "987e6543-b21d-43c1-a654-123456789abc"
-                                    },
-                                    "operational_support": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string",
-                                            "enum": [
-                                                "logistics",
-                                                "catering",
-                                                "transportation",
-                                                "accommodation",
-                                                "printing",
-                                                "equipment",
-                                                "media"
-                                            ]
-                                        },
-                                        "example": [
-                                            "logistics",
-                                            "media"
-                                        ]
-                                    },
-                                    "venue": {
-                                        "type": "string",
-                                        "example": "Updated Venue Name"
                                     }
                                 },
                                 "type": "object"
@@ -313,32 +211,10 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Activity updated successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "data": {
-                                            "type": "object"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Activity updated successfully"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Activity updated successfully"
                     },
                     "404": {
                         "description": "Activity not found"
-                    },
-                    "422": {
-                        "description": "Validation error"
-                    },
-                    "500": {
-                        "description": "Server error"
                     }
                 }
             },
@@ -356,33 +232,16 @@
                         "required": true,
                         "schema": {
                             "type": "string",
-                            "format": "uuid",
-                            "example": "123e4567-e89b-12d3-a456-426614174000"
+                            "format": "uuid"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Activity deleted successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Activity deleted successfully"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Activity deleted successfully"
                     },
                     "404": {
                         "description": "Activity not found"
-                    },
-                    "500": {
-                        "description": "Server error"
                     }
                 }
             }
@@ -3718,6 +3577,7 @@
         "schemas": {
             "Activity": {
                 "required": [
+                    "activity_id",
                     "activity_title_en",
                     "activity_type"
                 ],
@@ -3741,7 +3601,7 @@
                     },
                     "activity_title_ar": {
                         "type": "string",
-                        "example": "عنوان الورشة بالعربية"
+                        "example": "عنوان الورشة"
                     },
                     "activity_type": {
                         "type": "string",
@@ -3761,38 +3621,30 @@
                         "format": "date",
                         "example": "2025-10-05"
                     },
-                    "parent_activity": {
-                        "type": "string",
-                        "format": "uuid",
-                        "example": "123e4567-e89b-12d3-a456-426614174000"
-                    },
-                    "target_cop": {
-                        "type": "string",
-                        "format": "uuid",
-                        "example": "987e6543-b21d-43c1-a654-123456789abc"
-                    },
                     "operational_support": {
-                        "type": "array",
-                        "items": {
-                            "type": "string",
-                            "example": "logistics"
+                        "properties": {
+                            "logistics": {
+                                "type": "boolean",
+                                "example": false
+                            },
+                            "public_relations": {
+                                "type": "boolean",
+                                "example": false
+                            },
+                            "media": {
+                                "type": "boolean",
+                                "example": false
+                            },
+                            "data": {
+                                "type": "boolean",
+                                "example": false
+                            }
                         },
-                        "example": [
-                            "logistics",
-                            "catering"
-                        ]
+                        "type": "object"
                     },
                     "venue": {
                         "type": "string",
                         "example": "Conference Hall A"
-                    },
-                    "created_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "updated_at": {
-                        "type": "string",
-                        "format": "date-time"
                     }
                 },
                 "type": "object"

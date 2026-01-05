@@ -2,7 +2,7 @@
 
 return [
     'logistics',
-    'financial',
-    'technical',
-    'coordination',
+    'data',
+    'public_relations',
+    'media',
 ];
