@@ -120,20 +120,32 @@
                                             <option value="">Select Activity Type</option>
                                             @php
                                                 $activityTypes = [
-                                                    'Capacity Building' => 'Capacity Building - بناء القدرات',
-                                                    'Policies & Plans' => 'Policies & Plans - السياسات والخطط',
-                                                    'Engagement Event' => 'Engagement Event - فعالية تفاعلية',
-                                                    'Overview' => 'Overview - نظرة عامة',
-                                                    'Field Activity' => 'Field Activity - نشاط ميداني',
-                                                    'Specialized Service' => 'Specialized Service - خدمة متخصصة',
-                                                    'Research Activity' => 'Research Activity - نشاط بحثي',
-                                                    'Physical Development' => 'Physical Development - تطوير مادي',
-                                                    'Technical Development' => 'Technical Development - تطوير تقني',
-                                                    'Media Production' => 'Media Production - إنتاج إعلامي',
-                                                    'Public Campaign' => 'Public Campaign - حملة توعوية',
-                                                    'Legal Activity' => 'Legal Activity - نشاط قانوني',
-                                                    'Support & Assistance' => 'Support & Assistance - الدعم والمساندة'
-                                                ];
+    'Conference / Forum' => 'Conference / Forum – مؤتمر/ منتدى',
+    'Coordination Meeting' => 'Coordination Meeting – اجتماع تنسيقي',
+    'Training Workshop' => 'Training Workshop – ورشة تدريبية',
+    'Course' => 'Course – دورة',
+    'Seminar' => 'Seminar – ندوة',
+    'Simulation' => 'Simulation – محاكاة',
+    'Consultative Workshop' => 'Consultative Workshop – ورشة تشاورية',
+    'Working Groups' => 'Working Groups – مجموعات عمل',
+    'Survey' => 'Survey – استمارة',
+    'Exhibition' => 'Exhibition – معرض',
+    'Concert / Festival' => 'Concert / Festival – حفل موسيقي/ مهرجان',
+    'Tournament' => 'Tournament – بطولة',
+    'Specialized Service' => 'Specialized Service – خدمة متخصصة',
+    'Capacity Building' => 'Capacity Building - بناء القدرات',
+    'Policies & Plans' => 'Policies & Plans - السياسات والخطط',
+    'Engagement Event' => 'Engagement Event - فعالية تفاعلية',
+    'Overview' => 'Overview - نظرة عامة',
+    'Field Activity' => 'Field Activity - نشاط ميداني',
+    'Research Activity' => 'Research Activity - نشاط بحثي',
+    'Physical Development' => 'Physical Development - تطوير مادي',
+    'Technical Development' => 'Technical Development - تطوير تقني',
+    'Media Production' => 'Media Production - إنتاج إعلامي',
+    'Public Campaign' => 'Public Campaign - حملة توعوية',
+    'Legal Activity' => 'Legal Activity - نشاط قانوني',
+    'Support & Assistance' => 'Support & Assistance - الدعم والمساندة'
+];
                                             @endphp
                                             @foreach($activityTypes as $key => $label)
                                                 <option value="{{ $key }}" {{ old('activity_type', $activity->activity_type) == $key ? 'selected' : '' }}>
@@ -214,72 +226,117 @@
                             </div>
                         </div>
 
-                        {{-- ================================ --}}
-                        {{-- SECTION 3: DATES AND VENUE --}}
-                        {{-- ================================ --}}
-                        <div class="section-card mb-4">
-                            <div class="section-header">
-                                <h6 class="mb-0 fw-semibold">Dates and Venue</h6>
-                                <span class="text-muted small">Schedule and location details</span>
-                            </div>
-                            <div class="section-body">
-                                <div class="row g-3">
-                                    {{-- Row 1 --}}
-                                    <div class="col-md-6">
-                                        <label for="start_date" class="form-label fw-semibold">
-                                            Start Date <span class="text-danger">*</span>
-                                        </label>
-                                        <input type="date" name="start_date" id="start_date" 
-                                               class="form-control @error('start_date') is-invalid @enderror" 
-                                               value="{{ old('start_date', $activity->start_date ? \Carbon\Carbon::parse($activity->start_date)->format('Y-m-d') : '') }}" 
-                                               required>
-                                        @error('start_date')
-                                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                                        @enderror
-                                    </div>
+        {{-- ================================ --}}
+{{-- SECTION 3: DATES AND VENUE --}}
+{{-- ================================ --}}
+<div class="section-card mb-4">
+    <div class="section-header">
+        <h6 class="mb-0 fw-semibold">Dates and Venue</h6>
+        <span class="text-muted small">Schedule and location details</span>
+    </div>
+    <div class="section-body">
+        <div class="row g-3">
+            {{-- Row 1 --}}
+            <div class="col-md-6">
+                <label for="start_date" class="form-label fw-semibold">
+                    Start Date <span class="text-danger">*</span>
+                </label>
+                <input type="date" name="start_date" id="start_date" 
+                       class="form-control @error('start_date') is-invalid @enderror" 
+                       value="{{ old('start_date', $activity->start_date ? \Carbon\Carbon::parse($activity->start_date)->format('Y-m-d') : '') }}" 
+                       required>
+                @error('start_date')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+            </div>
 
-                                    <div class="col-md-6">
-                                        <label for="end_date" class="form-label fw-semibold">End Date</label>
-                                        <input type="date" name="end_date" id="end_date" 
-                                               class="form-control @error('end_date') is-invalid @enderror" 
-                                               value="{{ old('end_date', $activity->end_date ? \Carbon\Carbon::parse($activity->end_date)->format('Y-m-d') : '') }}">
-                                        @error('end_date')
-                                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                                        @enderror
-                                    </div>
+            <div class="col-md-6">
+                <label for="end_date" class="form-label fw-semibold">End Date</label>
+                <input type="date" name="end_date" id="end_date" 
+                       class="form-control @error('end_date') is-invalid @enderror" 
+                       value="{{ old('end_date', $activity->end_date ? \Carbon\Carbon::parse($activity->end_date)->format('Y-m-d') : '') }}">
+                @error('end_date')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+            </div>
 
-                                    {{-- Row 2 --}}
-                                    <div class="col-md-12">
-                                        <label for="venue" class="form-label fw-semibold">Venue</label>
-                                        <select name="venue" id="venue" 
-                                               class="form-control form-select @error('venue') is-invalid @enderror">
-                                            <option value="">Select Venue</option>
-                                            @php
-                                                $venues = [
-                                                    'Hariri Foundation Headquarters',
-                                                    'Rafic Hariri High School',
-                                                    'Hajj Bahaa Hariri High School',
-                                                    'Hariri Social & Medical Center',
-                                                    'Hariri Foundation Vocational & Technical Training Center',
-                                                    'Khan al Franj',
-                                                    'Outreach & Leadership Academy',
-                                                    'National State Academy'
-                                                ];
-                                            @endphp
-                                            @foreach($venues as $venue)
-                                                <option value="{{ $venue }}" {{ old('venue', $activity->venue) == $venue ? 'selected' : '' }}>
-                                                    {{ $venue }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        @error('venue')
-                                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+            {{-- Row 2 - Venue --}}
+            <div class="col-md-12">
+                <label for="venue_select" class="form-label fw-semibold">Venue</label>
+                <select name="venue_select" id="venue_select" 
+                       class="form-control form-select @error('venue') is-invalid @enderror">
+                    <option value="">Select Venue</option>
+                    @php
+                        $venues = [
+                            'HF Beirut Office - Brown Meeting Room',
+                            'HF Beirut Office - Red Meeting Room',
+                            'HF Beirut Office - Black Meeting Room',
+                            'HF Beirut Office - Enmaeya Meeting Room',
+                            'HF Beirut Office - Enmaeya Studio',
+                            'National State Academy - Assembly Hall',
+                            'National State Academy - Conference Room',
+                            'National State Academy - Meeting Room',
+                            'Rafic Hariri High School - Campus',
+                            'Rafic Hariri High School - Theater',
+                            'Rafic Hariri High School - Library',
+                            'Rafic Hariri High School - Houssam Hariri Basketball Court',
+                            'Hajj Bahaa Hariri High School - Campus',
+                            'Hajj Bahaa Hariri High School - Theater',
+                            'Outreach & Leadership Academy',
+                            'Khan El Franj',
+                            'Hariri Social & Medical Center',
+                            'HF Local Community Center - Old Saida',
+                            'HF Local Community Center - Taamir Ein El Hilweh',
+                            'HF Local Community Center - Helalieh',
+                            'HF Vocational & Technical Training Center',
+                            'Cisco Academy for Digital Skills & Artificial Intelligence',
+                            'Online',
+                            'Other'
+                        ];
+                        
+                        // Get current venue from database
+                        $currentVenue = old('venue', $activity->venue);
+                        $isCustomVenue = $currentVenue && !in_array($currentVenue, $venues);
+                        
+                        // If custom venue, we'll show "Other" as selected
+                        $displayValue = $isCustomVenue ? 'Other' : $currentVenue;
+                    @endphp
+                    
+                    @foreach($venues as $venue)
+                        <option value="{{ $venue }}" {{ $displayValue == $venue ? 'selected' : '' }}>
+                            {{ $venue }}
+                        </option>
+                    @endforeach
+                </select>
+                @error('venue')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+            </div>
 
+            {{-- Row 3 - Custom Venue Input (only shows when "Other" is selected) --}}
+            <div class="col-md-12" id="customVenueContainer" style="display: {{ $isCustomVenue ? 'block' : 'none' }};">
+                <label for="custom_venue" class="form-label fw-semibold">Custom Venue <span class="text-danger">*</span></label>
+                <input type="text" name="custom_venue" id="custom_venue" 
+                       class="form-control @error('custom_venue') is-invalid @enderror" 
+                       value="{{ $isCustomVenue ? $currentVenue : old('custom_venue') }}" 
+                       placeholder="Enter custom venue name"
+                       {{ $isCustomVenue ? '' : 'disabled' }}>
+                @error('custom_venue')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+                <div class="form-text">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Please specify the venue name when selecting "Other"
+                </div>
+            </div>
+            
+            {{-- Hidden input to store the final venue value --}}
+            <input type="hidden" name="venue" id="venue_hidden" value="{{ $currentVenue }}">
+        </div>
+    </div>
+</div>
+    </div>
+</div>
                         {{-- ================================== --}}
                         {{-- SECTION 4: CONTENT AND NETWORK --}}
                         {{-- ================================== --}}
@@ -634,7 +691,7 @@
                             return a.localeCompare(b);
                         });
 
-                                                // Select existing projects for the activity
+                        // Select existing projects for the activity
                         let selectedProjectIds = {!! json_encode(
                             json_decode($projects ?? '[]', true) ?: []
                         ) !!};
@@ -643,17 +700,15 @@
 
                         // Add projects grouped by program_type
                         sortedGroupKeys.forEach(groupKey => {
-
                             if (groupedProjects[groupKey] && groupedProjects[groupKey].length > 0) {
                                 // Sort projects within each group alphabetically
                                 groupedProjects[groupKey].sort((a, b) => a.name.localeCompare(b.name));
 
                                 const programGroup = $('<optgroup>').attr('label', groupKey);
                                 groupedProjects[groupKey].forEach(project => {
-                                        
                                     programGroup.append($('<option>')
                                         .val(project.project_id)
-                                                  .prop('selected', selectedProjectIds.includes(project.project_id))
+                                        .prop('selected', selectedProjectIds.includes(project.project_id))
                                         .text(project.name)
                                     );
                                 });
@@ -661,9 +716,6 @@
                             }
                         });
 
-
-
-                        
                     } else {
                         projectsSelect.append('<option value="">No projects available for selected program</option>');
                     }
@@ -691,7 +743,6 @@
             });
         }
 
-
         function handleProgramSelection() {
             const $select = $('#programs_select');
             const selectedOption = $select.find('option:selected');
@@ -707,8 +758,7 @@
         }
 
         $('#programs_select').on('change', handleProgramSelection);
-
-        handleProgramSelection()
+        handleProgramSelection();
 
         // Initialize RP Components Select2
         $('#rp_component_id').select2({
@@ -762,30 +812,21 @@
             activitiesSelect.append('<option value="">Loading activities...</option>');
             activitiesSelect.trigger('change');
             
-            console.log('Loading activities for component ID:', componentId);
-            
-            // CHANGE THIS LINE: Use the actions endpoint instead
+            // Use the actions endpoint
             $.ajax({
-                url: '{{ route("activities.get-rp-actions-with-activities") }}', // CHANGED
+                url: '{{ route("activities.get-rp-actions-with-activities") }}',
                 method: 'GET',
                 data: { component_id: componentId },
                 dataType: 'json',
-                beforeSend: function() {
-                    console.log('Sending AJAX request to actions endpoint');
-                },
                 success: function(response) {
-                    console.log('AJAX response received:', response);
-                    
                     // Clear the loading message
                     activitiesSelect.empty();
                     
                     if (response.success && response.data && Array.isArray(response.data)) {
-                        console.log('Found', response.data.length, 'actions with activities');
-                        
                         if (response.data.length === 0) {
                             activitiesSelect.append('<option value="">No activities found for this component</option>');
                         } else {
-                            // NEW: Process grouped data by actions
+                            // Process grouped data by actions
                             response.data.forEach(action => {
                                 if (action.activities && action.activities.length > 0) {
                                     // Create optgroup for each action
@@ -802,7 +843,6 @@
                                     // Add each activity as an option
                                     action.activities.forEach(activity => {
                                         const activityText = activity.code + ' - ' + activity.name;
-                                        console.log('Adding activity:', activity.rp_activities_id, activityText);
                                         
                                         optgroup.append(
                                             $('<option>')
@@ -829,7 +869,6 @@
                             
                             // Select activities that are already associated
                             const selectedActivityIds = {!! json_encode($selectedRpActivities ?? []) !!};
-                            console.log('Selected activity IDs:', selectedActivityIds);
                             
                             if (selectedActivityIds.length > 0) {
                                 // Get all activity IDs from the response
@@ -849,12 +888,10 @@
                                 
                                 if (validIds.length > 0) {
                                     activitiesSelect.val(validIds).trigger('change');
-                                    console.log('Selected', validIds.length, 'existing activities');
                                 }
                             }
                         }
                     } else {
-                        console.log('Response not successful or no data:', response);
                         activitiesSelect.append('<option value="">No activities found for this component</option>');
                     }
                     
@@ -886,7 +923,6 @@
         // Event listener for component change
         $('#rp_component_id').on('change', function() {
             const componentId = $(this).val();
-            console.log('Component changed to:', componentId);
             loadRPActivitiesByComponent(componentId);
         });
 
@@ -894,13 +930,81 @@
         $(document).ready(function() {
             const initialComponentId = $('#rp_component_id').val();
             if (initialComponentId) {
-                console.log('Loading activities for initial component:', initialComponentId);
-                // Small delay to ensure DOM is ready
                 setTimeout(() => {
                     loadRPActivitiesByComponent(initialComponentId);
                 }, 300);
             }
         });
+
+       // ============================================
+// VENUE HANDLING
+// ============================================
+const venueSelect = $('#venue_select'); // Display select
+const customVenueContainer = $('#customVenueContainer');
+const customVenueInput = $('#custom_venue');
+const venueHidden = $('#venue_hidden'); // Hidden input for final value
+
+// Function to handle venue selection change
+function handleVenueChange() {
+    const selectedValue = venueSelect.val();
+    
+    if (selectedValue === 'Other') {
+        // Show custom venue input
+        customVenueContainer.slideDown(300);
+        customVenueInput.prop('disabled', false).focus();
+        customVenueInput.prop('required', true);
+        
+        // If custom venue already has a value, keep it
+        if (!customVenueInput.val().trim()) {
+            customVenueInput.val('');
+        }
+        
+        // Update hidden field with custom venue value if exists
+        if (customVenueInput.val().trim()) {
+            venueHidden.val(customVenueInput.val().trim());
+        } else {
+            venueHidden.val('');
+        }
+    } else {
+        // Hide custom venue input
+        customVenueContainer.slideUp(300);
+        customVenueInput.prop('disabled', true);
+        customVenueInput.prop('required', false);
+        
+        // Update hidden field with selected venue
+        venueHidden.val(selectedValue);
+    }
+}
+
+// Update hidden field when custom venue input changes
+customVenueInput.on('input', function() {
+    if (venueSelect.val() === 'Other') {
+        venueHidden.val($(this).val().trim());
+    }
+});
+
+// Initial check on page load
+handleVenueChange();
+
+// Event listener for venue change
+venueSelect.on('change', handleVenueChange);
+
+// Form submission validation
+$('#activityForm').on('submit', function(e) {
+    if (venueSelect.val() === 'Other') {
+        const customVenueValue = customVenueInput.val().trim();
+        
+        if (!customVenueValue) {
+            e.preventDefault();
+            customVenueInput.focus();
+            alert('Please enter a custom venue name.');
+            return;
+        }
+        
+        // Ensure hidden field has the custom value
+        venueHidden.val(customVenueValue);
+    }
+});
 
         // Form validation - Check if elements exist first
         const form = document.getElementById('activityForm');
