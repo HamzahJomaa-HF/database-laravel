@@ -9,8 +9,13 @@ use App\Imports\HierarchyImport;
 use App\Imports\ActivitiesImport;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use App\Models\ActionPlan;
+use App\Models\RpComponent;
+use Illuminate\Support\Str;
+
 
 class ReportingImportController extends Controller
 {
@@ -22,95 +27,153 @@ class ReportingImportController extends Controller
     /**
      * Single import method - imports both hierarchy and activities
      */
-    public function import(Request $request)
-    {
-        $request->validate([
-            'excel_file' => 'required|file|mimes:xlsx,xls|max:10240'
+   public function import(Request $request)
+{
+    // ========== UPDATE VALIDATION ==========
+    $request->validate([
+        'excel_file' => 'required|file|mimes:xlsx,xls|max:10240',
+        'action_plan_title' => 'required|string|max:255', // ADD THIS LINE
+        'start_date' => 'nullable|date', // ADD THIS LINE
+        'end_date' => 'nullable|date|after_or_equal:start_date', // ADD THIS LINE
+    ]);
+    // ========================================
+
+    try {
+        $file = $request->file('excel_file');
+        
+        // ========== ADD THIS SECTION: SAVE ACTION PLAN ==========
+        Log::info('Step 1: Saving Action Plan to database');
+        
+       $filename = time() . '_' . $file->getClientOriginalName();
+        $path = $file->storeAs('action_plans', $filename, 'public');
+        
+        // Save action plan WITHOUT component_id
+        $actionPlan = ActionPlan::create([
+            'action_plan_id' => Str::uuid(),
+            'title' => $request->action_plan_title,
+            'start_date' => $request->start_date,
+            'end_date' => $request->end_date,
+            // 'rp_components_id' => null, // Don't set it here
+            'excel_filename' => $filename,
+            'excel_url' => Storage::url($path),
+            'excel_uploaded_at' => now(),
+            'excel_metadata' => json_encode([
+                'original_name' => $file->getClientOriginalName(),
+                'size' => $file->getSize(),
+                'mime_type' => $file->getMimeType(),
+            ]),
+        ]);
+        
+        Log::info('Action Plan saved', [
+            'id' => $actionPlan->action_plan_id,
+            'title' => $actionPlan->title
+        ]);
+        // ========== END ADDITION ==========
+        
+        Log::info('=== STARTING COMPLETE IMPORT ===', [
+            'filename' => $file->getClientOriginalName(),
+            'size' => $file->getSize(),
+            'action_plan_id' => $actionPlan->action_plan_id // ADD THIS
         ]);
 
-        try {
-            $file = $request->file('excel_file');
+        // REST OF YOUR EXISTING CODE STAYS THE SAME...
+        // IMPORT HIERARCHY (SHEET 1)
+        Log::info('--- IMPORTING HIERARCHY (Sheet 1) ---');
+        
+        $hierarchyImport = new HierarchyImport();
+        $hierarchyWrapper = new class($hierarchyImport) implements \Maatwebsite\Excel\Concerns\WithMultipleSheets {
+            private $import;
             
-            Log::info('=== STARTING COMPLETE IMPORT ===', [
-                'filename' => $file->getClientOriginalName(),
-                'size' => $file->getSize()
-            ]);
-
-            // IMPORT HIERARCHY (SHEET 1)
-            Log::info('--- IMPORTING HIERARCHY (Sheet 1) ---');
+            public function __construct($import)
+            {
+                $this->import = $import;
+            }
             
-            $hierarchyImport = new HierarchyImport();
-            $hierarchyWrapper = new class($hierarchyImport) implements \Maatwebsite\Excel\Concerns\WithMultipleSheets {
-                private $import;
-                
-                public function __construct($import)
-                {
-                    $this->import = $import;
-                }
-                
-                public function sheets(): array
-                {
-                    return [0 => $this->import]; // First sheet only
-                }
-            };
+            public function sheets(): array
+            {
+                return [0 => $this->import];
+            }
+        };
+        
+        Excel::import($hierarchyWrapper, $file, null, \Maatwebsite\Excel\Excel::XLSX);
+        $hierarchyResults = $hierarchyImport->getResults();
+
+        Log::info('Hierarchy import completed', $hierarchyResults);
+
+        // IMPORT ACTIVITIES (SHEET 2)
+        Log::info('--- IMPORTING ACTIVITIES (Sheet 2) ---');
+        
+        $activitiesImport = new ActivitiesImport();
+        $activitiesWrapper = new class($activitiesImport) implements \Maatwebsite\Excel\Concerns\WithMultipleSheets {
+            private $import;
             
-            Excel::import($hierarchyWrapper, $file, null, \Maatwebsite\Excel\Excel::XLSX);
-            $hierarchyResults = $hierarchyImport->getResults();
-
-            Log::info('Hierarchy import completed', $hierarchyResults);
-
-            // IMPORT ACTIVITIES (SHEET 2)
-            Log::info('--- IMPORTING ACTIVITIES (Sheet 2) ---');
+            public function __construct($import)
+            {
+                $this->import = $import;
+            }
             
-            $activitiesImport = new ActivitiesImport();
-            $activitiesWrapper = new class($activitiesImport) implements \Maatwebsite\Excel\Concerns\WithMultipleSheets {
-                private $import;
-                
-                public function __construct($import)
-                {
-                    $this->import = $import;
-                }
-                
-                public function sheets(): array
-                {
-                    return [1 => $this->import]; // Second sheet only
-                }
-            };
-            
-            // Need to re-import the file for second sheet
-            Excel::import($activitiesWrapper, $file, null, \Maatwebsite\Excel\Excel::XLSX);
-            $activitiesResults = $activitiesImport->getResults();
+            public function sheets(): array
+            {
+                return [1 => $this->import];
+            }
+        };
+        
+        Excel::import($activitiesWrapper, $file, null, \Maatwebsite\Excel\Excel::XLSX);
+        $activitiesResults = $activitiesImport->getResults();
 
-            Log::info('Activities import completed', $activitiesResults);
+        Log::info('Activities import completed', $activitiesResults);
 
-            // Transform activities results
-            $transformedActivities = $this->transformActivitiesResults($activitiesResults);
-            
-            // Get complete database counts
-            $dbCounts = $this->getCompleteDatabaseCounts();
+        // ========== ADD THIS: UPDATE ACTION PLAN WITH RESULTS ==========
+        $actionPlan->update([
+            'excel_processed_at' => now(),
+            'excel_metadata' => json_encode(array_merge(
+                json_decode($actionPlan->excel_metadata, true) ?? [],
+                [
+                    'import_results' => [
+                        'hierarchy' => $hierarchyResults,
+                        'activities' => $activitiesResults
+                    ],
+                    'processed_at' => now()->toDateTimeString(),
+                ]
+            )),
+        ]);
+        Log::info('Action Plan updated with import results');
+        // ========== END ADDITION ==========
 
-            // Log success
-            Log::info('=== IMPORT COMPLETED ===', [
-                'hierarchy_results' => $hierarchyResults,
-                'activities_results' => $transformedActivities,
-                'db_counts' => $dbCounts
-            ]);
+        // Transform activities results
+        $transformedActivities = $this->transformActivitiesResults($activitiesResults);
+        
+        // Get complete database counts
+        $dbCounts = $this->getCompleteDatabaseCounts();
 
-            return back()->with([
-                'success' => '✅ Complete data imported successfully!',
-                'import_results' => $hierarchyResults, // This will show as "Hierarchy Import Details"
-                'activities_results' => $transformedActivities, // This will show as "Activities Import Details"
-                'db_counts' => $dbCounts
-            ]);
+        // Log success
+        Log::info('=== IMPORT COMPLETED ===', [
+            'hierarchy_results' => $hierarchyResults,
+            'activities_results' => $transformedActivities,
+            'db_counts' => $dbCounts,
+            'action_plan_id' => $actionPlan->action_plan_id // ADD THIS
+        ]);
 
-        } catch (\Exception $e) {
-            Log::error('Import failed: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
-            return back()->with('error', '❌ Import failed: ' . $e->getMessage());
-        }
+        // ========== UPDATE RETURN DATA ==========
+        return back()->with([
+            'success' => '✅ Action Plan created and data imported successfully!',
+            'import_results' => $hierarchyResults,
+            'activities_results' => $transformedActivities,
+            'db_counts' => $dbCounts,
+            'action_plan_created' => true, // ADD THIS
+            'action_plan_id' => $actionPlan->action_plan_id, // ADD THIS
+            'excel_filename' => $actionPlan->excel_filename, // ADD THIS
+            'uploaded_at' => $actionPlan->excel_uploaded_at->format('Y-m-d H:i:s'), // ADD THIS
+        ]);
+        // ========================================
+
+    } catch (\Exception $e) {
+        Log::error('Import failed: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString()
+        ]);
+        return back()->with('error', '❌ Import failed: ' . $e->getMessage());
     }
-
+}
     /**
      * Transform activities results to match Blade view
      */
@@ -176,7 +239,9 @@ class ReportingImportController extends Controller
                 'indicators' => DB::table('rp_indicators')->count(),
                 'focalpoints' => DB::table('rp_focalpoints')->count(),
                 'activity_indicators' => DB::table('rp_activity_indicators')->count(),
-                'activity_focalpoints' => DB::table('rp_activity_focalpoints')->count()
+                'activity_focalpoints' => DB::table('rp_activity_focalpoints')->count(),
+                 'action_plans' => ActionPlan::count() 
+
             ];
         } catch (\Exception $e) {
             Log::error('Failed to get database counts: ' . $e->getMessage());
@@ -189,7 +254,8 @@ class ReportingImportController extends Controller
                 'indicators' => 0,
                 'focalpoints' => 0,
                 'activity_indicators' => 0,
-                'activity_focalpoints' => 0
+                'activity_focalpoints' => 0,
+                 'action_plans' => 0
             ];
         }
     }

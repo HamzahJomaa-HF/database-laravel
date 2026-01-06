@@ -7,8 +7,12 @@ use App\Http\Controllers\Reporting\{
     ReportingImportController
 };
 use App\Http\Controllers\UserController as UserController;
+use App\Http\Controllers\ActionPlanController;
+// In your routes file
+Route::get('/actionPlans', [ActionPlanController::class, 'index'])->name('action-plans.index');Route::delete('/action-plans/bulk-destroy', [ActionPlanController::class, 'bulkDestroy'])->name('action-plans.bulk.destroy');
+Route::delete('/action-plans/{id}', [ActionPlanController::class, 'destroy'])->name('action-plans.destroy');
 
-
+//users routes
 Route::prefix('users')->name('users.')->group(function () {
     Route::get('/', [UserController::class, 'index'])->name('index');
     Route::post('/', [UserController::class, 'store'])->name('store');
@@ -112,8 +116,6 @@ Route::prefix('reporting')->name('reporting.')->group(function () {
 Route::post('/reporting/import/process', [ReportingImportController::class, 'process'])->name('reporting.import.process');
     
    
-    
-
    
 
     

@@ -19,7 +19,7 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
     ];
 
     private $hierarchyMap = [];
-    
+    private $programMapping = [];
     
     
 

@@ -8,12 +8,22 @@ return [
                 'title' => 'L5 Swagger UI',
             ],
 
-            'routes' => [
-                /*
-                 * Route for accessing api documentation interface
-                 */
-                'api' => 'api/documentation',
-            ],
+'routes' => [
+    /*
+     * Route for accessing parsed swagger annotations.
+     */
+    'docs' => 'docs', // ADD THIS LINE
+
+    /*
+     * Route for accessing api documentation interface
+     */
+    'api' => 'api/documentation',
+
+    /*
+     * Route for Oauth2 authentication callback.
+     */
+    'oauth2_callback' => 'api/oauth2-callback',
+],
             'paths' => [
                 /*
                  * Edit to include full URL in ui for assets

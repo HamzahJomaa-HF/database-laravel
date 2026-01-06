@@ -14,6 +14,7 @@ class HierarchyImport implements ToCollection, WithHeadingRow
     private $componentMap = [];
     private $programMap = [];
     private $unitMap = [];
+    private $actionMap = [];
 
     private $results = [
         'processed' => 0,

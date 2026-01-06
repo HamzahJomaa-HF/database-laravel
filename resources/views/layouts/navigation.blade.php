@@ -1,4 +1,5 @@
 <div class="d-flex flex-column h-100 py-3">
+   <div class="d-flex flex-column h-100 py-3">
     {{-- Brand --}}
     <div class="navbar-brand text-center mb-4 px-3">
         <div class="d-flex align-items-center justify-content-center">
@@ -188,67 +189,122 @@
         </li>
     </ul>
 
-    {{-- Cross-Platform Analytics --}}
-    <div class="nav-header mt-4">Cross-Platform Analytics</div>
-    <ul class="nav flex-column mb-2">
-        <li class="nav-item">
-            <a class="nav-link" href="#">
-                <i class="bi bi-speedometer me-2"></i> Executive Dashboard
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="#">
-                <i class="bi bi-pie-chart-fill me-2"></i> Overall Statistics
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="#">
-                <i class="bi bi-graph-up-arrow me-2"></i> Performance Overview
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="#">
-                <i class="bi bi-arrow-left-right me-2"></i> Data Integration
-            </a>
-        </li>
-    </ul>
-
-    {{-- Administration --}}
-    <div class="nav-header mt-4">Administration</div>
-    <ul class="nav flex-column">
-        <li class="nav-item">
-            <a class="nav-link" href="#">
-                <i class="bi bi-gear me-2"></i> System Settings
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="#">
-                <i class="bi bi-shield-lock me-2"></i> Security & Permissions
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="#">
-                <i class="bi bi-database me-2"></i> Data Management
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="#">
-                <i class="bi bi-upload me-2"></i> Bulk Operations
-            </a>
-        </li>
-    </ul>
-    
-    {{-- Help Section (Modified) --}}
-    <div class="mt-auto p-3">
-        <div class="card bg-dark border-0">
-            <div class="card-body text-center p-3">
-                <i class="bi bi-question-circle fs-2 text-warning mb-2"></i>
-                <h6 class="text-white mb-2">Documentation</h6>
-                <p class="text-white-50 small mb-3">Access user guides and manuals</p>
-                <div class="d-grid gap-2">
-                    <a href="#" class="btn btn-outline-light btn-sm">
-                        <i class="bi bi-book me-1"></i> User Guide
+    {{-- Action Plans --}}
+    <li class="nav-item">
+        <a class="nav-link d-flex justify-content-between align-items-center" 
+           data-bs-toggle="collapse" href="#actionPlansCollapse" role="button">
+            <span>
+                <i class="bi bi-file-earmark-spreadsheet me-2"></i> Action Plans
+            </span>
+            <i class="bi bi-chevron-down collapse-icon"></i>
+        </a>
+        <div class="collapse {{ request()->is('action-plans*') || request()->is('reporting*') ? 'show' : '' }}" id="actionPlansCollapse">
+            <ul class="nav flex-column sub-menu ms-4">
+                {{-- Excel Import --}}
+                <div class="sub-header ms-2 mt-2">Excel Operations</div>
+                
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->is('reporting/import') ? 'active' : '' }}" 
+                       href="{{ url('/reporting/import') }}">
+                        <i class="bi bi-upload me-2"></i> Import Excel File
                     </a>
+                </li>
+                
+                {{-- Action Plan Management --}}
+                <div class="sub-header ms-2 mt-2">Action Plans</div>
+                
+                {{-- ADD THIS: Link to All Action Plans --}}
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('action-plans.index') ? 'active' : '' }}" 
+                       href="{{ route('action-plans.index') }}">
+                        <i class="bi bi-list-ul me-2"></i> All Action Plans
+                    </a>
+                </li>
+                
+                {{-- Placeholder for other routes --}}
+                <li class="nav-item">
+                    <a class="nav-link text-white-50 disabled" href="#">
+                        <i class="bi bi-plus-circle me-2"></i> Create Action Plan
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white-50 disabled" href="#">
+                        <i class="bi bi-download me-2"></i> Download Template
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white-50 disabled" href="#">
+                        <i class="bi bi-file-earmark-excel me-2"></i> Export to Excel
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </li>
+                        
+                        {{-- Validation & Quality --}}
+                       
+        {{-- Cross-Platform Analytics --}}
+        <div class="nav-header mt-4">Cross-Platform Analytics</div>
+        <ul class="nav flex-column mb-2">
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="bi bi-speedometer me-2"></i> Executive Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="bi bi-pie-chart-fill me-2"></i> Overall Statistics
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="bi bi-graph-up-arrow me-2"></i> Performance Overview
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="bi bi-arrow-left-right me-2"></i> Data Integration
+                </a>
+            </li>
+        </ul>
+
+        {{-- Administration --}}
+        <div class="nav-header mt-4">Administration</div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="bi bi-gear me-2"></i> System Settings
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="bi bi-shield-lock me-2"></i> Security & Permissions
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="bi bi-database me-2"></i> Data Management
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="bi bi-upload me-2"></i> Bulk Operations
+                </a>
+            </li>
+        </ul>
+        
+        {{-- Help Section (Modified) --}}
+        <div class="mt-auto p-3">
+            <div class="card bg-dark border-0">
+                <div class="card-body text-center p-3">
+                    <i class="bi bi-question-circle fs-2 text-warning mb-2"></i>
+                    <h6 class="text-white mb-2">Documentation</h6>
+                    <p class="text-white-50 small mb-3">Access user guides and manuals</p>
+                    <div class="d-grid gap-2">
+                        <a href="#" class="btn btn-outline-light btn-sm">
+                            <i class="bi bi-book me-1"></i> User Guide
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
