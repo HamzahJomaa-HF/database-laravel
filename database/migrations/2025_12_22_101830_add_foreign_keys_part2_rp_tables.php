@@ -8,16 +8,6 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Action Plans foreign key
-         Schema::table('action_plans', function (Blueprint $table) {
-            $table->foreign('rp_components_id')
-                  ->references('rp_components_id')
-                  ->on('rp_components')
-                  ->onDelete('cascade'); 
-                  
-            // Optional: Add index for better performance
-            $table->index('rp_components_id');
-        });
         // RP Actions foreign key
         Schema::table('rp_actions', function (Blueprint $table) {
             $table->foreign('rp_units_id')
@@ -109,8 +99,7 @@ return new class extends Migration
             'rp_activity_indicators',
             'rp_activity_focalpoints',
             'rp_activities',
-            'rp_actions',
-            'action_plans',
+            'rp_actions'
         ];
 
         foreach ($tables as $tableName) {
@@ -126,4 +115,3 @@ return new class extends Migration
         }
     }
 };
-
