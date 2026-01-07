@@ -20,6 +20,8 @@ class RpComponent extends Model
         'external_id',
         'code',
         'description',
+        'action_plan_id',
+
     ];
 
     protected $dates = ['deleted_at'];
@@ -27,6 +29,10 @@ class RpComponent extends Model
     /**
      * Relationships
      */
+     public function actionPlan()
+    {
+        return $this->belongsTo(ActionPlan::class, 'action_plan_id', 'action_plan_id');
+    }
     public function programs()
     {
         return $this->hasMany(RpProgram::class, 'rp_components_id', 'rp_components_id');

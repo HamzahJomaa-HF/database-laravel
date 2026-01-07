@@ -168,200 +168,226 @@ class ActivityController extends Controller
     /**
      * Show the form for editing the specified activity.
      */
-    public function edit($id)
-    {
-        $activity = Activity::findOrFail($id);
-        $projects = ProjectActivity::where('project_activities.activity_id', $id)
-            ->leftJoin('projects', 'projects.project_id', '=', 'project_activities.project_id')
-            ->leftJoin('programs as p', 'p.program_id', '=', 'projects.program_id')              // program
-            ->leftJoin('programs as pp', 'pp.program_id', '=', 'p.parent_program_id')    // parent program
-            ->select([
-                'project_activities.*',
-                'projects.*',
-                'p.program_id as program_id',
-                'p.name as program_name',
-                'pp.program_id as parent_program_id',
-                'pp.name as parent_program_name',
-            ])->get();
+ public function edit($id)
+{
+    $activity = Activity::findOrFail($id);
+    
+    // DEBUG: Check what's actually in the database
+    Log::info('DEBUG ACTIVITY DATA:', [
+        'activity_id' => $activity->activity_id,
+        'rp_component_id' => $activity->rp_component_id,
+        'rp_activities_raw' => $activity->rp_activities,
+        'rp_activities_decoded' => json_decode($activity->rp_activities, true),
+    ]);
 
-        // Get RP Components for dropdown (limit to 5 as requested in first code)
-        $rpComponents = RpComponent::whereNull('deleted_at')
-            ->orderBy('code')
-            ->limit(5)
-            ->get(['rp_components_id', 'code', 'name']);
+    $projects = ProjectActivity::where('project_activities.activity_id', $id)
+        ->leftJoin('projects', 'projects.project_id', '=', 'project_activities.project_id')
+        ->leftJoin('programs as p', 'p.program_id', '=', 'projects.program_id')
+        ->leftJoin('programs as pp', 'pp.program_id', '=', 'p.parent_program_id')
+        ->select([
+            'project_activities.*',
+            'projects.*',
+            'p.program_id as program_id',
+            'p.name as program_name',
+            'pp.program_id as parent_program_id',
+            'pp.name as parent_program_name',
+        ])->get();
 
-        // Get selected RP activities if any
-        $selectedRpActivities = json_decode($activity->rp_activities ?? '[]', true);
+    // ============================================
+    // PROGRAMS (existing code - good format)
+    // ============================================
+    $programs = Program::whereIn('program_type', ['Center', 'Local Program/Network', 'Flagship'])
+        ->orderBy('name')
+        ->get(['program_id', 'name', 'external_id']);
 
-        // Initialize selected component
-        $selectedComponent = null;
+    // GOOD FORMAT: Using pluck() -> unique() -> toArray()
+    $selected_program = $projects->pluck('parent_program_id')->unique()->toArray();
+    $selected_project_ids = $projects->pluck('project_id')->unique()->toArray();
 
-        // Try to find the component from reporting activities or existing rp_component_id
-        if (!empty($activity->rp_component_id)) {
-            $selectedComponent = RpComponent::where('rp_components_id', $activity->rp_component_id)->first();
+    // ============================================
+    // RP COMPONENTS - SIMILAR FORMAT
+    // ============================================
+    $rpComponents = RpComponent::whereNull('deleted_at')
+        ->orderBy('code')
+        ->get(['rp_components_id', 'code', 'name']);
+
+    // For component (single selection), use same format but as array with single value
+    $selectedComponentId = $activity->rp_component_id ? [$activity->rp_component_id] : [];
+    // OR keep as single value if your dropdown needs it
+    $selectedComponentIdSingle = $activity->rp_component_id; // Keep this for dropdown
+
+    // ============================================
+    // RP ACTIVITIES - SAME FORMAT AS PROJECTS
+    // ============================================
+    $selectedRpActivityIds = [];
+    
+    // Get JSON from database
+    $rpActivitiesJson = $activity->rp_activities;
+    
+    if ($rpActivitiesJson) {
+        $decoded = json_decode($rpActivitiesJson, true);
+        
+        if (is_array($decoded)) {
+            // Filter out null/empty values and ensure all are strings
+            $selectedRpActivityIds = collect($decoded)
+                ->filter(function($item) {
+                    // Keep only non-empty strings
+                    return is_string($item) && trim($item) !== '';
+                })
+                ->map(function($item) {
+                    // Ensure all are strings
+                    return (string) $item;
+                })
+                ->unique()
+                ->values() // Reset keys
+                ->toArray();
         }
-
-        // NEW: Get all programs from database
-        $programs = Program::whereIn('program_type', ['Center', 'Local Program/Network', 'Flagship'])->orderBy('name')->get(['program_id', 'name', 'external_id']);
-
-        $selected_program = $projects->pluck('parent_program_id')->unique()->toArray();
-
-        return view('activities.edit', compact(
-            'activity',
-            'rpComponents',
-            'selectedRpActivities',
-            'selectedComponent',
-            'programs', // NEW
-            'projects', // NEW
-            'selected_program'
-        ));
     }
 
+    // Alternative: Simpler version if your JSON is already clean array of UUIDs
+    // $selectedRpActivityIds = json_decode($activity->rp_activities ?? '[]', true) ?: [];
+    // $selectedRpActivityIds = array_filter(array_unique($selectedRpActivityIds));
+
+    // ============================================
+    // Debug output
+    // ============================================
+    echo "<!-- DEBUG: Component ID from DB: " . ($activity->rp_component_id ?? 'NULL') . " -->";
+    echo "<!-- DEBUG: Selected Component ID (single): " . ($selectedComponentIdSingle ?? 'NULL') . " -->";
+    echo "<!-- DEBUG: Selected Component ID (array): " . json_encode($selectedComponentId) . " -->";
+    echo "<!-- DEBUG: Selected RP Activity IDs: " . json_encode($selectedRpActivityIds) . " -->";
+    echo "<!-- DEBUG: Selected RP Activity IDs count: " . count($selectedRpActivityIds) . " -->";
+
+    // ============================================
+    // Return view
+    // ============================================
+    return view('activities.edit', compact(
+        'activity',
+        'rpComponents',
+        'selectedComponentIdSingle',  // For dropdown (single value)
+        'selectedComponentId',        // For consistency (array format)
+        'selectedRpActivityIds',      // Array format (like selected_project_ids)
+        'programs',
+        'selected_program',           // Array format
+        'selected_project_ids',       // Array format
+        'projects'
+    ));
+}
     /**
      * Update the specified activity in storage.
      */
     public function update(Request $request, $id)
-    {
+{
+    $activity = Activity::findOrFail($id);
 
-        $activity = Activity::findOrFail($id);
+    // Validate the request - ADD rp_component_id
+    $validated = $request->validate([
+        'activity_title_en' => 'required|string|max:255',
+        'activity_title_ar' => 'nullable|string|max:255',
+        'activity_type' => 'required|string|max:100',
+        'projects' => 'nullable|array',
+        'start_date' => 'required|date',
+        'end_date' => 'nullable|date|after_or_equal:start_date',
+        'venue' => 'nullable|string|max:255',
+        'content_network' => 'nullable|string',
+        'rp_component_id' => 'nullable|exists:rp_components,rp_components_id', // ADDED
+        'rp_activities' => 'nullable|array',
+        'focal_points' => 'nullable|array',
+        'operational_support' => 'nullable|array',
+    ]);
 
-        // Validate the request
-        $validated = $request->validate([
-            'activity_title_en' => 'required|string|max:255',
-            'activity_title_ar' => 'nullable|string|max:255',
-            'activity_type' => 'required|string|max:100',
-            'projects' => 'nullable|array',
-            'start_date' => 'required|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'venue' => 'nullable|string|max:255',
-            'content_network' => 'nullable|string',
-            'rp_activities' => 'nullable|array',
-            'focal_points' => 'nullable|array',
-            'operational_support' => 'nullable|array',
+    // Extract the specific arrays from the request
+    $extractedData = [
+        'rp_activities' => $request->input('rp_activities', []),
+        'focal_points' => $request->input('focal_points', []),
+        'projects' => $request->input('projects', []),
+    ];
+
+    // Or extract them to separate variables
+    $rpActivities = $request->input('rp_activities', []);
+    $focalPoints = $request->input('focal_points', []);
+    $projects = $request->input('projects', []);
+
+    // Remove from validated array if they were included
+    unset($validated['rp_activities'], $validated['focal_points'], $validated['projects']);
+
+    // Handle operational_support
+    if (isset($validated['operational_support'])) {
+        $validated['operational_support'] = json_encode($validated['operational_support']);
+    } else {
+        $validated['operational_support'] = null;
+    }
+
+    // Handle focal_points as JSON
+    if (!empty($focalPoints)) {
+        $validated['focal_points'] = json_encode($focalPoints);
+    } else {
+        $validated['focal_points'] = null;
+    }
+
+    // Handle rp_activities as JSON in the activity table
+    if (!empty($rpActivities)) {
+        $validated['rp_activities'] = json_encode($rpActivities);
+    } else {
+        $validated['rp_activities'] = null;
+    }
+
+    // Update the activity with ALL validated data including component and activities
+    $activity->update($validated);
+
+    // Get project ids from request (ensure it's an array of ids)
+    $projects = $projects ?? [];
+    $projects = array_values(array_filter($projects)); // remove null/empty
+    $projects = array_unique($projects);               // avoid duplicates
+
+    // Existing project_ids for this activity
+    $existing = ProjectActivity::where('activity_id', $id)
+        ->pluck('project_id')
+        ->toArray();
+
+    // Add new ones
+    $toInsert = array_diff($projects, $existing);
+    foreach ($toInsert as $projectId) {
+        ProjectActivity::create([
+            'activity_id' => $id,
+            'project_id'  => $projectId,
         ]);
+    }
 
-        // Extract the specific arrays from the request
-        $extractedData = [
-            'rp_activities' => $request->input('rp_activities', []),
-            'focal_points' => $request->input('focal_points', []),
-            'projects' => $request->input('projects', []),
-        ];
+    // Delete removed ones
+    $toDelete = array_diff($existing, $projects);
+    if (!empty($toDelete)) {
+        ProjectActivity::where('activity_id', $id)
+            ->whereIn('project_id', $toDelete)
+            ->delete();
+    }
 
-        // Or extract them to separate variables
-        $rpActivities = $request->input('rp_activities', []);
-        $focalPoints = $request->input('focal_points', []);
-        $projects = $request->input('projects', []);
+    // Handle RP Activities mapping in separate table (NEW CODE - similar to projects)
+    if (!empty($rpActivities)) {
+        // First, delete existing mappings for this activity
+        DB::table('rp_activity_mappings')
+            ->where('activity_id', $activity->activity_id)
+            ->delete();
 
-        // Remove from validated array if they were included
-        unset($validated['rp_activities'], $validated['focal_points'], $validated['projects']);
-
-
-
-
-        if (isset($validated['operational_support'])) {
-            $validated['operational_support'] = json_encode($validated['operational_support']);
-        } else {
-            $validated['operational_support'] = null;
-        }
-        // Update the activity
-        $activity->update($validated);
-
-        // Get project ids from request (ensure it's an array of ids)
-        $projects = $projects ?? [];
-        $projects = array_values(array_filter($projects)); // remove null/empty
-        $projects = array_unique($projects);               // avoid duplicates
-
-        // Existing project_ids for this activity
-        $existing = ProjectActivity::where('activity_id', $id)
-            ->pluck('project_id')
-            ->toArray();
-
-        // Add new ones
-        $toInsert = array_diff($projects, $existing);
-        foreach ($toInsert as $projectId) {
-            ProjectActivity::create([
-                'activity_id' => $id,
-                'project_id'  => $projectId,
+        // Then create new mappings
+        foreach ($rpActivities as $rpActivityId) {
+            DB::table('rp_activity_mappings')->insert([
+                'rp_activity_mappings_id' => (string) \Illuminate\Support\Str::uuid(),
+                'rp_activities_id' => $rpActivityId,
+                'activity_id' => $activity->activity_id,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         }
-
-        // Delete removed ones
-        $toDelete = array_diff($existing, $projects);
-        if (!empty($toDelete)) {
-            ProjectActivity::where('activity_id', $id)
-                ->whereIn('project_id', $toDelete)
-                ->delete();
-        }
-
-
-
-        // Handle RP Activities mapping (NEW CODE - similar to projects)
-        if (!empty($rpActivities)) {
-            // First, delete existing mappings for this activity
-            DB::table('rp_activity_mappings')
-                ->where('activity_id', $activity->activity_id)
-                ->delete();
-
-            // Then create new mappings
-            foreach ($rpActivities as $rpActivityId) {
-                DB::table('rp_activity_mappings')->insert([
-                    'rp_activity_mappings_id' => (string) \Illuminate\Support\Str::uuid(),
-                    'rp_activities_id' => $rpActivityId,
-                    'activity_id' => $activity->activity_id,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
-        } else {
-            // If no RP activities selected, delete any existing mappings
-            DB::table('rp_activity_mappings')
-                ->where('activity_id', $activity->activity_id)
-                ->delete();
-        }
-
-        return redirect()->route('activities.index')
-            ->with('success', 'Activity updated successfully.');
+    } else {
+        // If no RP activities selected, delete any existing mappings
+        DB::table('rp_activity_mappings')
+            ->where('activity_id', $activity->activity_id)
+            ->delete();
     }
 
-    /**
-     * Remove the specified activity from storage.
-     */
-    public function destroy($id)
-    {
-        $activity = Activity::findOrFail($id);
-        $activity->delete();
-
-        return redirect()->route('activities.index')
-            ->with('success', 'Activity deleted successfully.');
-    }
-
-    /**
-     * Bulk delete activities.
-     */
-    public function bulkDestroy(Request $request)
-    {
-        $request->validate([
-            'activity_ids' => 'required|string'
-        ]);
-
-        try {
-            $activityIds = json_decode($request->activity_ids, true);
-
-            if (empty($activityIds)) {
-                return redirect()->back()->with('error', 'No activities selected.');
-            }
-
-            // Delete activities
-            $count = Activity::whereIn('activity_id', $activityIds)->delete();
-
-            return redirect()->route('activities.index')
-                ->with('success', $count . ' activities deleted successfully.');
-        } catch (\Exception $e) {
-            return redirect()->back()
-                ->with('error', 'Error deleting activities: ' . $e->getMessage());
-        }
-    }
-
+    return redirect()->route('activities.index')
+        ->with('success', 'Activity updated successfully.');
+}
     /**
      * Get RP Activities by Component ID (AJAX endpoint)
      * Using Eloquent relationships from first code
@@ -478,91 +504,98 @@ class ActivityController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getRPActionsWithActivities(Request $request)
-    {
-        $request->validate([
-            'component_id' => 'required|string'
+   public function getRPActionsWithActivities(Request $request)
+{
+    $request->validate([
+        'component_id' => 'required|string'
+    ]);
+
+    $componentId = $request->component_id;
+
+    Log::info('getRPActionsWithActivities called', [
+        'component_id' => $componentId,
+        'request_all' => $request->all()
+    ]);
+
+    try {
+        // Debug: Check if component exists
+        $componentExists = RpComponent::where('rp_components_id', $componentId)
+            ->whereNull('deleted_at')
+            ->exists();
+            
+        Log::info('Component exists check:', [
+            'component_id' => $componentId,
+            'exists' => $componentExists
         ]);
 
-        $componentId = $request->component_id;
+        // Get the component with its full hierarchy
+        $component = RpComponent::with([
+            'programs.units.actions.activities' => function ($query) {
+                $query->whereNull('deleted_at')
+                    ->orderBy('code')
+                    ->select(['rp_activities_id', 'rp_actions_id', 'name', 'code']);
+            }
+        ])
+            ->where('rp_components_id', $componentId)
+            ->whereNull('deleted_at')
+            ->first();
 
-        Log::info('getRPActionsWithActivities called', ['component_id' => $componentId]);
-
-        // For testing
-        if (strpos($componentId, 'test-') === 0) {
+        if (!$component) {
+            Log::warning('Component not found', ['component_id' => $componentId]);
             return response()->json([
-                'success' => true,
-                'data' => $this->getTestActionsWithActivities()
-            ]);
+                'success' => false,
+                'message' => 'Component not found',
+                'debug' => ['component_id' => $componentId]
+            ], 404);
         }
 
-        try {
-            // Get the component with its full hierarchy from first code
-            $component = RpComponent::with([
-                'programs.units.actions.activities' => function ($query) {
-                    $query->whereNull('deleted_at')
-                        ->orderBy('code')
-                        ->select(['rp_activities_id', 'rp_actions_id', 'name', 'code']);
-                }
-            ])
-                ->where('rp_components_id', $componentId)
-                ->whereNull('deleted_at')
-                ->first();
+        // Structure the data: Group by Action
+        $actionsData = [];
 
-            if (!$component) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Component not found'
-                ], 404);
-            }
-
-            // Structure the data: Group by Action
-            $actionsData = [];
-
-            foreach ($component->programs as $program) {
-                foreach ($program->units as $unit) {
-                    foreach ($unit->actions as $action) {
-                        if ($action->activities->isNotEmpty()) {
-                            $actionsData[] = [
-                                'action_id' => $action->rp_actions_id,
-                                'action_name' => $action->name,
-                                'action_code' => $action->code,
-                                'activities' => $action->activities->map(function ($activity) {
-                                    return [
-                                        'rp_activities_id' => $activity->rp_activities_id,
-                                        'name' => $activity->name,
-                                        'code' => $activity->code,
-                                        'rp_action_id' => $activity->rp_actions_id,
-                                        'full_name' => $activity->code . ' - ' . $activity->name
-                                    ];
-                                })
-                            ];
-                        }
+        foreach ($component->programs as $program) {
+            foreach ($program->units as $unit) {
+                foreach ($unit->actions as $action) {
+                    if ($action->activities->isNotEmpty()) {
+                        $actionsData[] = [
+                            'action_id' => $action->rp_actions_id,
+                            'action_name' => $action->name,
+                            'action_code' => $action->code,
+                            'activities' => $action->activities->map(function ($activity) {
+                                return [
+                                    'rp_activities_id' => $activity->rp_activities_id,
+                                    'name' => $activity->name,
+                                    'code' => $activity->code,
+                                    'rp_action_id' => $activity->rp_actions_id,
+                                    'full_name' => $activity->code . ' - ' . $activity->name
+                                ];
+                            })
+                        ];
                     }
                 }
             }
-
-            return response()->json([
-                'success' => true,
-                'data' => $actionsData,
-                'component' => [
-                    'id' => $component->rp_components_id,
-                    'name' => $component->name,
-                    'code' => $component->code
-                ]
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Error loading RP actions with activities', [
-                'component_id' => $componentId,
-                'error' => $e->getMessage()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Error loading data'
-            ], 500);
         }
+
+        return response()->json([
+            'success' => true,
+            'data' => $actionsData,
+            'component' => [
+                'id' => $component->rp_components_id,
+                'name' => $component->name,
+                'code' => $component->code
+            ]
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Error loading RP actions with activities', [
+            'component_id' => $componentId,
+            'error' => $e->getMessage()
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Error loading data'
+        ], 500);
     }
+}
 
     /**
      * Get all RP Components with basic info

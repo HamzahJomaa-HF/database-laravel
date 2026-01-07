@@ -15,6 +15,7 @@ class HierarchyImport implements ToCollection, WithHeadingRow
     private $programMap = [];
     private $unitMap = [];
     private $actionMap = [];
+    private $actionplanId = [];
 
     private $results = [
         'processed' => 0,
@@ -216,6 +217,7 @@ class HierarchyImport implements ToCollection, WithHeadingRow
             'name' => $this->truncateForDb($name),
             'code' => $this->cleanCode($code),
             'description' => null,
+            'action_plan_id' => null,
             'created_at' => now(),
             'updated_at' => now(),
             'deleted_at' => null

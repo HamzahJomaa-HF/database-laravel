@@ -361,75 +361,63 @@
                             </div>
                         </div>
 
-                        {{-- ====================================== --}}
-                        {{-- SECTION 5: REPORTING ACTIVITIES --}}
-                        {{-- ====================================== --}}
-                        <div class="section-card mb-4">
-                            <div class="section-header">
-                                <h6 class="mb-0 fw-semibold">Reporting Activities</h6>
-                                <span class="text-muted small">Select reporting component and activities</span>
-                            </div>
-                            <div class="section-body">
-                                <div class="row">
-                                    {{-- RP Components Dropdown --}}
-                                    <div class="col-md-12 mb-3">
-                                        <label for="rp_component_id" class="form-label fw-semibold mb-2">Reporting Component</label>
-                                        <select id="rp_component_id" 
-                                                class="form-control form-select @error('rp_component_id') is-invalid @enderror"
-                                                name="rp_component_id">
-                                            <option value="">Select a Reporting Component</option>
-                                            @foreach($rpComponents as $component)
-                                                <option value="{{ $component->rp_components_id }}" 
-                                                        {{ old('rp_component_id', $activity->rp_component_id) == $component->rp_components_id ? 'selected' : '' }}>
-                                                    {{ $component->code }} - {{ $component->name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        @error('rp_component_id')
-                                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                                        @enderror
-                                        <div class="form-text mt-1">
-                                            <i class="bi bi-info-circle me-1"></i>
-                                            Select a reporting component to see related activities
-                                        </div>
-                                    </div>
+                       {{-- ====================================== --}}
+{{-- SECTION 5: REPORTING ACTIVITIES --}}
+{{-- ====================================== --}}
+<div class="section-card mb-4">
+    <div class="section-header">
+        <h6 class="mb-0 fw-semibold">Reporting Activities</h6>
+        <span class="text-muted small">Select reporting component and activities</span>
+    </div>
+    <div class="section-body">
+        <div class="row">
+            {{-- RP Component Single Select --}}
+            <div class="col-md-12 mb-3">
+                <label for="rp_component_id" class="form-label fw-semibold mb-2">Reporting Component</label>
+                <select id="rp_component_id" 
+                        class="form-control form-select @error('rp_component_id') is-invalid @enderror"
+                        name="rp_component_id">
+                    <option value="">Select a Reporting Component</option>
+                    @foreach($rpComponents as $component)
+                        <option value="{{ $component->rp_components_id }}" 
+                                {{ $selectedComponentId == $component->rp_components_id ? 'selected' : '' }}>
+                            {{ $component->code }} - {{ $component->name }}
+                        </option>
+                    @endforeach
+                </select>
+                @error('rp_component_id')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+                <div class="form-text mt-1">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Select a reporting component to see related activities
+                </div>
+            </div>
 
-                                    {{-- RP Activities Multi-Select --}}
-                                    <div class="col-md-12">
-                                        <label for="rp_activities_select" class="form-label fw-semibold mb-2">Reporting Activities</label>
-                                        <select id="rp_activities_select" 
-                                                multiple
-                                                class="form-control @error('rp_activities') is-invalid @enderror"
-                                                name="rp_activities[]">
-                                            <option value="" disabled>Select a reporting component first</option>
-                                            @if(isset($selectedRpActivities))
-                                                @foreach($selectedRpActivities as $activityId)
-                                                    @php
-                                                        $activityModel = App\Models\RpActivity::find($activityId);
-                                                    @endphp
-                                                    @if($activityModel)
-                                                        <option value="{{ $activityModel->rp_activities_id }}" selected>
-                                                            {{ $activityModel->code }} - {{ $activityModel->name }}
-                                                        </option>
-                                                    @endif
-                                                @endforeach
-                                            @endif
-                                        </select>
-                                        @error('rp_activities')
-                                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                                        @enderror
-                                        @error('rp_activities.*')
-                                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                                        @enderror
-                                        <div class="form-text mt-1">
-                                            <i class="bi bi-info-circle me-1"></i>
-                                            Activities are grouped by their parent actions
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
+            {{-- RP Activities Multi-Select --}}
+            <div class="col-md-12">
+                <label for="rp_activities_select" class="form-label fw-semibold mb-2">Reporting Activities</label>
+                <select id="rp_activities_select" 
+                        multiple
+                        class="form-control @error('rp_activities') is-invalid @enderror"
+                        name="rp_activities[]">
+                    {{-- This will be populated by JavaScript --}}
+                    <option value="" disabled>Select a reporting component first</option>
+                </select>
+                @error('rp_activities')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+                @error('rp_activities.*')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+                <div class="form-text mt-1">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Activities are grouped by their parent actions
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
                         {{-- ====================================== --}}
                         {{-- SECTION 6: FOCAL POINTS --}}
                         {{-- ====================================== --}}
@@ -593,7 +581,6 @@
 @endsection
 @section('scripts')
 <!-- jQuery -->
- 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <!-- Select2 -->
@@ -789,113 +776,80 @@
             multiple: true
         });
 
-        // Function to load RP Activities based on selected component using AJAX
-        function loadRPActivitiesByComponent(componentId) {
-            const activitiesSelect = $('#rp_activities_select');
-            
-            if (!componentId) {
-                activitiesSelect.empty();
-                activitiesSelect.append('<option value="" disabled>Select a reporting component first</option>');
-                activitiesSelect.trigger('change');
-                
-                activitiesSelect.select2({
-                    placeholder: 'Select a reporting component first',
-                    allowClear: true,
-                    width: '100%',
-                    closeOnSelect: false,
-                    multiple: true
-                });
-                return;
-            }
-            
-            // Clear current activities
+      // Store selected activity IDs globally
+const selectedRpActivityIds = {!! json_encode($selectedRpActivityIds ?? []) !!};
+
+// Function to load RP Activities based on selected component using AJAX
+function loadRPActivitiesByComponent(componentId) {
+    const activitiesSelect = $('#rp_activities_select');
+    
+    if (!componentId) {
+        activitiesSelect.empty();
+        activitiesSelect.append('<option value="" disabled>Select a reporting component first</option>');
+        activitiesSelect.trigger('change');
+        
+        activitiesSelect.select2({
+            placeholder: 'Select a reporting component first',
+            allowClear: true,
+            width: '100%',
+            closeOnSelect: false,
+            multiple: true
+        });
+        return;
+    }
+    
+    // Clear current activities and show loading
+    activitiesSelect.empty();
+    activitiesSelect.append('<option value="">Loading activities...</option>');
+    activitiesSelect.trigger('change');
+    
+    // Disable the select while loading
+    activitiesSelect.prop('disabled', true);
+    
+    // Use the actions endpoint
+    $.ajax({
+        url: '{{ route("activities.get-rp-actions-with-activities") }}',
+        method: 'GET',
+        data: { component_id: componentId },
+        dataType: 'json',
+        success: function(response) {
+            // Clear the loading message
             activitiesSelect.empty();
-            activitiesSelect.append('<option value="">Loading activities...</option>');
-            activitiesSelect.trigger('change');
+            activitiesSelect.prop('disabled', false);
             
-            // Use the actions endpoint
-            $.ajax({
-                url: '{{ route("activities.get-rp-actions-with-activities") }}',
-                method: 'GET',
-                data: { component_id: componentId },
-                dataType: 'json',
-                success: function(response) {
-                    // Clear the loading message
-                    activitiesSelect.empty();
-                    
-                    if (response.success && response.data && Array.isArray(response.data)) {
-                        if (response.data.length === 0) {
-                            activitiesSelect.append('<option value="">No activities found for this component</option>');
-                        } else {
-                            // Process grouped data by actions
-                            response.data.forEach(action => {
-                                if (action.activities && action.activities.length > 0) {
-                                    // Create optgroup for each action
-                                    const optgroup = $('<optgroup>')
-                                        .attr('label', action.action_code + ' - ' + action.action_name);
-                                    
-                                    // Sort activities within each action
-                                    action.activities.sort((a, b) => {
-                                        const codeA = a.code || '';
-                                        const codeB = b.code || '';
-                                        return codeA.localeCompare(codeB);
-                                    });
-                                    
-                                    // Add each activity as an option
-                                    action.activities.forEach(activity => {
-                                        const activityText = activity.code + ' - ' + activity.name;
-                                        
-                                        optgroup.append(
-                                            $('<option>')
-                                                .val(activity.rp_activities_id)
-                                                .text(activityText)
-                                                .data('action_id', action.action_id)
-                                                .data('action_name', action.action_name)
-                                        );
-                                    });
-                                    
-                                    activitiesSelect.append(optgroup);
-                                }
+            if (response.success && response.data && Array.isArray(response.data)) {
+                if (response.data.length === 0) {
+                    activitiesSelect.append('<option value="">No activities found for this component</option>');
+                } else {
+                    // Process grouped data by actions
+                    response.data.forEach(action => {
+                        if (action.activities && action.activities.length > 0) {
+                            // Create optgroup for each action
+                            const optgroup = $('<optgroup>')
+                                .attr('label', action.action_code + ' - ' + action.action_name);
+                            
+                            // Sort activities within each action
+                            action.activities.sort((a, b) => {
+                                const codeA = a.code || '';
+                                const codeB = b.code || '';
+                                return codeA.localeCompare(codeB);
                             });
                             
-                            // Re-initialize Select2
-                            activitiesSelect.select2({
-                                placeholder: 'Select reporting activities...',
-                                allowClear: true,
-                                width: '100%',
-                                closeOnSelect: false,
-                                multiple: true,
-                                dropdownAutoWidth: true
+                            // Add each activity as an option
+                            action.activities.forEach(activity => {
+                                const activityText = activity.code + ' - ' + activity.name;
+                                const option = $('<option>')
+                                    .val(activity.rp_activities_id)
+                                    .text(activityText);
+                                
+                                optgroup.append(option);
                             });
                             
-                            // Select activities that are already associated
-                            const selectedActivityIds = {!! json_encode($selectedRpActivities ?? []) !!};
-                            
-                            if (selectedActivityIds.length > 0) {
-                                // Get all activity IDs from the response
-                                const allActivityIds = [];
-                                response.data.forEach(action => {
-                                    if (action.activities) {
-                                        action.activities.forEach(activity => {
-                                            allActivityIds.push(activity.rp_activities_id);
-                                        });
-                                    }
-                                });
-                                
-                                // Filter out any IDs that don't exist in the response
-                                const validIds = selectedActivityIds.filter(id => 
-                                    allActivityIds.includes(id)
-                                );
-                                
-                                if (validIds.length > 0) {
-                                    activitiesSelect.val(validIds).trigger('change');
-                                }
-                            }
+                            activitiesSelect.append(optgroup);
                         }
-                    } else {
-                        activitiesSelect.append('<option value="">No activities found for this component</option>');
-                    }
+                    });
                     
+                    // Now initialize Select2
                     activitiesSelect.select2({
                         placeholder: 'Select reporting activities...',
                         allowClear: true,
@@ -903,109 +857,169 @@
                         closeOnSelect: false,
                         multiple: true
                     });
-                    activitiesSelect.trigger('change');
-                },
-                error: function(xhr, status, error) {
-                    console.error('AJAX error:', error);
-                    activitiesSelect.empty();
-                    activitiesSelect.append('<option value="">Error loading activities</option>');
-                    activitiesSelect.select2({
-                        placeholder: 'Error loading activities',
-                        allowClear: true,
-                        width: '100%',
-                        closeOnSelect: false,
-                        multiple: true
-                    });
-                    activitiesSelect.trigger('change');
+                    
+                    // Select the previously chosen activities
+                    if (selectedRpActivityIds && selectedRpActivityIds.length > 0) {
+                        // Convert all IDs to strings for comparison
+                        const stringIds = selectedRpActivityIds.map(id => String(id));
+                        
+                        // Set the values and trigger change
+                        activitiesSelect.val(stringIds).trigger('change');
+                    }
                 }
+            } else {
+                activitiesSelect.append('<option value="">No activities found for this component</option>');
+                activitiesSelect.select2({
+                    placeholder: 'No activities found',
+                    allowClear: true,
+                    width: '100%',
+                    closeOnSelect: false,
+                    multiple: true
+                });
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('AJAX error:', error);
+            activitiesSelect.empty();
+            activitiesSelect.append('<option value="">Error loading activities</option>');
+            activitiesSelect.select2({
+                placeholder: 'Error loading activities',
+                allowClear: true,
+                width: '100%',
+                closeOnSelect: false,
+                multiple: true
             });
+            activitiesSelect.prop('disabled', false);
+        }
+    });
+}// Store component selection when user selects it
+$('#rp_component_id').on('change', function() {
+    const componentId = $(this).val();
+    if (componentId) {
+        // Store in localStorage
+        localStorage.setItem('last_selected_component', componentId);
+        localStorage.setItem('last_selected_component_activity', '{{ $activity->activity_id }}');
+    }
+});
+
+// On page load, check localStorage
+$(document).ready(function() {
+    const activityId = '{{ $activity->activity_id }}';
+    const storedActivityId = localStorage.getItem('last_selected_component_activity');
+    const storedComponentId = localStorage.getItem('last_selected_component');
+    
+    // Only use if it was for THIS activity
+    if (storedActivityId === activityId && storedComponentId) {
+        $('#rp_component_id').val(storedComponentId).trigger('change');
+        
+        // Also load activities for this component
+        loadRPActivitiesByComponent(storedComponentId);
+    }
+});
+
+// Initialize RP Components Select2
+$('#rp_component_id').select2({
+    placeholder: 'Select a reporting component...',
+    allowClear: true,
+    width: '100%',
+    minimumResultsForSearch: 10
+});
+
+// Initialize RP Activities Select2 (empty for now)
+$('#rp_activities_select').select2({
+    placeholder: 'Select reporting activities...',
+    allowClear: true,
+    width: '100%',
+    closeOnSelect: false,
+    multiple: true
+});
+
+// Event listener for component change
+$('#rp_component_id').on('change', function() {
+    const componentId = $(this).val();
+    loadRPActivitiesByComponent(componentId);
+});
+
+// Load activities on page load if component is already selected
+$(document).ready(function() {
+    const initialComponentId = $('#rp_component_id').val();
+    if (initialComponentId && selectedRpActivityIds.length > 0) {
+        // Small delay to ensure DOM is ready
+        setTimeout(() => {
+            loadRPActivitiesByComponent(initialComponentId);
+        }, 500);
+    }
+});
+
+        // ============================================
+        // VENUE HANDLING
+        // ============================================
+        const venueSelect = $('#venue_select'); // Display select
+        const customVenueContainer = $('#customVenueContainer');
+        const customVenueInput = $('#custom_venue');
+        const venueHidden = $('#venue_hidden'); // Hidden input for final value
+
+        // Function to handle venue selection change
+        function handleVenueChange() {
+            const selectedValue = venueSelect.val();
+            
+            if (selectedValue === 'Other') {
+                // Show custom venue input
+                customVenueContainer.slideDown(300);
+                customVenueInput.prop('disabled', false).focus();
+                customVenueInput.prop('required', true);
+                
+                // If custom venue already has a value, keep it
+                if (!customVenueInput.val().trim()) {
+                    customVenueInput.val('');
+                }
+                
+                // Update hidden field with custom venue value if exists
+                if (customVenueInput.val().trim()) {
+                    venueHidden.val(customVenueInput.val().trim());
+                } else {
+                    venueHidden.val('');
+                }
+            } else {
+                // Hide custom venue input
+                customVenueContainer.slideUp(300);
+                customVenueInput.prop('disabled', true);
+                customVenueInput.prop('required', false);
+                
+                // Update hidden field with selected venue
+                venueHidden.val(selectedValue);
+            }
         }
 
-        // Event listener for component change
-        $('#rp_component_id').on('change', function() {
-            const componentId = $(this).val();
-            loadRPActivitiesByComponent(componentId);
-        });
-
-        // Load activities on page load if component is already selected
-        $(document).ready(function() {
-            const initialComponentId = $('#rp_component_id').val();
-            if (initialComponentId) {
-                setTimeout(() => {
-                    loadRPActivitiesByComponent(initialComponentId);
-                }, 300);
+        // Update hidden field when custom venue input changes
+        customVenueInput.on('input', function() {
+            if (venueSelect.val() === 'Other') {
+                venueHidden.val($(this).val().trim());
             }
         });
 
-       // ============================================
-// VENUE HANDLING
-// ============================================
-const venueSelect = $('#venue_select'); // Display select
-const customVenueContainer = $('#customVenueContainer');
-const customVenueInput = $('#custom_venue');
-const venueHidden = $('#venue_hidden'); // Hidden input for final value
+        // Initial check on page load
+        handleVenueChange();
 
-// Function to handle venue selection change
-function handleVenueChange() {
-    const selectedValue = venueSelect.val();
-    
-    if (selectedValue === 'Other') {
-        // Show custom venue input
-        customVenueContainer.slideDown(300);
-        customVenueInput.prop('disabled', false).focus();
-        customVenueInput.prop('required', true);
-        
-        // If custom venue already has a value, keep it
-        if (!customVenueInput.val().trim()) {
-            customVenueInput.val('');
-        }
-        
-        // Update hidden field with custom venue value if exists
-        if (customVenueInput.val().trim()) {
-            venueHidden.val(customVenueInput.val().trim());
-        } else {
-            venueHidden.val('');
-        }
-    } else {
-        // Hide custom venue input
-        customVenueContainer.slideUp(300);
-        customVenueInput.prop('disabled', true);
-        customVenueInput.prop('required', false);
-        
-        // Update hidden field with selected venue
-        venueHidden.val(selectedValue);
-    }
-}
+        // Event listener for venue change
+        venueSelect.on('change', handleVenueChange);
 
-// Update hidden field when custom venue input changes
-customVenueInput.on('input', function() {
-    if (venueSelect.val() === 'Other') {
-        venueHidden.val($(this).val().trim());
-    }
-});
-
-// Initial check on page load
-handleVenueChange();
-
-// Event listener for venue change
-venueSelect.on('change', handleVenueChange);
-
-// Form submission validation
-$('#activityForm').on('submit', function(e) {
-    if (venueSelect.val() === 'Other') {
-        const customVenueValue = customVenueInput.val().trim();
-        
-        if (!customVenueValue) {
-            e.preventDefault();
-            customVenueInput.focus();
-            alert('Please enter a custom venue name.');
-            return;
-        }
-        
-        // Ensure hidden field has the custom value
-        venueHidden.val(customVenueValue);
-    }
-});
+        // Form submission validation
+        $('#activityForm').on('submit', function(e) {
+            if (venueSelect.val() === 'Other') {
+                const customVenueValue = customVenueInput.val().trim();
+                
+                if (!customVenueValue) {
+                    e.preventDefault();
+                    customVenueInput.focus();
+                    alert('Please enter a custom venue name.');
+                    return;
+                }
+                
+                // Ensure hidden field has the custom value
+                venueHidden.val(customVenueValue);
+            }
+        });
 
         // Form validation - Check if elements exist first
         const form = document.getElementById('activityForm');
