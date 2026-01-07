@@ -15,7 +15,7 @@ class HierarchyImport implements ToCollection, WithHeadingRow
     private $programMap = [];
     private $unitMap = [];
     private $actionMap = [];
-    private $actionplanId = [];
+    private string $actionplanId;
 
     private $results = [
         'processed' => 0,
@@ -28,6 +28,11 @@ class HierarchyImport implements ToCollection, WithHeadingRow
         ],
         'errors' => []
     ];
+
+    public function __construct(string $actionplanId)
+    {
+        $this->actionplanId = $actionplanId;
+    }
 
     public function collection(Collection $rows)
     {
@@ -120,11 +125,11 @@ class HierarchyImport implements ToCollection, WithHeadingRow
                 }
 
                 // ========== COMPONENT ==========
-                $componentId = $this->handleComponent($componentCode, $componentName);
+                $componentId = $this->handleComponent($componentCode, $componentName, $this->actionplanId);
                 if (!$componentId) {
                     Log::error("Row {$rowNumber}: Failed to create component - using fallback");
                     // Create a fallback component
-                    $componentId = $this->createFallbackComponent($rowNumber);
+                    // $componentId = $this->createFallbackComponent($rowNumber);
                 }
 
                 // ========== PROGRAM ==========
@@ -192,7 +197,7 @@ class HierarchyImport implements ToCollection, WithHeadingRow
     /**
      * Handle component creation/update - NO CHANGES NEEDED
      */
-    private function handleComponent(string $code, string $name)
+    private function handleComponent(string $code, string $name, ?string $action_plan_id = null)
     {
         if (isset($this->componentMap[$code])) {
             $this->results['details']['components']['existing']++;
@@ -217,7 +222,7 @@ class HierarchyImport implements ToCollection, WithHeadingRow
             'name' => $this->truncateForDb($name),
             'code' => $this->cleanCode($code),
             'description' => null,
-            'action_plan_id' => null,
+            'action_plan_id' => $action_plan_id,
             'created_at' => now(),
             'updated_at' => now(),
             'deleted_at' => null
