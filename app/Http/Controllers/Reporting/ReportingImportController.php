@@ -83,8 +83,21 @@ class ReportingImportController extends Controller
             Log::info('--- IMPORTING HIERARCHY (Sheet 1) ---');
 
             $hierarchyImport = new HierarchyImport($action_plan_id);
+            $hierarchyWrapper = new class($hierarchyImport) implements \Maatwebsite\Excel\Concerns\WithMultipleSheets {
+                private $import;
 
-            Excel::import($hierarchyImport, $file, null, \Maatwebsite\Excel\Excel::XLSX);
+                public function __construct($import)
+                {
+                    $this->import = $import;
+                }
+
+                public function sheets(): array
+                {
+                    return [0 => $this->import];
+                }
+            };
+
+            Excel::import($hierarchyWrapper, $file, null, \Maatwebsite\Excel\Excel::XLSX);
             $hierarchyResults = $hierarchyImport->getResults();
 
             Log::info('Hierarchy import completed', $hierarchyResults);
