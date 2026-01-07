@@ -8,8 +8,10 @@ use App\Http\Controllers\Reporting\{
 };
 use App\Http\Controllers\UserController as UserController;
 use App\Http\Controllers\ActionPlanController;
+
 // In your routes file
-Route::get('/actionPlans', [ActionPlanController::class, 'index'])->name('action-plans.index');Route::delete('/action-plans/bulk-destroy', [ActionPlanController::class, 'bulkDestroy'])->name('action-plans.bulk.destroy');
+Route::get('/actionPlans', [ActionPlanController::class, 'index'])->name('action-plans.index');
+Route::delete('/action-plans/bulk-destroy', [ActionPlanController::class, 'bulkDestroy'])->name('action-plans.bulk.destroy');
 Route::delete('/action-plans/{id}', [ActionPlanController::class, 'destroy'])->name('action-plans.destroy');
 
 //users routes
@@ -19,7 +21,8 @@ Route::prefix('users')->name('users.')->group(function () {
     Route::get('/create', [UserController::class, 'create'])->name('create');
     Route::get('/statistics', [UserController::class, 'statistics'])->name('statistics');
     Route::get('/import', [UserController::class, 'importForm'])->name('import.form');
-Route::post('/import', [UserController::class, 'import'])->name('import');    Route::get('/import/template', [UserController::class, 'downloadTemplate'])->name('import.template');
+    Route::post('/import', [UserController::class, 'import'])->name('import');
+    Route::get('/import/template', [UserController::class, 'downloadTemplate'])->name('import.template');
     Route::get('/export', [UserController::class, 'exportExcel'])->name('export.excel');
      // Bulk delete route - ADD THIS
     Route::post('/bulk-delete', [UserController::class, 'bulkDestroy'])->name('bulk.destroy');
@@ -70,6 +73,19 @@ Route::prefix('activities')->name('activities.')->group(function () {
     Route::get('/get-projects-by-program', [ActivityController::class, 'getProjectsByProgram'])
         ->name('get-projects-by-program');
 
+    // ============================================
+    // ADD THESE 3 ACTION PLAN ROUTES HERE
+    // ============================================
+    Route::get('/get-action-plans', [ActivityController::class, 'getActionPlans'])
+        ->name('get-action-plans');
+        
+    Route::get('/get-components-by-action-plan', [ActivityController::class, 'getComponentsByActionPlan'])
+        ->name('get-components-by-action-plan');
+        
+    Route::get('/get-rp-components', [ActivityController::class, 'getRPComponents'])
+        ->name('get-rp-components');
+    // ============================================
+
     /*
     |--------------------------------------------------------------
     | Child Activities (Nested under Parent Activity)
@@ -113,10 +129,5 @@ Route::prefix('reporting')->name('reporting.')->group(function () {
     
     Route::post('/import/preview', [ReportingImportController::class, 'preview'])->name('import.preview');
     Route::get('/import/template', [ReportingImportController::class, 'downloadTemplate'])->name('import.download-template');
-Route::post('/reporting/import/process', [ReportingImportController::class, 'process'])->name('reporting.import.process');
-    
-   
-   
-
-    
+    Route::post('/reporting/import/process', [ReportingImportController::class, 'process'])->name('reporting.import.process');
 });

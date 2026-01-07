@@ -361,8 +361,47 @@
                             </div>
                         </div>
 
+                        {{-- ====================================== --}}
+{{-- SECTION 5: ACTION PLAN SELECTION --}}
+{{-- ====================================== --}}
+<div class="section-card mb-4">
+    <div class="section-header">
+        <h6 class="mb-0 fw-semibold">Action Plan</h6>
+        <span class="text-muted small">Select action plan to filter components</span>
+    </div>
+    <div class="section-body">
+        <div class="row">
+            <div class="col-md-12 mb-3">
+                <label for="action_plan_id" class="form-label fw-semibold mb-2">Action Plan</label>
+                <select id="action_plan_id" 
+                        class="form-control form-select @error('action_plan_id') is-invalid @enderror"
+                        name="action_plan_id">
+                    <option value="">Select an Action Plan</option>
+                    @foreach($actionPlans as $actionPlan)
+                        <option value="{{ $actionPlan->action_plan_id }}" 
+                                {{ $selectedActionPlanIdSingle == $actionPlan->action_plan_id ? 'selected' : '' }}>
+                            {{ $actionPlan->title }}
+                            @if($actionPlan->start_date && $actionPlan->end_date)
+                                ({{ \Carbon\Carbon::parse($actionPlan->start_date)->format('Y') }} - {{ \Carbon\Carbon::parse($actionPlan->end_date)->format('Y') }})
+                            @endif
+                        </option>
+                    @endforeach
+                </select>
+                @error('action_plan_id')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+                <div class="form-text mt-1">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Select an action plan to see related reporting components
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
                        {{-- ====================================== --}}
-{{-- SECTION 5: REPORTING ACTIVITIES --}}
+                       
+{{-- SECTION 6: REPORTING ACTIVITIES --}}
 {{-- ====================================== --}}
 <div class="section-card mb-4">
     <div class="section-header">
@@ -380,7 +419,7 @@
                     <option value="">Select a Reporting Component</option>
                     @foreach($rpComponents as $component)
                         <option value="{{ $component->rp_components_id }}" 
-                                {{ $selectedComponentId == $component->rp_components_id ? 'selected' : '' }}>
+                                {{ $selectedComponentIdSingle == $component->rp_components_id ? 'selected' : '' }}>
                             {{ $component->code }} - {{ $component->name }}
                         </option>
                     @endforeach
@@ -587,8 +626,19 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
+@section('scripts')
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Select2 -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // ============================================
+        // PROGRAM AND PROJECTS HANDLING
+        // ============================================
         // Initialize the single select for programs
         $('#programs_select').select2({
             placeholder: 'Select a program...',
@@ -748,6 +798,17 @@
         $('#programs_select').on('change', handleProgramSelection);
         handleProgramSelection();
 
+        // ============================================
+        // ACTION PLAN, COMPONENTS, AND ACTIVITIES HANDLING
+        // ============================================
+        // Initialize Action Plan Select2
+        $('#action_plan_id').select2({
+            placeholder: 'Select an action plan...',
+            allowClear: true,
+            width: '100%',
+            minimumResultsForSearch: 10
+        });
+
         // Initialize RP Components Select2
         $('#rp_component_id').select2({
             placeholder: 'Select a reporting component...',
@@ -756,13 +817,12 @@
             minimumResultsForSearch: 10
         });
 
-        // Initialize the custom multiple select for reporting activities
+        // Initialize RP Activities Select2
         $('#rp_activities_select').select2({
             placeholder: 'Select reporting activities...',
             allowClear: true,
             width: '100%',
             closeOnSelect: false,
-            tags: false,
             multiple: true
         });
         
@@ -772,184 +832,275 @@
             allowClear: true,
             width: '100%',
             closeOnSelect: false,
-            tags: false,
             multiple: true
         });
 
-      // Store selected activity IDs globally
-const selectedRpActivityIds = {!! json_encode($selectedRpActivityIds ?? []) !!};
-
-// Function to load RP Activities based on selected component using AJAX
-function loadRPActivitiesByComponent(componentId) {
-    const activitiesSelect = $('#rp_activities_select');
-    
-    if (!componentId) {
-        activitiesSelect.empty();
-        activitiesSelect.append('<option value="" disabled>Select a reporting component first</option>');
-        activitiesSelect.trigger('change');
+        // Store selected component ID
+        const selectedComponentId = '{{ $selectedComponentIdSingle ?? "" }}';
         
-        activitiesSelect.select2({
-            placeholder: 'Select a reporting component first',
-            allowClear: true,
-            width: '100%',
-            closeOnSelect: false,
-            multiple: true
-        });
-        return;
-    }
-    
-    // Clear current activities and show loading
-    activitiesSelect.empty();
-    activitiesSelect.append('<option value="">Loading activities...</option>');
-    activitiesSelect.trigger('change');
-    
-    // Disable the select while loading
-    activitiesSelect.prop('disabled', true);
-    
-    // Use the actions endpoint
-    $.ajax({
-        url: '{{ route("activities.get-rp-actions-with-activities") }}',
-        method: 'GET',
-        data: { component_id: componentId },
-        dataType: 'json',
-        success: function(response) {
-            // Clear the loading message
-            activitiesSelect.empty();
-            activitiesSelect.prop('disabled', false);
+        // Store selected activity IDs globally
+        const selectedRpActivityIds = {!! json_encode($selectedRpActivityIds ?? []) !!};
+
+        // Function to load components based on selected action plan
+        function loadComponentsByActionPlan(actionPlanId) {
+            const componentsSelect = $('#rp_component_id');
+            const activitiesSelect = $('#rp_activities_select');
             
-            if (response.success && response.data && Array.isArray(response.data)) {
-                if (response.data.length === 0) {
-                    activitiesSelect.append('<option value="">No activities found for this component</option>');
-                } else {
-                    // Process grouped data by actions
-                    response.data.forEach(action => {
-                        if (action.activities && action.activities.length > 0) {
-                            // Create optgroup for each action
-                            const optgroup = $('<optgroup>')
-                                .attr('label', action.action_code + ' - ' + action.action_name);
-                            
-                            // Sort activities within each action
-                            action.activities.sort((a, b) => {
-                                const codeA = a.code || '';
-                                const codeB = b.code || '';
-                                return codeA.localeCompare(codeB);
-                            });
-                            
-                            // Add each activity as an option
-                            action.activities.forEach(activity => {
-                                const activityText = activity.code + ' - ' + activity.name;
-                                const option = $('<option>')
-                                    .val(activity.rp_activities_id)
-                                    .text(activityText);
-                                
-                                optgroup.append(option);
-                            });
-                            
-                            activitiesSelect.append(optgroup);
-                        }
-                    });
-                    
-                    // Now initialize Select2
-                    activitiesSelect.select2({
-                        placeholder: 'Select reporting activities...',
-                        allowClear: true,
-                        width: '100%',
-                        closeOnSelect: false,
-                        multiple: true
-                    });
-                    
-                    // Select the previously chosen activities
-                    if (selectedRpActivityIds && selectedRpActivityIds.length > 0) {
-                        // Convert all IDs to strings for comparison
-                        const stringIds = selectedRpActivityIds.map(id => String(id));
+            if (!actionPlanId) {
+                // If no action plan selected, show all components
+                componentsSelect.empty();
+                componentsSelect.append('<option value="">Loading all components...</option>');
+                componentsSelect.trigger('change');
+                
+                // Disable while loading
+                componentsSelect.prop('disabled', true);
+                
+                // Load all components
+                $.ajax({
+                    url: '{{ route("activities.get-rp-components") }}',
+                    method: 'GET',
+                    dataType: 'json',
+                    success: function(response) {
+                        componentsSelect.empty();
+                        componentsSelect.prop('disabled', false);
                         
-                        // Set the values and trigger change
-                        activitiesSelect.val(stringIds).trigger('change');
+                        if (response.success && response.data && response.data.length > 0) {
+                            componentsSelect.append('<option value="">Select a Reporting Component</option>');
+                            
+                            response.data.forEach(component => {
+                                const option = $('<option>')
+                                    .val(component.rp_components_id)
+                                    .text(component.code + ' - ' + component.name);
+                                
+                                // Select if it was previously selected
+                                if (component.rp_components_id === selectedComponentId) {
+                                    option.prop('selected', true);
+                                }
+                                
+                                componentsSelect.append(option);
+                            });
+                            
+                            componentsSelect.select2({
+                                placeholder: 'Select a reporting component...',
+                                allowClear: true,
+                                width: '100%',
+                                minimumResultsForSearch: 10
+                            });
+                        } else {
+                            componentsSelect.append('<option value="">No components available</option>');
+                        }
+                        
+                        // Clear activities when components are loaded/changed
+                        activitiesSelect.empty();
+                        activitiesSelect.append('<option value="" disabled>Select a reporting component first</option>');
+                        activitiesSelect.trigger('change');
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error loading components:', error);
+                        componentsSelect.empty();
+                        componentsSelect.append('<option value="">Error loading components</option>');
+                        componentsSelect.prop('disabled', false);
                     }
+                });
+                
+                return;
+            }
+            
+            // Show loading state
+            componentsSelect.empty();
+            componentsSelect.append('<option value="">Loading components...</option>');
+            componentsSelect.trigger('change');
+            componentsSelect.prop('disabled', true);
+            
+            // Load components via AJAX
+            $.ajax({
+                url: '{{ route("activities.get-components-by-action-plan") }}',
+                method: 'GET',
+                data: {
+                    action_plan_id: actionPlanId
+                },
+                dataType: 'json',
+                success: function(response) {
+                    componentsSelect.empty();
+                    componentsSelect.prop('disabled', false);
+                    
+                    if (response.success && response.components && response.components.length > 0) {
+                        componentsSelect.append('<option value="">Select a Reporting Component</option>');
+                        
+                        response.components.forEach(component => {
+                            const option = $('<option>')
+                                .val(component.rp_components_id)
+                                .text(component.code + ' - ' + component.name);
+                            
+                            // Select if it was previously selected
+                            if (component.rp_components_id === selectedComponentId) {
+                                option.prop('selected', true);
+                            }
+                            
+                            componentsSelect.append(option);
+                        });
+                        
+                        componentsSelect.select2({
+                            placeholder: 'Select a reporting component...',
+                            allowClear: true,
+                            width: '100%',
+                            minimumResultsForSearch: 10
+                        });
+                        
+                        // If we have a selected component, load its activities
+                        if (selectedComponentId) {
+                            loadRPActivitiesByComponent(selectedComponentId);
+                        }
+                    } else {
+                        componentsSelect.append('<option value="">No components found for this action plan</option>');
+                    }
+                    
+                    // Clear activities
+                    activitiesSelect.empty();
+                    activitiesSelect.append('<option value="" disabled>Select a reporting component first</option>');
+                    activitiesSelect.trigger('change');
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading components:', error);
+                    componentsSelect.empty();
+                    componentsSelect.append('<option value="">Error loading components</option>');
+                    componentsSelect.prop('disabled', false);
                 }
-            } else {
-                activitiesSelect.append('<option value="">No activities found for this component</option>');
+            });
+        }
+
+        // Function to load RP Activities based on component
+        function loadRPActivitiesByComponent(componentId) {
+            const activitiesSelect = $('#rp_activities_select');
+            
+            if (!componentId) {
+                activitiesSelect.empty();
+                activitiesSelect.append('<option value="" disabled>Select a reporting component first</option>');
+                activitiesSelect.trigger('change');
+                
                 activitiesSelect.select2({
-                    placeholder: 'No activities found',
+                    placeholder: 'Select a reporting component first',
                     allowClear: true,
                     width: '100%',
                     closeOnSelect: false,
                     multiple: true
                 });
+                return;
             }
-        },
-        error: function(xhr, status, error) {
-            console.error('AJAX error:', error);
+            
+            // Clear and show loading
             activitiesSelect.empty();
-            activitiesSelect.append('<option value="">Error loading activities</option>');
-            activitiesSelect.select2({
-                placeholder: 'Error loading activities',
-                allowClear: true,
-                width: '100%',
-                closeOnSelect: false,
-                multiple: true
+            activitiesSelect.append('<option value="">Loading activities...</option>');
+            activitiesSelect.trigger('change');
+            activitiesSelect.prop('disabled', true);
+            
+            // Use the actions endpoint
+            $.ajax({
+                url: '{{ route("activities.get-rp-actions-with-activities") }}',
+                method: 'GET',
+                data: { component_id: componentId },
+                dataType: 'json',
+                success: function(response) {
+                    activitiesSelect.empty();
+                    activitiesSelect.prop('disabled', false);
+                    
+                    if (response.success && response.data && Array.isArray(response.data)) {
+                        if (response.data.length === 0) {
+                            activitiesSelect.append('<option value="">No activities found for this component</option>');
+                        } else {
+                            // Process grouped data by actions
+                            response.data.forEach(action => {
+                                if (action.activities && action.activities.length > 0) {
+                                    const optgroup = $('<optgroup>')
+                                        .attr('label', action.action_code + ' - ' + action.action_name);
+                                    
+                                    action.activities.sort((a, b) => {
+                                        const codeA = a.code || '';
+                                        const codeB = b.code || '';
+                                        return codeA.localeCompare(codeB);
+                                    });
+                                    
+                                    action.activities.forEach(activity => {
+                                        const activityText = activity.code + ' - ' + activity.name;
+                                        const option = $('<option>')
+                                            .val(activity.rp_activities_id)
+                                            .text(activityText);
+                                        
+                                        optgroup.append(option);
+                                    });
+                                    
+                                    activitiesSelect.append(optgroup);
+                                }
+                            });
+                            
+                            activitiesSelect.select2({
+                                placeholder: 'Select reporting activities...',
+                                allowClear: true,
+                                width: '100%',
+                                closeOnSelect: false,
+                                multiple: true
+                            });
+                            
+                            // Select previously chosen activities
+                            if (selectedRpActivityIds && selectedRpActivityIds.length > 0) {
+                                const stringIds = selectedRpActivityIds.map(id => String(id));
+                                activitiesSelect.val(stringIds).trigger('change');
+                            }
+                        }
+                    } else {
+                        activitiesSelect.append('<option value="">No activities found for this component</option>');
+                        activitiesSelect.select2({
+                            placeholder: 'No activities found',
+                            allowClear: true,
+                            width: '100%',
+                            closeOnSelect: false,
+                            multiple: true
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX error:', error);
+                    activitiesSelect.empty();
+                    activitiesSelect.append('<option value="">Error loading activities</option>');
+                    activitiesSelect.select2({
+                        placeholder: 'Error loading activities',
+                        allowClear: true,
+                        width: '100%',
+                        closeOnSelect: false,
+                        multiple: true
+                    });
+                    activitiesSelect.prop('disabled', false);
+                }
             });
-            activitiesSelect.prop('disabled', false);
         }
-    });
-}// Store component selection when user selects it
-$('#rp_component_id').on('change', function() {
-    const componentId = $(this).val();
-    if (componentId) {
-        // Store in localStorage
-        localStorage.setItem('last_selected_component', componentId);
-        localStorage.setItem('last_selected_component_activity', '{{ $activity->activity_id }}');
-    }
-});
 
-// On page load, check localStorage
-$(document).ready(function() {
-    const activityId = '{{ $activity->activity_id }}';
-    const storedActivityId = localStorage.getItem('last_selected_component_activity');
-    const storedComponentId = localStorage.getItem('last_selected_component');
-    
-    // Only use if it was for THIS activity
-    if (storedActivityId === activityId && storedComponentId) {
-        $('#rp_component_id').val(storedComponentId).trigger('change');
-        
-        // Also load activities for this component
-        loadRPActivitiesByComponent(storedComponentId);
-    }
-});
+        // Event listener for action plan change
+        $('#action_plan_id').on('change', function() {
+            const actionPlanId = $(this).val();
+            loadComponentsByActionPlan(actionPlanId);
+        });
 
-// Initialize RP Components Select2
-$('#rp_component_id').select2({
-    placeholder: 'Select a reporting component...',
-    allowClear: true,
-    width: '100%',
-    minimumResultsForSearch: 10
-});
+        // Event listener for component change
+        $('#rp_component_id').on('change', function() {
+            const componentId = $(this).val();
+            loadRPActivitiesByComponent(componentId);
+        });
 
-// Initialize RP Activities Select2 (empty for now)
-$('#rp_activities_select').select2({
-    placeholder: 'Select reporting activities...',
-    allowClear: true,
-    width: '100%',
-    closeOnSelect: false,
-    multiple: true
-});
-
-// Event listener for component change
-$('#rp_component_id').on('change', function() {
-    const componentId = $(this).val();
-    loadRPActivitiesByComponent(componentId);
-});
-
-// Load activities on page load if component is already selected
-$(document).ready(function() {
-    const initialComponentId = $('#rp_component_id').val();
-    if (initialComponentId && selectedRpActivityIds.length > 0) {
-        // Small delay to ensure DOM is ready
-        setTimeout(() => {
-            loadRPActivitiesByComponent(initialComponentId);
-        }, 500);
-    }
-});
+        // Load components on page load if action plan is selected
+        $(document).ready(function() {
+            const initialActionPlanId = $('#action_plan_id').val();
+            if (initialActionPlanId) {
+                loadComponentsByActionPlan(initialActionPlanId);
+            }
+            
+            // Load activities on page load if component is already selected
+            const initialComponentId = $('#rp_component_id').val();
+            if (initialComponentId && selectedRpActivityIds.length > 0) {
+                setTimeout(() => {
+                    loadRPActivitiesByComponent(initialComponentId);
+                }, 1000);
+            }
+        });
 
         // ============================================
         // VENUE HANDLING
@@ -1004,6 +1155,9 @@ $(document).ready(function() {
         // Event listener for venue change
         venueSelect.on('change', handleVenueChange);
 
+        // ============================================
+        // FORM VALIDATION AND SUBMISSION
+        // ============================================
         // Form submission validation
         $('#activityForm').on('submit', function(e) {
             if (venueSelect.val() === 'Other') {
