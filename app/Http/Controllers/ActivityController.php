@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Program;
 use App\Models\Project;
 use App\Models\ProjectActivity;
+use Illuminate\Support\Str ;
 
 class ActivityController extends Controller
 {
@@ -242,25 +243,15 @@ class ActivityController extends Controller
         // ============================================
         $selectedRpActivityIds = [];
         
-        // Get JSON from database
-        $rpActivitiesJson = $activity->rp_activities;
-        
-        if ($rpActivitiesJson) {
-            $decoded = json_decode($rpActivitiesJson, true);
-            
-            if (is_array($decoded)) {
-                $selectedRpActivityIds = collect($decoded)
-                    ->filter(function($item) {
-                        return is_string($item) && trim($item) !== '';
-                    })
-                    ->map(function($item) {
-                        return (string) $item;
-                    })
-                    ->unique()
-                    ->values()
-                    ->toArray();
-            }
-        }
+          
+    // ✅ NEW WAY (from rp_activity_mappings table) - CORRECT!
+    $selectedRpActivityIds = DB::table('rp_activity_mappings')
+        ->where('activity_id', $activity->activity_id)
+        ->pluck('rp_activities_id')
+        ->map(function($id) {
+            return (string) $id;
+        })
+        ->toArray();
 
         // ============================================
         // Return view
@@ -332,12 +323,7 @@ class ActivityController extends Controller
             $validated['focal_points'] = null;
         }
 
-        // Handle rp_activities as JSON in the activity table
-        if (!empty($rpActivities)) {
-            $validated['rp_activities'] = json_encode($rpActivities);
-        } else {
-            $validated['rp_activities'] = null;
-        }
+       
 
         // Update the activity with ALL validated data including action_plan_id, component and activities
         $activity->update($validated);

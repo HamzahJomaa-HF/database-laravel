@@ -1,4 +1,5 @@
 
+@extends('layouts.app')
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -322,20 +323,20 @@
                 <!-- Dates (Optional) -->
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <label for="start_date" class="form-label">Start Date (Optional)</label>
+                        <label for="start_date" class="form-label">Start Date </label>
                         <input type="date" 
                                class="form-control" 
                                id="start_date" 
                                name="start_date" 
-                               value="{{ old('start_date') }}">
+                               value="{{ old('start_date') }}" required>
                     </div>
                     <div class="col-md-6">
-                        <label for="end_date" class="form-label">End Date (Optional)</label>
+                        <label for="end_date" class="form-label">End Date </label>
                         <input type="date" 
                                class="form-control" 
                                id="end_date" 
                                name="end_date" 
-                               value="{{ old('end_date') }}">
+                               value="{{ old('end_date') }}" required>
                     </div>
                 </div>
 
@@ -380,6 +381,7 @@
                 titleField.value = fileName.replace(/\.[^/.]+$/, ""); // Remove extension
             }
         });
+        
         
         function detectComponentCode(filename) {
             // Patterns to detect component codes

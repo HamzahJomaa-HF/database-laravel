@@ -57,7 +57,7 @@ class ReportingImportController extends Controller
                 'end_date' => $request->end_date,
                 // 'rp_components_id' => null, // Don't set it here
                 'excel_filename' => $filename,
-                'excel_url' => Storage::url($path),
+                'excel_path' => $path, // ADD THIS LINE
                 'excel_uploaded_at' => now(),
                 'excel_metadata' => json_encode([
                     'original_name' => $file->getClientOriginalName(),

@@ -8,10 +8,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
-
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ActionPlanController extends Controller
 {
+    // ============================================
+    // INDEX & FILTERING METHODS
+    // ============================================
+    
     /**
      * Display a listing of action plans with filtering.
      */
@@ -111,6 +115,170 @@ class ActionPlanController extends Controller
         return false;
     }
 
+    // ============================================
+    // FILE UPLOAD & IMPORT METHODS
+    // ============================================
+    
+    /**
+     * Upload and store Excel file (for your import process)
+     */
+    public function storeExcel(Request $request)
+    {
+        try {
+            $request->validate([
+                'excel_file' => 'required|mimes:xlsx,xls,csv|max:10240',
+                'title' => 'required|string|max:255',
+                'external_id' => 'nullable|string|max:255',
+                'start_date' => 'nullable|date',
+                'end_date' => 'nullable|date|after_or_equal:start_date',
+                'rp_components_id' => 'nullable|exists:rp_components,rp_components_id',
+            ]);
+            
+            // Get the uploaded file
+            $file = $request->file('excel_file');
+            $originalName = $file->getClientOriginalName();
+            
+            // Generate a safe, unique filename
+            $timestamp = time();
+            $safeName = preg_replace('/[^A-Za-z0-9\.\_\-]/', '_', $originalName);
+            $filename = $timestamp . '_' . $safeName;
+            
+            // Define storage directory
+            $directory = 'action_plans';
+            
+            // Ensure directory exists
+            if (!Storage::exists($directory)) {
+                Storage::makeDirectory($directory);
+            }
+            
+            // Store the file
+            $path = $file->storeAs($directory, $filename, 'public');
+            
+            // Verify the file was saved
+            if (!Storage::exists($path)) {
+                throw new \Exception('Failed to save file to storage.');
+            }
+            
+            // Create action plan with proper file paths
+            $actionPlan = ActionPlan::create([
+                'title' => $request->title,
+                'external_id' => $request->external_id,
+                'start_date' => $request->start_date,
+                'end_date' => $request->end_date,
+                'rp_components_id' => $request->rp_components_id,
+                'excel_filename' => $filename,
+               'excel_path' => 'public/action_plans/' . $filename, 
+                'excel_metadata' => [
+                    'original_name' => $originalName,
+                    'size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType(),
+                    'uploaded_at' => now()->toDateTimeString(),
+                    'storage_path' => storage_path('app/public/action_plans/' . $filename),
+                ],
+                'excel_uploaded_at' => now(),
+            ]);
+            
+            return redirect()->route('action-plans.index')
+                ->with('success', 'Action plan imported successfully! File saved and ready for download.');
+                
+        } catch (\Exception $e) {
+            Log::error('Error importing action plan: ' . $e->getMessage(), [
+                'request' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Error importing action plan: ' . $e->getMessage());
+        }
+    }
+
+    // ============================================
+    // FILE DOWNLOAD METHODS
+    // ============================================
+    
+    /**
+     * Download the original Excel file
+     */
+    public function download(ActionPlan $actionPlan): BinaryFileResponse
+    {
+        // Check if file exists in database record
+        if (!$actionPlan->excel_path && !$actionPlan->excel_filename) {
+            abort(404, 'No file associated with this action plan.');
+        }
+        
+        // Try to find the file in storage
+        $filePath = $this->findFileInStorage($actionPlan);
+        
+        if (!$filePath) {
+            abort(404, 'Excel file not found in storage.');
+        }
+        
+        // Get the original filename for download
+        $originalName = $this->getOriginalFilename($actionPlan);
+        
+        // Return the file as a download
+        return response()->download(
+            storage_path('app/' . $filePath),
+            $originalName,
+            [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => 'attachment; filename="' . $originalName . '"'
+            ]
+        );
+    }
+
+    /**
+     * Helper: Find file in storage
+     */
+    private function findFileInStorage(ActionPlan $actionPlan): ?string
+    {
+        $searchPaths = [];
+        
+        
+        // First, try the stored path if it exists
+        if ($actionPlan->excel_path) {
+            $searchPaths[] = $actionPlan->excel_path;
+        }
+        
+        // Common storage locations to check
+        if ($actionPlan->excel_filename) {
+            $searchPaths = array_merge($searchPaths, [
+                'public/action_plans/' . $actionPlan->excel_filename, 
+                'action_plans/' . $actionPlan->excel_filename,
+                'uploads/' . $actionPlan->excel_filename,
+                $actionPlan->excel_filename, // Direct in storage root
+            ]);
+        }
+        
+        // Check each location
+        foreach ($searchPaths as $path) {
+            if (Storage::exists($path)) {
+                return $path;
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Helper: Get original filename for download
+     */
+    private function getOriginalFilename(ActionPlan $actionPlan): string
+    {
+        // Try to get from metadata first
+        if ($actionPlan->excel_metadata && isset($actionPlan->excel_metadata['original_name'])) {
+            return $actionPlan->excel_metadata['original_name'];
+        }
+        
+        // Fallback to stored filename
+        return $actionPlan->excel_filename ?? 'action-plan.xlsx';
+    }
+
+    // ============================================
+    // DELETE METHODS
+    // ============================================
+    
     /**
      * Bulk delete action plans.
      */
@@ -205,8 +373,9 @@ class ActionPlanController extends Controller
         
         try {
             // Delete associated Excel file if it exists
-            if ($actionPlan->excel_url) {
-                $this->deleteExcelFile($actionPlan->excel_url);
+            if ($actionPlan->excel_path && Storage::exists($actionPlan->excel_path)) {
+                Storage::delete($actionPlan->excel_path);
+                Log::info('Deleted file: ' . $actionPlan->excel_path);
             }
 
             // Delete the action plan record
@@ -219,7 +388,7 @@ class ActionPlanController extends Controller
             DB::rollBack();
             Log::error('Failed to delete action plan: ' . $e->getMessage(), [
                 'action_plan_id' => $actionPlan->action_plan_id,
-                'file_url' => $actionPlan->excel_url
+                'excel_path' => $actionPlan->excel_path
             ]);
             return false;
         }
@@ -237,11 +406,11 @@ class ActionPlanController extends Controller
             // Determine storage path based on your configuration
             // Adjust this based on where you store your Excel files
             
-            // Example for local storage in 'action-plans' directory
-            $storagePath = 'public/action-plans/' . $filename;
+            // Example for local storage in 'action_plans' directory
+            $storagePath = 'public/action_plans/' . $filename;
             
             // Example for S3 or other storage
-            // $storagePath = 'action-plans/' . $filename;
+            // $storagePath = 'action_plans/' . $filename;
             
             if (Storage::exists($storagePath)) {
                 Storage::delete($storagePath);
@@ -257,6 +426,78 @@ class ActionPlanController extends Controller
         }
     }
 
+    // ============================================
+    // DEBUG & UTILITY METHODS
+    // ============================================
+    
+    /**
+     * Fix file paths for existing action plans
+     */
+    public function fixFilePaths()
+    {
+        $actionPlans = ActionPlan::whereNotNull('excel_filename')->get();
+        $fixedCount = 0;
+        $missingFiles = [];
+        
+        foreach ($actionPlans as $plan) {
+            // If excel_path is empty, try to determine it
+            if (empty($plan->excel_path)) {
+                $foundPath = $this->findFileInStorage($plan);
+                
+                if ($foundPath) {
+                    $plan->excel_path = $foundPath;
+                    $plan->save();
+                    $fixedCount++;
+                } else {
+                    $missingFiles[] = [
+                        'id' => $plan->action_plan_id,
+                        'title' => $plan->title,
+                        'filename' => $plan->excel_filename,
+                    ];
+                }
+            }
+        }
+        
+        return response()->json([
+            'message' => 'Fixed ' . $fixedCount . ' action plans.',
+            'missing_files' => $missingFiles,
+            'total_checked' => $actionPlans->count()
+        ]);
+    }
+    
+    /**
+     * View file info (for debugging)
+     */
+    public function fileInfo($id)
+    {
+        $actionPlan = ActionPlan::findOrFail($id);
+        
+        $fileInfo = [
+            'database' => [
+                'excel_path' => $actionPlan->excel_path,
+                'excel_filename' => $actionPlan->excel_filename,
+                'excel_metadata' => $actionPlan->excel_metadata,
+            ],
+            'storage' => [],
+        ];
+        
+        // Check storage
+        if ($actionPlan->excel_path && Storage::exists($actionPlan->excel_path)) {
+            $fileInfo['storage']['primary_path'] = [
+                'exists' => true,
+                'path' => $actionPlan->excel_path,
+                'size' => Storage::size($actionPlan->excel_path),
+                'last_modified' => Storage::lastModified($actionPlan->excel_path),
+            ];
+        }
+        
+        return response()->json($fileInfo);
+    }
+
+    // ============================================
+    // ADDITIONAL FEATURES
+    // ============================================
+    
     /**
      * Show import statistics (optional).
      */

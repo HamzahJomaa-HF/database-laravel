@@ -268,61 +268,99 @@ Here's the Action Plan index blade based on your Activities index, but adapted f
                                     </td>
 
                                     {{-- Excel File --}}
-                                    <td>
-                                        @if($actionPlan->excel_filename)
-                                        <div class="d-flex align-items-center mb-1">
-                                            <i class="bi bi-file-earmark-excel text-success me-2 small"></i>
-                                            <div class="small">
-                                                <div>{{ Str::limit($actionPlan->excel_filename, 25) }}</div>
-                                                @if($actionPlan->excel_metadata && isset($actionPlan->excel_metadata['original_name']))
-                                                <div class="text-muted">
-                                                    {{ Str::limit($actionPlan->excel_metadata['original_name'], 20) }}
-                                                </div>
-                                                @endif
-                                            </div>
-                                        </div>
-                                        @if($actionPlan->excel_url)
-                                        <a href="{{ $actionPlan->excel_url }}" 
-                                           target="_blank" 
-                                           class="btn btn-sm btn-outline-success">
-                                            <i class="bi bi-download me-1"></i>Download
-                                        </a>
-                                        @endif
-                                        @endif
-                                    </td>
+<td>
+    @if($actionPlan->excel_filename)
+    <div class="d-flex align-items-center mb-1">
+        <i class="bi bi-file-earmark-excel text-success me-2 small"></i>
+        <div class="small">
+            <div>{{ Str::limit($actionPlan->excel_filename, 25) }}</div>
+            @if($actionPlan->excel_metadata && isset($actionPlan->excel_metadata['original_name']))
+            <div class="text-muted">
+                {{ Str::limit($actionPlan->excel_metadata['original_name'], 20) }}
+            </div>
+            @endif
+        </div>
+    </div>
+    
+    {{-- Download Button --}}
+    <a href="{{ route('action-plans.download', $actionPlan->action_plan_id) }}" 
+       class="btn btn-sm btn-outline-success"
+       title="Download original Excel file">
+        <i class="bi bi-download me-1"></i>Download
+    </a>
+    
+    {{-- Debug info (optional - remove in production) --}}
+    @if(!$actionPlan->excel_path)
+    <span class="badge bg-warning ms-1" title="File path not set in database">⚠️</span>
+    @endif
+    @endif
+</td>
 
-                                    {{-- Import Statistics --}}
-                                    <td>
-                                        @if($actionPlan->excel_metadata && isset($actionPlan->excel_metadata['import_results']))
-                                        @php
-                                            $importResults = $actionPlan->excel_metadata['import_results'];
-                                            $hierarchy = $importResults['hierarchy'] ?? [];
-                                            $activities = $importResults['activities'] ?? [];
-                                        @endphp
-                                        <div class="small">
-                                            @if(isset($hierarchy['processed']))
-                                            <div class="mb-1">
-                                                <span class="text-muted">Hierarchy:</span> 
-                                                <span class="fw-semibold">{{ $hierarchy['processed'] }}</span> rows
-                                            </div>
-                                            @endif
-                                            @if(isset($activities['processed']))
-                                            <div class="mb-1">
-                                                <span class="text-muted">Activities:</span> 
-                                                <span class="fw-semibold">{{ $activities['processed'] }}</span> rows
-                                            </div>
-                                            @endif
-                                            @if(isset($hierarchy['details']['components']['new']))
-                                            <div>
-                                                <span class="text-muted">New Components:</span> 
-                                                <span class="badge bg-success">{{ $hierarchy['details']['components']['new'] }}</span>
-                                            </div>
-                                            @endif
-                                        </div>
-                                        @else
-                                        <span class="badge bg-secondary">No import data</span>
-                                        @endif
-                                    </td>
+                                 {{-- Import Statistics --}}
+<td>
+    @php
+        // Decode the JSON metadata
+        $metadata = json_decode($actionPlan->excel_metadata, true) ?? [];
+        $importResults = $metadata['import_results'] ?? null;
+    @endphp
+    
+    @if($importResults)
+        @php
+            $hierarchy = $importResults['hierarchy'] ?? [];
+            $activities = $importResults['activities'] ?? [];
+        @endphp
+        <div class="small">
+            @if(isset($hierarchy['processed']))
+            <div class="mb-1">
+                <span class="text-muted">Hierarchy:</span> 
+                <span class="fw-semibold">{{ $hierarchy['processed'] }}</span> rows
+            </div>
+            @endif
+            
+            @if(isset($activities['processed']))
+            <div class="mb-1">
+                <span class="text-muted">Activities:</span> 
+                <span class="fw-semibold">{{ $activities['processed'] }}</span> rows
+            </div>
+            @endif
+            
+            {{-- Show more details if available --}}
+            @if(isset($hierarchy['details']))
+            <div class="mt-1">
+                @if(isset($hierarchy['details']['components']['new']))
+                <div class="d-inline-block me-2">
+                    <span class="badge bg-success" title="New components">
+                        {{ $hierarchy['details']['components']['new'] }} C
+                    </span>
+                </div>
+                @endif
+                
+                @if(isset($hierarchy['details']['actions']['new']))
+                <div class="d-inline-block">
+                    <span class="badge bg-info" title="New actions">
+                        {{ $hierarchy['details']['actions']['new'] }} A
+                    </span>
+                </div>
+                @endif
+            </div>
+            @endif
+            
+            @if(isset($activities['created']))
+            <div class="mt-1">
+                @if(isset($activities['created']['activities']))
+                <div class="d-inline-block me-2">
+                    <span class="badge bg-primary" title="Activities created">
+                        {{ $activities['created']['activities'] }} AC
+                    </span>
+                </div>
+                @endif
+            </div>
+            @endif
+        </div>
+    @else
+        <span class="badge bg-secondary">No import data</span>
+    @endif
+</td>
 
                                     {{-- Actions --}}
                                     <td>
@@ -408,16 +446,15 @@ Here's the Action Plan index blade based on your Activities index, but adapted f
                                                             <dd class="col-sm-8">{{ number_format($actionPlan->excel_metadata['size'] / 1024, 2) }} KB</dd>
                                                             @endif
                                                             
-                                                            @if($actionPlan->excel_url)
-                                                            <dt class="col-sm-4">Download:</dt>
-                                                            <dd class="col-sm-8">
-                                                                <a href="{{ $actionPlan->excel_url }}" 
-                                                                   target="_blank" 
-                                                                   class="btn btn-sm btn-success">
-                                                                    <i class="bi bi-download me-1"></i>Download Excel
-                                                                </a>
-                                                            </dd>
-                                                            @endif
+                                                          @if($actionPlan->excel_filename)
+<dt class="col-sm-4">Download:</dt>
+<dd class="col-sm-8">
+    <a href="{{ route('action-plans.download', $actionPlan->action_plan_id) }}" 
+       class="btn btn-sm btn-success">
+        <i class="bi bi-download me-1"></i>Download Excel
+    </a>
+</dd>
+@endif
                                                         </dl>
                                                     </div>
                                                 </div>

@@ -13,6 +13,80 @@ use App\Http\Controllers\ActionPlanController;
 Route::get('/actionPlans', [ActionPlanController::class, 'index'])->name('action-plans.index');
 Route::delete('/action-plans/bulk-destroy', [ActionPlanController::class, 'bulkDestroy'])->name('action-plans.bulk.destroy');
 Route::delete('/action-plans/{id}', [ActionPlanController::class, 'destroy'])->name('action-plans.destroy');
+// In your routes file, add this line:
+Route::get('/action-plans/{actionPlan}/download', [ActionPlanController::class, 'download'])->name('action-plans.download');
+
+
+//routes for storage setup and file listing
+Route::get('/setup-storage', function () {
+    echo "<h1>Setting up storage directories</h1>";
+    
+    $directories = [
+        'action-plans',
+        'public/action-plans',
+        'uploads',
+    ];
+    
+    foreach ($directories as $dir) {
+        $fullPath = storage_path('app/' . $dir);
+        
+        if (!file_exists($fullPath)) {
+            mkdir($fullPath, 0755, true);
+            echo "✅ Created: {$fullPath}<br>";
+        } else {
+            echo "✓ Already exists: {$fullPath}<br>";
+        }
+    }
+    
+    echo "<br><strong>All directories created successfully!</strong>";
+    
+    // Also create symbolic link for public storage
+    echo "<br><br><h2>Creating symbolic link...</h2>";
+    if (!file_exists(public_path('storage'))) {
+        \Illuminate\Support\Facades\Artisan::call('storage:link');
+        echo "✅ Symbolic link created";
+    } else {
+        echo "✓ Symbolic link already exists";
+    }
+});
+Route::get('/list-files-in-storage', function () {
+    $directories = [
+        'action-plans',
+        'public/action-plans', 
+        'uploads'
+    ];
+    
+    echo "<h1>Current Files in Storage</h1>";
+    
+    foreach ($directories as $dir) {
+        $fullPath = storage_path('app/' . $dir);
+        echo "<h3>Directory: {$dir}</h3>";
+        
+        if (!is_dir($fullPath)) {
+            echo "❌ Directory doesn't exist<br>";
+            continue;
+        }
+        
+        $files = scandir($fullPath);
+        $validFiles = array_filter($files, function($file) {
+            return $file !== '.' && $file !== '..';
+        });
+        
+        if (empty($validFiles)) {
+            echo "📁 Empty directory<br>";
+        } else {
+            echo "<ul>";
+            foreach ($validFiles as $file) {
+                $filePath = $fullPath . '/' . $file;
+                $size = filesize($filePath);
+                $type = is_dir($filePath) ? '📁 Directory' : '📄 File';
+                echo "<li>{$type}: {$file} ({$size} bytes)</li>";
+            }
+            echo "</ul>";
+        }
+        echo "<hr>";
+    }
+});
 
 //users routes
 Route::prefix('users')->name('users.')->group(function () {
