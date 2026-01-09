@@ -22,8 +22,9 @@ class ActionPlanController extends Controller
     public function index(Request $request)
     {
         try {
-            // Start query builder
+            // Start query builder - only non-deleted records
             $query = ActionPlan::query()
+                ->whereNull('deleted_at')
                 ->with(['component' => function ($query) {
                     $query->select('rp_components_id', 'code', 'title');
                 }])
@@ -43,6 +44,34 @@ class ActionPlanController extends Controller
         } catch (\Exception $e) {
             return redirect()->back()
                 ->with('error', 'Error loading action plans: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Display a listing of soft deleted action plans.
+     */
+    public function trash(Request $request)
+    {
+        try {
+            // Start query builder - only deleted records
+            $query = ActionPlan::query()
+                ->onlyTrashed()
+                ->with(['component' => function ($query) {
+                    $query->select('rp_components_id', 'code', 'title');
+                }])
+                ->orderBy('deleted_at', 'desc');
+
+            // Apply filters to trash
+            $query = $this->applyFilters($query, $request);
+            
+            // Get paginated results
+            $actionPlans = $query->paginate(20)->withQueryString();
+
+            return view('action-plans.trash', compact('actionPlans'));
+
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Error loading trashed action plans: ' . $e->getMessage());
         }
     }
 
@@ -86,6 +115,14 @@ class ActionPlanController extends Controller
         // Component filter (if you have component_id in action_plans)
         if ($request->filled('rp_components_id')) {
             $query->where('component_id', $request->input('rp_components_id'));
+        }
+
+        // Deleted date range filter (for trash view)
+        if ($request->filled('deleted_from')) {
+            $query->whereDate('deleted_at', '>=', $request->input('deleted_from'));
+        }
+        if ($request->filled('deleted_to')) {
+            $query->whereDate('deleted_at', '<=', $request->input('deleted_to'));
         }
 
         return $query;
@@ -276,11 +313,11 @@ class ActionPlanController extends Controller
     }
 
     // ============================================
-    // DELETE METHODS
+    // SOFT DELETE METHODS
     // ============================================
     
     /**
-     * Bulk delete action plans.
+     * Bulk soft delete action plans.
      */
     public function bulkDestroy(Request $request)
     {
@@ -298,15 +335,15 @@ class ActionPlanController extends Controller
                     ->with('error', 'No action plans selected for deletion.');
             }
 
-            // Get action plans to delete
+            // Get action plans to soft delete
             $actionPlans = ActionPlan::whereIn('action_plan_id', $actionPlanIds)->get();
             
             $deletedCount = 0;
             $failedDeletions = [];
 
-            // Delete each action plan and its associated file
+            // Soft delete each action plan
             foreach ($actionPlans as $actionPlan) {
-                if ($this->deleteActionPlanAndFile($actionPlan)) {
+                if ($this->softDeleteActionPlan($actionPlan)) {
                     $deletedCount++;
                 } else {
                     $failedDeletions[] = $actionPlan->title ?: $actionPlan->external_id;
@@ -314,7 +351,7 @@ class ActionPlanController extends Controller
             }
 
             // Prepare response message
-            $message = "Successfully deleted {$deletedCount} action plan(s).";
+            $message = "Successfully moved {$deletedCount} action plan(s) to trash.";
             
             if (!empty($failedDeletions)) {
                 $failedList = implode(', ', $failedDeletions);
@@ -339,19 +376,19 @@ class ActionPlanController extends Controller
     }
 
     /**
-     * Delete a single action plan.
+     * Soft delete a single action plan.
      */
     public function destroy($id)
     {
         try {
             $actionPlan = ActionPlan::findOrFail($id);
 
-            if ($this->deleteActionPlanAndFile($actionPlan)) {
+            if ($this->softDeleteActionPlan($actionPlan)) {
                 return redirect()->route('action-plans.index')
-                    ->with('success', 'Action plan deleted successfully.');
+                    ->with('success', 'Action plan moved to trash successfully.');
             } else {
                 return redirect()->route('action-plans.index')
-                    ->with('error', 'Failed to delete action plan or associated file.');
+                    ->with('error', 'Failed to delete action plan.');
             }
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -365,9 +402,209 @@ class ActionPlanController extends Controller
     }
 
     /**
-     * Helper method to delete action plan and its file.
+     * Restore a soft deleted action plan.
      */
-    private function deleteActionPlanAndFile(ActionPlan $actionPlan)
+    public function restore($id)
+    {
+        try {
+            $actionPlan = ActionPlan::onlyTrashed()->findOrFail($id);
+            
+            $actionPlan->restore();
+            
+            return redirect()->route('action-plans.trash')
+                ->with('success', 'Action plan restored successfully.');
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return redirect()->route('action-plans.trash')
+                ->with('error', 'Action plan not found in trash.');
+
+        } catch (\Exception $e) {
+            return redirect()->route('action-plans.trash')
+                ->with('error', 'Error restoring action plan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Permanently delete a soft deleted action plan.
+     */
+    public function forceDestroy($id)
+    {
+        try {
+            $actionPlan = ActionPlan::onlyTrashed()->findOrFail($id);
+            
+            if ($this->permanentlyDeleteActionPlan($actionPlan)) {
+                return redirect()->route('action-plans.trash')
+                    ->with('success', 'Action plan permanently deleted.');
+            } else {
+                return redirect()->route('action-plans.trash')
+                    ->with('error', 'Failed to permanently delete action plan.');
+            }
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return redirect()->route('action-plans.trash')
+                ->with('error', 'Action plan not found in trash.');
+
+        } catch (\Exception $e) {
+            return redirect()->route('action-plans.trash')
+                ->with('error', 'Error permanently deleting action plan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Bulk restore action plans from trash.
+     */
+    public function bulkRestore(Request $request)
+    {
+        try {
+            $request->validate([
+                'action_plan_ids' => 'required|string'
+            ]);
+
+            $actionPlanIds = explode(',', $request->input('action_plan_ids'));
+            
+            if (empty($actionPlanIds)) {
+                return redirect()->back()
+                    ->with('error', 'No action plans selected for restoration.');
+            }
+
+            $restoredCount = ActionPlan::onlyTrashed()
+                ->whereIn('action_plan_id', $actionPlanIds)
+                ->restore();
+
+            return redirect()->route('action-plans.trash')
+                ->with('success', "Successfully restored {$restoredCount} action plan(s).");
+
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Error during bulk restoration: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Bulk permanently delete action plans from trash.
+     */
+    public function bulkForceDestroy(Request $request)
+    {
+        try {
+            $request->validate([
+                'action_plan_ids' => 'required|string'
+            ]);
+
+            $actionPlanIds = explode(',', $request->input('action_plan_ids'));
+            
+            if (empty($actionPlanIds)) {
+                return redirect()->back()
+                    ->with('error', 'No action plans selected for permanent deletion.');
+            }
+
+            $actionPlans = ActionPlan::onlyTrashed()
+                ->whereIn('action_plan_id', $actionPlanIds)
+                ->get();
+            
+            $deletedCount = 0;
+            $failedDeletions = [];
+
+            foreach ($actionPlans as $actionPlan) {
+                if ($this->permanentlyDeleteActionPlan($actionPlan)) {
+                    $deletedCount++;
+                } else {
+                    $failedDeletions[] = $actionPlan->title ?: $actionPlan->external_id;
+                }
+            }
+
+            $message = "Successfully permanently deleted {$deletedCount} action plan(s).";
+            
+            if (!empty($failedDeletions)) {
+                $failedList = implode(', ', $failedDeletions);
+                $message .= " Failed to delete: {$failedList}";
+                
+                if ($deletedCount > 0) {
+                    return redirect()->route('action-plans.trash')
+                        ->with('warning', $message);
+                } else {
+                    return redirect()->route('action-plans.trash')
+                        ->with('error', $message);
+                }
+            }
+
+            return redirect()->route('action-plans.trash')
+                ->with('success', $message);
+
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Error during bulk permanent deletion: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Empty the trash (permanently delete all soft deleted records).
+     */
+    public function emptyTrash()
+    {
+        try {
+            $actionPlans = ActionPlan::onlyTrashed()->get();
+            
+            $deletedCount = 0;
+            $failedDeletions = [];
+
+            foreach ($actionPlans as $actionPlan) {
+                if ($this->permanentlyDeleteActionPlan($actionPlan)) {
+                    $deletedCount++;
+                } else {
+                    $failedDeletions[] = $actionPlan->title ?: $actionPlan->external_id;
+                }
+            }
+
+            $message = "Successfully emptied trash. Permanently deleted {$deletedCount} action plan(s).";
+            
+            if (!empty($failedDeletions)) {
+                $failedList = implode(', ', $failedDeletions);
+                $message .= " Failed to delete: {$failedList}";
+                
+                if ($deletedCount > 0) {
+                    return redirect()->route('action-plans.trash')
+                        ->with('warning', $message);
+                } else {
+                    return redirect()->route('action-plans.trash')
+                        ->with('error', $message);
+                }
+            }
+
+            return redirect()->route('action-plans.trash')
+                ->with('success', $message);
+
+        } catch (\Exception $e) {
+            return redirect()->route('action-plans.trash')
+                ->with('error', 'Error emptying trash: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Helper method to soft delete action plan.
+     */
+    private function softDeleteActionPlan(ActionPlan $actionPlan)
+    {
+        try {
+            $actionPlan->delete();
+            Log::info('Soft deleted action plan', [
+                'action_plan_id' => $actionPlan->action_plan_id,
+                'title' => $actionPlan->title,
+                'deleted_at' => now()->toDateTimeString()
+            ]);
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Failed to soft delete action plan: ' . $e->getMessage(), [
+                'action_plan_id' => $actionPlan->action_plan_id,
+                'title' => $actionPlan->title
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Helper method to permanently delete action plan and its file.
+     */
+    private function permanentlyDeleteActionPlan(ActionPlan $actionPlan)
     {
         DB::beginTransaction();
         
@@ -375,52 +612,20 @@ class ActionPlanController extends Controller
             // Delete associated Excel file if it exists
             if ($actionPlan->excel_path && Storage::exists($actionPlan->excel_path)) {
                 Storage::delete($actionPlan->excel_path);
-                Log::info('Deleted file: ' . $actionPlan->excel_path);
+                Log::info('Deleted file during permanent deletion: ' . $actionPlan->excel_path);
             }
 
-            // Delete the action plan record
-            $actionPlan->delete();
+            // Force delete the action plan record
+            $actionPlan->forceDelete();
 
             DB::commit();
             return true;
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Failed to delete action plan: ' . $e->getMessage(), [
+            Log::error('Failed to permanently delete action plan: ' . $e->getMessage(), [
                 'action_plan_id' => $actionPlan->action_plan_id,
                 'excel_path' => $actionPlan->excel_path
-            ]);
-            return false;
-        }
-    }
-
-    /**
-     * Delete the Excel file from storage.
-     */
-    private function deleteExcelFile($fileUrl)
-    {
-        try {
-            // Extract filename from URL
-            $filename = basename($fileUrl);
-            
-            // Determine storage path based on your configuration
-            // Adjust this based on where you store your Excel files
-            
-            // Example for local storage in 'action_plans' directory
-            $storagePath = 'public/action_plans/' . $filename;
-            
-            // Example for S3 or other storage
-            // $storagePath = 'action_plans/' . $filename;
-            
-            if (Storage::exists($storagePath)) {
-                Storage::delete($storagePath);
-            }
-            
-            return true;
-            
-        } catch (\Exception $e) {
-            Log::error('Failed to delete Excel file: ' . $e->getMessage(), [
-                'file_url' => $fileUrl
             ]);
             return false;
         }
@@ -470,13 +675,15 @@ class ActionPlanController extends Controller
      */
     public function fileInfo($id)
     {
-        $actionPlan = ActionPlan::findOrFail($id);
+        $actionPlan = ActionPlan::withTrashed()->findOrFail($id);
         
         $fileInfo = [
             'database' => [
                 'excel_path' => $actionPlan->excel_path,
                 'excel_filename' => $actionPlan->excel_filename,
                 'excel_metadata' => $actionPlan->excel_metadata,
+                'deleted_at' => $actionPlan->deleted_at,
+                'is_soft_deleted' => !is_null($actionPlan->deleted_at),
             ],
             'storage' => [],
         ];
@@ -505,6 +712,8 @@ class ActionPlanController extends Controller
     {
         $stats = [
             'total_action_plans' => ActionPlan::count(),
+            'active_action_plans' => ActionPlan::whereNull('deleted_at')->count(),
+            'deleted_action_plans' => ActionPlan::onlyTrashed()->count(),
             'recent_uploads' => ActionPlan::whereDate('excel_uploaded_at', '>=', now()->subDays(7))->count(),
             'by_component' => ActionPlan::with('component')
                 ->select('rp_components_id', DB::raw('count(*) as count'))
@@ -543,7 +752,7 @@ class ActionPlanController extends Controller
             // Header row
             fputcsv($file, [
                 'ID', 'Title', 'External ID', 'Start Date', 'End Date', 
-                'Component', 'Import Date', 'Excel File'
+                'Component', 'Import Date', 'Excel File', 'Deleted At'
             ]);
             
             // Data rows
@@ -556,7 +765,8 @@ class ActionPlanController extends Controller
                     $plan->end_date,
                     $plan->component->code ?? '',
                     $plan->excel_uploaded_at,
-                    $plan->excel_filename
+                    $plan->excel_filename,
+                    $plan->deleted_at ?? 'Active'
                 ]);
             }
             
@@ -571,13 +781,16 @@ class ActionPlanController extends Controller
      */
     public function getDetails($id)
     {
-        $actionPlan = ActionPlan::with('component')
+        $actionPlan = ActionPlan::with(['component', 'deletedBy'])
+            ->withTrashed()
             ->findOrFail($id);
             
         return response()->json([
             'success' => true,
             'data' => $actionPlan,
-            'import_stats' => $actionPlan->excel_metadata['import_results'] ?? null
+            'import_stats' => $actionPlan->excel_metadata['import_results'] ?? null,
+            'is_deleted' => !is_null($actionPlan->deleted_at),
+            'deleted_at_formatted' => $actionPlan->deleted_at ? $actionPlan->deleted_at->format('Y-m-d H:i:s') : null
         ]);
     }
 }

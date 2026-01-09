@@ -383,6 +383,20 @@ class ActivityController extends Controller
             ->with('success', 'Activity updated successfully.');
     }
 
+    /**
+     * Remove the specified activity from storage using soft delete.
+     */
+    public function destroy($id)
+    {
+        $activity = Activity::findOrFail($id);
+        
+        // Use soft delete instead of permanent delete
+        $activity->delete();
+        
+        return redirect()->route('activities.index')
+            ->with('success', 'Activity deleted successfully.');
+    }
+
     // Add these new AJAX methods to your controller:
 
     /**
@@ -422,33 +436,33 @@ class ActivityController extends Controller
         }
     }
 
-/**
- * Get all action plans (for dropdown)
- */
-public function getActionPlans(Request $request)
-{
-    try {
-        $actionPlans = ActionPlan::orderBy('title')
-            ->get(['action_plan_id', 'title', 'start_date', 'end_date']);
+    /**
+     * Get all action plans (for dropdown)
+     */
+    public function getActionPlans(Request $request)
+    {
+        try {
+            $actionPlans = ActionPlan::orderBy('title')
+                ->get(['action_plan_id', 'title', 'start_date', 'end_date']);
 
-        return response()->json([
-            'success' => true,
-            'action_plans' => $actionPlans
-        ]);
-    } catch (\Exception $e) {
-        Log::error('Error loading action plans', [
-            'error' => $e->getMessage()
-        ]);
+            return response()->json([
+                'success' => true,
+                'action_plans' => $actionPlans
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error loading action plans', [
+                'error' => $e->getMessage()
+            ]);
 
-        return response()->json([
-            'success' => false,
-            'message' => 'Error loading action plans'
-        ], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading action plans'
+            ], 500);
+        }
     }
-}
 
-/**
- * Get RP Activities by Component ID (AJAX endpoint)
+    /**
+     * Get RP Activities by Component ID (AJAX endpoint)
      * Using Eloquent relationships from first code
      *
      * @param  \Illuminate\Http\Request  $request
@@ -508,9 +522,7 @@ public function getActionPlans(Request $request)
             ], 500);
         }
     }
-    /**
-     * Get Projects by Program ID (AJAX endpoint)
-     */
+
     /**
      * Get Projects by Program ID (AJAX endpoint)
      */
@@ -555,6 +567,7 @@ public function getActionPlans(Request $request)
             ], 500);
         }
     }
+
     /**
      * Get RP Actions grouped by Component ID
      * Returns actions with their activities as sub-items
@@ -563,98 +576,98 @@ public function getActionPlans(Request $request)
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
-   public function getRPActionsWithActivities(Request $request)
-{
-    $request->validate([
-        'component_id' => 'required|string'
-    ]);
-
-    $componentId = $request->component_id;
-
-    Log::info('getRPActionsWithActivities called', [
-        'component_id' => $componentId,
-        'request_all' => $request->all()
-    ]);
-
-    try {
-        // Debug: Check if component exists
-        $componentExists = RpComponent::where('rp_components_id', $componentId)
-            ->whereNull('deleted_at')
-            ->exists();
-            
-        Log::info('Component exists check:', [
-            'component_id' => $componentId,
-            'exists' => $componentExists
+    public function getRPActionsWithActivities(Request $request)
+    {
+        $request->validate([
+            'component_id' => 'required|string'
         ]);
 
-        // Get the component with its full hierarchy
-        $component = RpComponent::with([
-            'programs.units.actions.activities' => function ($query) {
-                $query->whereNull('deleted_at')
-                    ->orderBy('code')
-                    ->select(['rp_activities_id', 'rp_actions_id', 'name', 'code']);
+        $componentId = $request->component_id;
+
+        Log::info('getRPActionsWithActivities called', [
+            'component_id' => $componentId,
+            'request_all' => $request->all()
+        ]);
+
+        try {
+            // Debug: Check if component exists
+            $componentExists = RpComponent::where('rp_components_id', $componentId)
+                ->whereNull('deleted_at')
+                ->exists();
+                
+            Log::info('Component exists check:', [
+                'component_id' => $componentId,
+                'exists' => $componentExists
+            ]);
+
+            // Get the component with its full hierarchy
+            $component = RpComponent::with([
+                'programs.units.actions.activities' => function ($query) {
+                    $query->whereNull('deleted_at')
+                        ->orderBy('code')
+                        ->select(['rp_activities_id', 'rp_actions_id', 'name', 'code']);
+                }
+            ])
+                ->where('rp_components_id', $componentId)
+                ->whereNull('deleted_at')
+                ->first();
+
+            if (!$component) {
+                Log::warning('Component not found', ['component_id' => $componentId]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Component not found',
+                    'debug' => ['component_id' => $componentId]
+                ], 404);
             }
-        ])
-            ->where('rp_components_id', $componentId)
-            ->whereNull('deleted_at')
-            ->first();
 
-        if (!$component) {
-            Log::warning('Component not found', ['component_id' => $componentId]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Component not found',
-                'debug' => ['component_id' => $componentId]
-            ], 404);
-        }
+            // Structure the data: Group by Action
+            $actionsData = [];
 
-        // Structure the data: Group by Action
-        $actionsData = [];
-
-        foreach ($component->programs as $program) {
-            foreach ($program->units as $unit) {
-                foreach ($unit->actions as $action) {
-                    if ($action->activities->isNotEmpty()) {
-                        $actionsData[] = [
-                            'action_id' => $action->rp_actions_id,
-                            'action_name' => $action->name,
-                            'action_code' => $action->code,
-                            'activities' => $action->activities->map(function ($activity) {
-                                return [
-                                    'rp_activities_id' => $activity->rp_activities_id,
-                                    'name' => $activity->name,
-                                    'code' => $activity->code,
-                                    'rp_action_id' => $activity->rp_actions_id,
-                                    'full_name' => $activity->code . ' - ' . $activity->name
-                                ];
-                            })
-                        ];
+            foreach ($component->programs as $program) {
+                foreach ($program->units as $unit) {
+                    foreach ($unit->actions as $action) {
+                        if ($action->activities->isNotEmpty()) {
+                            $actionsData[] = [
+                                'action_id' => $action->rp_actions_id,
+                                'action_name' => $action->name,
+                                'action_code' => $action->code,
+                                'activities' => $action->activities->map(function ($activity) {
+                                    return [
+                                        'rp_activities_id' => $activity->rp_activities_id,
+                                        'name' => $activity->name,
+                                        'code' => $activity->code,
+                                        'rp_action_id' => $activity->rp_actions_id,
+                                        'full_name' => $activity->code . ' - ' . $activity->name
+                                    ];
+                                })
+                            ];
+                        }
                     }
                 }
             }
+
+            return response()->json([
+                'success' => true,
+                'data' => $actionsData,
+                'component' => [
+                    'id' => $component->rp_components_id,
+                    'name' => $component->name,
+                    'code' => $component->code
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error loading RP actions with activities', [
+                'component_id' => $componentId,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading data'
+            ], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'data' => $actionsData,
-            'component' => [
-                'id' => $component->rp_components_id,
-                'name' => $component->name,
-                'code' => $component->code
-            ]
-        ]);
-    } catch (\Exception $e) {
-        Log::error('Error loading RP actions with activities', [
-            'component_id' => $componentId,
-            'error' => $e->getMessage()
-        ]);
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Error loading data'
-        ], 500);
     }
-}
 
     /**
      * Get all RP Components with basic info

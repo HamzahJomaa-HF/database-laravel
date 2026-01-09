@@ -5,9 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\SoftDeletes; 
 
 class ActionPlan extends Model
 {
+     use SoftDeletes;
     protected $primaryKey = 'action_plan_id';
     public $incrementing = false;
     protected $keyType = 'string';
@@ -24,6 +26,7 @@ class ActionPlan extends Model
         'excel_metadata',
         'excel_uploaded_at',
         'excel_processed_at',
+        
     ];
     
     protected $casts = [

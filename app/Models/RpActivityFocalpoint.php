@@ -4,9 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\SoftDeletes; 
 
 class RpActivityFocalpoint extends Model
 {
+     use SoftDeletes;
     use HasUuids;
 
     protected $table = 'rp_activity_focalpoints';

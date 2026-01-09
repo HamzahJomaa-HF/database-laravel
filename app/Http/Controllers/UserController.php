@@ -359,7 +359,7 @@ class UserController extends Controller
     public function destroy($user_id)
     {
         $user = User::where('user_id', $user_id)->firstOrFail();
-        $user->delete();
+        $user->delete(); // This will now perform a soft delete
 
         return redirect()->route('users.index')->with('success', 'User deleted successfully.');
     }
@@ -376,15 +376,15 @@ class UserController extends Controller
                 foreach ($userIds as $userId) {
                     $user = User::where('user_id', $userId)->first();
                     if ($user) {
-                        $user->diplomas()->detach();
-                        $user->nationalities()->detach();
-                        $user->delete();
+                        // No need to detach relationships for soft deletes
+                        // The relationships will remain intact
+                        $user->delete(); // Soft delete
                     }
                 }
             });
             
             $count = count($userIds);
-            Log::info("Bulk deleted {$count} users");
+            Log::info("Bulk soft deleted {$count} users");
             
             return redirect()->route('users.index')
                 ->with('success', "Successfully deleted {$count} user(s).");

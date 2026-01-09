@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class RpActivity extends Model
 {
+     use SoftDeletes;
     use SoftDeletes, HasUuids;
 
     protected $table = 'rp_activities';

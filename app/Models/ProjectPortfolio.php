@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes; 
 
 class ProjectPortfolio extends Model
 {
+     use SoftDeletes;
     protected $table = 'project_portfolios';
     protected $primaryKey = 'id';
     public $incrementing = false;
