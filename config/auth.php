@@ -14,8 +14,8 @@ return [
     */
 
     'defaults' => [
-        'guard' => env('AUTH_GUARD', 'web'),
-        'passwords' => env('AUTH_PASSWORD_BROKER', 'users'),
+        'guard' => 'employee', // CHANGED from 'web' to 'employee'
+        'passwords' => 'employees', // CHANGED from 'users' to 'employees'
     ],
 
     /*
@@ -38,7 +38,18 @@ return [
     'guards' => [
         'web' => [
             'driver' => 'session',
+            'provider' => 'users', // For external users table
+        ],
+        
+        'employee' => [ // ADD THIS: Your internal employee guard
+            'driver' => 'session',
+            'provider' => 'employees',
+        ],
+
+        'api' => [
+            'driver' => 'token',
             'provider' => 'users',
+            'hash' => false,
         ],
     ],
 
@@ -62,13 +73,18 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', App\Models\User::class),
+            'model' => App\Models\User::class, // External users table
         ],
 
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
+        'employees' => [ // ADD THIS: Your internal employees provider
+            'driver' => 'eloquent',
+            'model' => App\Models\Employee::class,
+        ],
+        
+        'system_users' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\SystemUser::class,
+        ],
     ],
 
     /*
@@ -97,10 +113,13 @@ return [
             'expire' => 60,
             'throttle' => 60,
         ],
-    ],
-    'system_users' => [
-        'driver' => 'eloquent',
-        'model' => App\Models\SystemUser::class,
+        
+        'employees' => [ // ADD THIS: Password reset for employees
+            'provider' => 'employees',
+            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire' => 60,
+            'throttle' => 60,
+        ],
     ],
 
     /*

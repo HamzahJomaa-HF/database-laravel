@@ -1,23 +1,27 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
-use App\Http\Controllers\Reporting\{
-  
-    ReportingImportController
-};
+use App\Http\Controllers\Reporting\ReportingImportController;
 use App\Http\Controllers\UserController as UserController;
 use App\Http\Controllers\ActionPlanController;
+use App\Http\Controllers\ActivityController;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\DashboardController;
 
-// In your routes file
+// =============== PUBLIC ROUTES (Keep as they are) ===============
+
+// Root
+Route::get('/', function () {
+    return view('welcome');
+});
+
+// Action Plans Routes
 Route::get('/actionPlans', [ActionPlanController::class, 'index'])->name('action-plans.index');
 Route::delete('/action-plans/bulk-destroy', [ActionPlanController::class, 'bulkDestroy'])->name('action-plans.bulk.destroy');
 Route::delete('/action-plans/{id}', [ActionPlanController::class, 'destroy'])->name('action-plans.destroy');
-// In your routes file, add this line:
 Route::get('/action-plans/{actionPlan}/download', [ActionPlanController::class, 'download'])->name('action-plans.download');
 
-
-//routes for storage setup and file listing
+// Storage setup utilities (public for debugging)
 Route::get('/setup-storage', function () {
     echo "<h1>Setting up storage directories</h1>";
     
@@ -49,6 +53,7 @@ Route::get('/setup-storage', function () {
         echo "✓ Symbolic link already exists";
     }
 });
+
 Route::get('/list-files-in-storage', function () {
     $directories = [
         'action-plans',
@@ -88,7 +93,7 @@ Route::get('/list-files-in-storage', function () {
     }
 });
 
-//users routes
+// Users Routes (PUBLIC - Keep as is)
 Route::prefix('users')->name('users.')->group(function () {
     Route::get('/', [UserController::class, 'index'])->name('index');
     Route::post('/', [UserController::class, 'store'])->name('store');
@@ -98,110 +103,127 @@ Route::prefix('users')->name('users.')->group(function () {
     Route::post('/import', [UserController::class, 'import'])->name('import');
     Route::get('/import/template', [UserController::class, 'downloadTemplate'])->name('import.template');
     Route::get('/export', [UserController::class, 'exportExcel'])->name('export.excel');
-     // Bulk delete route - ADD THIS
     Route::post('/bulk-delete', [UserController::class, 'bulkDestroy'])->name('bulk.destroy');
     
-    // Add these missing routes:
     Route::get('/{user_id}/edit', [UserController::class, 'edit'])->name('edit');
     Route::put('/{user_id}', [UserController::class, 'update'])->name('update');
     Route::delete('/{user_id}', [UserController::class, 'destroy'])->name('destroy');
 });
 
-// Root
-Route::get('/', function () {
-    return view('welcome');
-});
-
-use App\Http\Controllers\ActivityController;
-
+// Activities Routes (PUBLIC - Keep as is)
 Route::prefix('activities')->name('activities.')->group(function () {
+    Route::get('/', [ActivityController::class, 'index'])->name('index');
+    Route::get('/create', [ActivityController::class, 'create'])->name('create');
+    Route::post('/', [ActivityController::class, 'store'])->name('store');
+    Route::delete('/bulk-destroy', [ActivityController::class, 'bulkDestroy'])->name('bulk.destroy');
 
-    /*
-    |--------------------------------------------------------------
-    | Collection Routes
-    |--------------------------------------------------------------
-    */
-    Route::get('/', [ActivityController::class, 'index'])
-        ->name('index');
+    // Helper / AJAX Routes
+    Route::get('/get-rp-activities', [ActivityController::class, 'getRPActivities'])->name('get-rp-activities');
+    Route::get('/rp-actions', [ActivityController::class, 'getRPActionsWithActivities'])->name('get-rp-actions-with-activities');
+    Route::get('/get-projects-by-program', [ActivityController::class, 'getProjectsByProgram'])->name('get-projects-by-program');
+    Route::get('/get-action-plans', [ActivityController::class, 'getActionPlans'])->name('get-action-plans');
+    Route::get('/get-components-by-action-plan', [ActivityController::class, 'getComponentsByActionPlan'])->name('get-components-by-action-plan');
+    Route::get('/get-rp-components', [ActivityController::class, 'getRPComponents'])->name('get-rp-components');
 
-    Route::get('/create', [ActivityController::class, 'create'])
-        ->name('create');
-
-    Route::post('/', [ActivityController::class, 'store'])
-        ->name('store');
-
-    Route::delete('/bulk-destroy', [ActivityController::class, 'bulkDestroy'])
-        ->name('bulk.destroy');
-
-    /*
-    |--------------------------------------------------------------
-    | Helper / AJAX Routes
-    |--------------------------------------------------------------
-    */
-    Route::get('/get-rp-activities', [ActivityController::class, 'getRPActivities'])
-        ->name('get-rp-activities');
-
-    Route::get('/rp-actions', [ActivityController::class, 'getRPActionsWithActivities'])
-        ->name('get-rp-actions-with-activities');
-
-    Route::get('/get-projects-by-program', [ActivityController::class, 'getProjectsByProgram'])
-        ->name('get-projects-by-program');
-
-    // ============================================
-    // ADD THESE 3 ACTION PLAN ROUTES HERE
-    // ============================================
-    Route::get('/get-action-plans', [ActivityController::class, 'getActionPlans'])
-        ->name('get-action-plans');
-        
-    Route::get('/get-components-by-action-plan', [ActivityController::class, 'getComponentsByActionPlan'])
-        ->name('get-components-by-action-plan');
-        
-    Route::get('/get-rp-components', [ActivityController::class, 'getRPComponents'])
-        ->name('get-rp-components');
-    // ============================================
-
-    /*
-    |--------------------------------------------------------------
-    | Child Activities (Nested under Parent Activity)
-    |--------------------------------------------------------------
-    */
+    // Child Activities
     Route::prefix('{parentActivity}/children')->name('children.')->group(function () {
-
-        Route::get('/', [ActivityController::class, 'indexChildren'])
-            ->name('index');
-
-        Route::get('/create', [ActivityController::class, 'createChild'])
-            ->name('create');
-
-        Route::post('/', [ActivityController::class, 'storeChild'])
-            ->name('store');
+        Route::get('/', [ActivityController::class, 'indexChildren'])->name('index');
+        Route::get('/create', [ActivityController::class, 'createChild'])->name('create');
+        Route::post('/', [ActivityController::class, 'storeChild'])->name('store');
     });
 
-    /*
-    |--------------------------------------------------------------
-    | Single Activity Routes (MUST BE LAST)
-    |--------------------------------------------------------------
-    */
-    Route::get('/{activity}', [ActivityController::class, 'edit'])
-        ->name('edit');
-
-    Route::put('/{activity}', [ActivityController::class, 'update'])
-        ->name('update');
-
-    Route::delete('/{activity}', [ActivityController::class, 'destroy'])
-        ->name('destroy');
+    // Single Activity Routes
+    Route::get('/{activity}', [ActivityController::class, 'edit'])->name('edit');
+    Route::put('/{activity}', [ActivityController::class, 'update'])->name('update');
+    Route::delete('/{activity}', [ActivityController::class, 'destroy'])->name('destroy');
 });
 
-// =======================
+// Reporting Routes (PUBLIC - Keep as is)
 Route::prefix('reporting')->name('reporting.')->group(function () {
-
-    // -----------------------
-    // Import Routes
-    // -----------------------
     Route::get('/import', [ReportingImportController::class, 'index'])->name('import.import');
     Route::post('/import', [ReportingImportController::class, 'import'])->name('import.process');
-    
     Route::post('/import/preview', [ReportingImportController::class, 'preview'])->name('import.preview');
     Route::get('/import/template', [ReportingImportController::class, 'downloadTemplate'])->name('import.download-template');
     Route::post('/reporting/import/process', [ReportingImportController::class, 'process'])->name('reporting.import.process');
+});
+
+// =============== AUTHENTICATION ROUTES ===============
+Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [LoginController::class, 'login']);
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+
+// =============== PROTECTED ROUTES (Authentication Required) ===============
+Route::middleware(['auth:employee'])->group(function () {
+    
+    // Dashboard (accessible to all authenticated employees)
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    
+    // =============== PROTECTED VERSIONS OF EXISTING ROUTES ===============
+    // You can add protected versions here if needed, for example:
+    
+    // Protected Activities Module (with module access)
+    Route::middleware(['module.access:activities,view'])
+         ->prefix('protected/activities')
+         ->name('protected.activities.')
+         ->group(function () {
+             
+             Route::get('/', [ActivityController::class, 'index'])->name('index');
+             
+             Route::middleware(['module.access:activities,create'])->group(function () {
+                 Route::get('/create', [ActivityController::class, 'create'])->name('create');
+                 Route::post('/', [ActivityController::class, 'store'])->name('store');
+             });
+             
+             Route::prefix('{activity}')->group(function () {
+                 Route::get('/', [ActivityController::class, 'show'])
+                      ->middleware(['resource.access:view'])
+                      ->name('show');
+                 
+                 Route::middleware(['resource.access:edit'])->group(function () {
+                     Route::get('/edit', [ActivityController::class, 'edit'])->name('edit');
+                     Route::put('/', [ActivityController::class, 'update'])->name('update');
+                 });
+                 
+                 Route::delete('/', [ActivityController::class, 'destroy'])
+                      ->middleware(['resource.access:delete', 'permission:delete-activities'])
+                      ->name('destroy');
+             });
+         });
+    
+    // Protected Users Module (with module access)
+    Route::middleware(['module.access:users,view'])
+         ->prefix('protected/users')
+         ->name('protected.users.')
+         ->group(function () {
+             
+             Route::get('/', [UserController::class, 'index'])->name('index');
+             
+             Route::middleware(['module.access:users,create', 'permission:create-users'])->group(function () {
+                 Route::get('/create', [UserController::class, 'create'])->name('create');
+                 Route::post('/', [UserController::class, 'store'])->name('store');
+             });
+             
+             Route::prefix('{user}')->group(function () {
+                 Route::get('/', [UserController::class, 'show'])
+                      ->middleware(['resource.access:view'])
+                      ->name('show');
+                 
+                 Route::middleware(['resource.access:edit', 'permission:edit-users'])->group(function () {
+                     Route::get('/edit', [UserController::class, 'edit'])->name('edit');
+                     Route::put('/', [UserController::class, 'update'])->name('update');
+                 });
+             });
+         });
+    
+    // Protected Reporting Module (with module access)
+    Route::middleware(['module.access:reports,view'])
+         ->prefix('protected/reporting')
+         ->name('protected.reporting.')
+         ->group(function () {
+             
+             Route::get('/import', [ReportingImportController::class, 'index'])->name('import.import');
+             Route::post('/import', [ReportingImportController::class, 'import'])->name('import.process');
+             
+             // Add other reporting routes as needed
+         });
 });
