@@ -99,28 +99,16 @@ class Employee extends Authenticatable
         return $this->belongsTo(Role::class, 'role_id', 'role_id');
     }
 
-    public function employeePermissions()
-    {
-        return $this->belongsToMany(Permission::class, 'employee_permissions', 'employee_id', 'permission_id')
-                    ->withPivot('is_granted')
-                    ->withTimestamps();
-    }
+    
 
     public function moduleAccess()
     {
         return $this->hasMany(ModuleAccess::class, 'employee_id', 'employee_id');
     }
 
-    public function programAccess()
-    {
-        return $this->hasMany(EmployeeProgramAccess::class, 'employee_id', 'employee_id');
-    }
+   
 
-    public function projectAccess()
-    {
-        return $this->hasMany(EmployeeProjectAccess::class, 'employee_id', 'employee_id');
-    }
-
+   
     // =============== PERMISSION METHODS ===============
 
     public function hasPermission($permissionName)

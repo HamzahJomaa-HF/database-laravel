@@ -162,7 +162,7 @@ Route::middleware(['auth:employee'])->group(function () {
     // You can add protected versions here if needed, for example:
     
     // Protected Activities Module (with module access)
-    Route::middleware(['module.access:activities,view'])
+   Route::middleware([\App\Http\Middleware\CheckModuleAccess::class . ':activities,view'])
          ->prefix('protected/activities')
          ->name('protected.activities.')
          ->group(function () {

@@ -8,19 +8,7 @@ use Illuminate\Support\Facades\Auth;
 
 class CheckModuleAccess
 {
-    // Map URL prefixes to modules
-    private $moduleMap = [
-        'activities' => 'activities',
-        'users' => 'users',
-        'projects' => 'projects',
-        'programs' => 'programs',
-        'action-plans' => 'action_plans',
-        'surveys' => 'surveys',
-        'reports' => 'reports',
-        'admin' => 'all', // Admin requires 'all' module access
-    ];
-    
-    public function handle(Request $request, Closure $next, $requiredLevel = 'view')
+    public function handle(Request $request, Closure $next, $module = null, $requiredLevel = 'view')
     {
         $employee = Auth::guard('employee')->user();
         
@@ -28,16 +16,18 @@ class CheckModuleAccess
             abort(401, 'Authentication required.');
         }
         
-        // Determine module from URL
-        $module = $this->getModuleFromRequest($request);
-        
-        // Check if module exists in our map
-        if (!array_key_exists($module, $this->moduleMap)) {
-            // Allow access if not a protected module
-            return $next($request);
+        // If module parameter is provided, use it
+        if ($module) {
+            $moduleName = $this->normalizeModuleName($module);
+        } else {
+            // Otherwise, determine module from URL
+            $moduleName = $this->getModuleFromRequest($request);
         }
         
-        $moduleName = $this->moduleMap[$module];
+        // Allow access if no module specified
+        if (!$moduleName) {
+            return $next($request);
+        }
         
         // Check module access
         if (!$employee->hasModuleAccess($moduleName, $requiredLevel)) {
@@ -66,7 +56,25 @@ class CheckModuleAccess
         $segments = explode('/', $path);
         
         // First segment after domain is usually the module
-        // e.g., /activities/edit/123 → 'activities'
-        return $segments[0] ?? '';
+        $rawModule = $segments[0] ?? '';
+        
+        return $this->normalizeModuleName($rawModule);
+    }
+    
+    private function normalizeModuleName($rawModule)
+    {
+        $moduleMap = [
+            'activities' => 'activities',
+            'users' => 'users',
+            'projects' => 'projects',
+            'programs' => 'programs',
+            'action-plans' => 'action_plans',
+            'surveys' => 'surveys',
+            'reports' => 'reports',
+            'admin' => 'all',
+            'action_plans' => 'action_plans', // handle both with and without dash
+        ];
+        
+        return $moduleMap[$rawModule] ?? $rawModule;
     }
 }
