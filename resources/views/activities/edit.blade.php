@@ -148,7 +148,7 @@
 ];
                                             @endphp
                                             @foreach($activityTypes as $key => $label)
-                                                <option value="{{ $key }}" {{ old('activity_type', $activity->activity_type) == $key ? 'selected' : '' }}>
+                                                <option value="{{ $label }}" {{ old('activity_type', $activity->activity_type) == $label ? 'selected' : '' }}>
                                                     {{ $label }}
                                                 </option>
                                             @endforeach
@@ -278,10 +278,9 @@
                     <div class="invalid-feedback d-block">{{ $message }}</div>
                 @enderror
             </div>
-
             {{-- Row 2 - Venue --}}
             <div class="col-md-12">
-                <label for="venue_select" class="form-label fw-semibold">Venue</label>
+                <label for="venue_select" class="form-label fw-semibold">Venue</label> test {{  $activity->venue }}
                 <select name="venue_select" id="venue_select" 
                        class="form-control form-select @error('venue') is-invalid @enderror">
                     <option value="">Select Venue</option>

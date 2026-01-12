@@ -103,12 +103,13 @@ class ActivityController extends Controller
                 'activity_title_ar' => 'required_without:activity_title_en|string|max:255',
                 'folder_name' => 'nullable|string|max:255',
                 'activity_type' => 'required|string|max:255',
-                'content_network' => 'nullable|string|max:255',
                 'start_date' => 'required|date',
                 'end_date' => 'required|date|after_or_equal:start_date',
                 'parent_activity' => 'nullable|uuid|exists:activities,activity_id',
                 'target_cop' => 'nullable|uuid|exists:users,user_id',
-
+                            'maximum_capacity' => 'nullable|integer|min:0',
+                        'venue' => 'nullable|string|max:255',
+            'content_network' => 'nullable|string',
                 // JSON operational support (4 checkboxes)
                 'operational_support' => 'nullable|array',
             ]);

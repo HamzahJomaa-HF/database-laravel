@@ -277,6 +277,7 @@ class ActivityController extends Controller
             'focal_points' => 'nullable|array',
             'operational_support' => 'nullable|array',
             'maximum_capacity' => 'nullable|integer|min:0',
+            
         ]);
         
         // Extract the specific arrays from the request
