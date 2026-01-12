@@ -157,6 +157,25 @@
                                             <div class="invalid-feedback d-block">{{ $message }}</div>
                                         @enderror
                                     </div>
+                                    <div class="col-md-6">
+                                        <label for="maximum_capacity" class="form-label fw-semibold">
+                                            Maximum Capacity
+                                        </label>
+
+                                        <input
+                                            type="number"
+                                            name="maximum_capacity"
+                                            id="maximum_capacity"
+                                            class="form-control @error('maximum_capacity') is-invalid @enderror"
+                                            value="{{ old('maximum_capacity', $activity->maximum_capacity) }}"
+                                            placeholder="Enter maximum capacity"
+                                            min="0"
+                                        >
+
+                                        @error('maximum_capacity')
+                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -378,8 +397,7 @@
                         name="action_plan_id">
                     <option value="">Select an Action Plan</option>
                     @foreach($actionPlans as $actionPlan)
-                        <option value="{{ $actionPlan->action_plan_id }}" 
-                                {{ $selectedActionPlanIdSingle == $actionPlan->action_plan_id ? 'selected' : '' }}>
+                        <option value="{{ $actionPlan->action_plan_id }}" {{ $actionPlan->action_plan_id == $selected_action_plan_id ? 'selected' : '' }}>
                             {{ $actionPlan->title }}
                             @if($actionPlan->start_date && $actionPlan->end_date)
                                 ({{ \Carbon\Carbon::parse($actionPlan->start_date)->format('Y') }} - {{ \Carbon\Carbon::parse($actionPlan->end_date)->format('Y') }})
@@ -417,12 +435,7 @@
                         class="form-control form-select @error('rp_component_id') is-invalid @enderror"
                         name="rp_component_id">
                     <option value="">Select a Reporting Component</option>
-                    @foreach($rpComponents as $component)
-                        <option value="{{ $component->rp_components_id }}" 
-                                {{ $selectedComponentIdSingle == $component->rp_components_id ? 'selected' : '' }}>
-                            {{ $component->code }} - {{ $component->name }}
-                        </option>
-                    @endforeach
+                    
                 </select>
                 @error('rp_component_id')
                     <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -635,7 +648,10 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
 <script>
+
     document.addEventListener('DOMContentLoaded', function() {
+        const selectedComponentId = @json($selected_component_id);
+        const selected_rp_activity_ids = @json($selected_rp_activity_ids);
         // ============================================
         // PROGRAM AND PROJECTS HANDLING
         // ============================================
@@ -836,17 +852,14 @@
         });
 
         // Store selected component ID
-        const selectedComponentId = '{{ $selectedComponentIdSingle ?? "" }}';
         
-        // Store selected activity IDs globally
-        const selectedRpActivityIds = {!! json_encode($selectedRpActivityIds ?? []) !!};
 
         // Function to load components based on selected action plan
         function loadComponentsByActionPlan(actionPlanId) {
             const componentsSelect = $('#rp_component_id');
             const activitiesSelect = $('#rp_activities_select');
             
-            if (!actionPlanId) {
+            if (actionPlanId) {
                 // If no action plan selected, show all components
                 componentsSelect.empty();
                 componentsSelect.append('<option value="">Loading all components...</option>');
@@ -857,13 +870,12 @@
                 
                 // Load all components
                 $.ajax({
-                    url: '{{ route("activities.get-rp-components") }}',
+                    url: '{{ route("activities.get-rp-components") }}?action_plan_id=' + encodeURIComponent(actionPlanId),
                     method: 'GET',
                     dataType: 'json',
                     success: function(response) {
                         componentsSelect.empty();
                         componentsSelect.prop('disabled', false);
-                        
                         if (response.success && response.data && response.data.length > 0) {
                             componentsSelect.append('<option value="">Select a Reporting Component</option>');
                             
@@ -871,12 +883,9 @@
                                 const option = $('<option>')
                                     .val(component.rp_components_id)
                                     .text(component.code + ' - ' + component.name);
-                                
-                                // Select if it was previously selected
-                                if (component.rp_components_id === selectedComponentId) {
-                                    option.prop('selected', true);
-                                }
-                                
+                                  if (selectedComponentId == component.rp_components_id.toString()) {
+                                        option.prop('selected', true);
+                                    }
                                 componentsSelect.append(option);
                             });
                             
@@ -911,82 +920,12 @@
             componentsSelect.append('<option value="">Loading components...</option>');
             componentsSelect.trigger('change');
             componentsSelect.prop('disabled', true);
-            
-            // Load components via AJAX
-            $.ajax({
-                url: '{{ route("activities.get-components-by-action-plan") }}',
-                method: 'GET',
-                data: {
-                    action_plan_id: actionPlanId
-                },
-                dataType: 'json',
-                success: function(response) {
-                    componentsSelect.empty();
-                    componentsSelect.prop('disabled', false);
-                    
-                    if (response.success && response.components && response.components.length > 0) {
-                        componentsSelect.append('<option value="">Select a Reporting Component</option>');
-                        
-                        response.components.forEach(component => {
-                            const option = $('<option>')
-                                .val(component.rp_components_id)
-                                .text(component.code + ' - ' + component.name);
-                            
-                            // Select if it was previously selected
-                            if (component.rp_components_id === selectedComponentId) {
-                                option.prop('selected', true);
-                            }
-                            
-                            componentsSelect.append(option);
-                        });
-                        
-                        componentsSelect.select2({
-                            placeholder: 'Select a reporting component...',
-                            allowClear: true,
-                            width: '100%',
-                            minimumResultsForSearch: 10
-                        });
-                        
-                        // If we have a selected component, load its activities
-                        if (selectedComponentId) {
-                            loadRPActivitiesByComponent(selectedComponentId);
-                        }
-                    } else {
-                        componentsSelect.append('<option value="">No components found for this action plan</option>');
-                    }
-                    
-                    // Clear activities
-                    activitiesSelect.empty();
-                    activitiesSelect.append('<option value="" disabled>Select a reporting component first</option>');
-                    activitiesSelect.trigger('change');
-                },
-                error: function(xhr, status, error) {
-                    console.error('Error loading components:', error);
-                    componentsSelect.empty();
-                    componentsSelect.append('<option value="">Error loading components</option>');
-                    componentsSelect.prop('disabled', false);
-                }
-            });
+           
         }
 
         // Function to load RP Activities based on component
         function loadRPActivitiesByComponent(componentId) {
             const activitiesSelect = $('#rp_activities_select');
-            
-            if (!componentId) {
-                activitiesSelect.empty();
-                activitiesSelect.append('<option value="" disabled>Select a reporting component first</option>');
-                activitiesSelect.trigger('change');
-                
-                activitiesSelect.select2({
-                    placeholder: 'Select a reporting component first',
-                    allowClear: true,
-                    width: '100%',
-                    closeOnSelect: false,
-                    multiple: true
-                });
-                return;
-            }
             
             // Clear and show loading
             activitiesSelect.empty();
@@ -1025,7 +964,9 @@
                                         const option = $('<option>')
                                             .val(activity.rp_activities_id)
                                             .text(activityText);
-                                        
+                                        if (selected_rp_activity_ids.includes(activity.rp_activities_id)) {
+                                            option.prop('selected', true);
+                                        }
                                         optgroup.append(option);
                                     });
                                     
@@ -1041,11 +982,6 @@
                                 multiple: true
                             });
                             
-                            // Select previously chosen activities
-                            if (selectedRpActivityIds && selectedRpActivityIds.length > 0) {
-                                const stringIds = selectedRpActivityIds.map(id => String(id));
-                                activitiesSelect.val(stringIds).trigger('change');
-                            }
                         }
                     } else {
                         activitiesSelect.append('<option value="">No activities found for this component</option>');
@@ -1083,7 +1019,15 @@
         // Event listener for component change
         $('#rp_component_id').on('change', function() {
             const componentId = $(this).val();
-            loadRPActivitiesByComponent(componentId);
+            if (componentId) {
+                loadRPActivitiesByComponent(componentId);
+            } else {
+                // Clear activities if no component selected
+                const activitiesSelect = $('#rp_activities_select');
+                activitiesSelect.empty();
+                activitiesSelect.append('<option value="" disabled>Select a reporting component first</option>');
+                activitiesSelect.trigger('change');
+            }
         });
 
         // Load components on page load if action plan is selected
@@ -1092,14 +1036,11 @@
             if (initialActionPlanId) {
                 loadComponentsByActionPlan(initialActionPlanId);
             }
+
+            if (selectedComponentId) {
+                loadRPActivitiesByComponent(selectedComponentId);
+            }   
             
-            // Load activities on page load if component is already selected
-            const initialComponentId = $('#rp_component_id').val();
-            if (initialComponentId && selectedRpActivityIds.length > 0) {
-                setTimeout(() => {
-                    loadRPActivitiesByComponent(initialComponentId);
-                }, 1000);
-            }
         });
 
         // ============================================

@@ -77,6 +77,7 @@ class ActivityController extends Controller
      *             @OA\Property(property="end_date", type="string", format="date", example="2025-10-22"),
      *             @OA\Property(property="parent_activity", type="string", format="uuid", example="a1b2c3d4-5678-90ab-cdef-1234567890ab"),
      *             @OA\Property(property="target_cop", type="string", format="uuid", example="b2c3d4e5-6789-0abc-def1-234567890bcd"),
+     *             @OA\Property(property="maximum_capacity", type="number", example="34"),
      *             @OA\Property(
      *                 property="operational_support",
      *                 type="object",

@@ -254,19 +254,19 @@
 
                 <div class="ms-auto d-flex align-items-center">
                     <ul class="navbar-nav flex-row align-items-center">
-                        <li class="nav-item me-3 position-relative">
+                        <!-- <li class="nav-item me-3 position-relative">
                             <a class="nav-link text-muted position-relative" href="#">
                                 <i class="bi bi-bell fs-5"></i>
                                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
                                     3
                                 </span>
                             </a>
-                        </li>
-                        <li class="nav-item me-3">
+                        </li> -->
+                        <!-- <li class="nav-item me-3">
                             <a class="nav-link text-muted" href="#">
                                 <i class="bi bi-gear fs-5"></i>
                             </a>
-                        </li>
+                        </li> -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
                                 <div class="me-2 text-end d-none d-md-block">
