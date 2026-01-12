@@ -56,7 +56,7 @@ class Kernel extends HttpKernel
     'auth.employee' => \App\Http\Middleware\AuthenticateEmployee::class,
     'module.access' => \App\Http\Middleware\CheckModuleAccess::class,
     'resource.access' => \App\Http\Middleware\CheckResourceAccess::class,
-    'permission' => \App\Http\Middleware\CheckPermission::class,
+    
     'role' => \App\Http\Middleware\CheckRole::class,
    
    

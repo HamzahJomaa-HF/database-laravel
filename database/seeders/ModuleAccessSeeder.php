@@ -17,7 +17,6 @@ class ModuleAccessSeeder extends Seeder
         $programManager = Employee::where('email', 'programs@hariri.org')->first();
         $projectCoordinator = Employee::where('email', 'projects@hariri.org')->first();
         $fieldOfficer = Employee::where('email', 'field@hariri.org')->first();
-        $viewer = Employee::where('email', 'viewer@hariri.org')->first();
         
         // Clear existing module access
         ModuleAccess::truncate();
@@ -96,22 +95,7 @@ class ModuleAccessSeeder extends Seeder
             ]);
         }
         
-        // 6. Viewer: View access only
-        $viewerModules = [
-            ['module' => 'activities', 'access_level' => 'view'],
-            ['module' => 'projects', 'access_level' => 'view'],
-            ['module' => 'programs', 'access_level' => 'view'],
-            ['module' => 'reports', 'access_level' => 'view'],
-        ];
         
-        foreach ($viewerModules as $module) {
-            ModuleAccess::create([
-                'access_id' => Str::uuid(),
-                'employee_id' => $viewer->employee_id,
-                'module' => $module['module'],
-                'access_level' => $module['access_level'],
-            ]);
-        }
         
         $this->command->info('✓ Module access seeded successfully!');
     }

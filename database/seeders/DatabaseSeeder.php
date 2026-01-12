@@ -32,8 +32,6 @@ class DatabaseSeeder extends Seeder
         
         $this->call([
             RoleSeeder::class,           // 1. Create roles
-            PermissionSeeder::class,     // 2. Create permissions
-            RolePermissionSeeder::class, // 3. Assign permissions to roles
             ProgramSeeder::class,        // 4. Programs (parent)
             ProjectSeeder::class,        // 5. Projects (depends on programs)
             EmployeeSeeder::class,       // 6. Employees (needs roles)
@@ -95,7 +93,6 @@ class DatabaseSeeder extends Seeder
         // Display counts
         $this->command->info("📋 Summary of seeded data:");
         $this->command->info("   ✅ Roles: " . \App\Models\Role::count() . " entries");
-        $this->command->info("   ✅ Permissions: " . \App\Models\Permission::count() . " entries");
         $this->command->info("   ✅ Employees: " . \App\Models\Employee::count() . " entries");
         $this->command->info("   ✅ Module Access: " . \App\Models\ModuleAccess::count() . " entries");
         $this->command->info("   ✅ Diplomas: " . \App\Models\Diploma::count() . " entries");
@@ -112,7 +109,6 @@ class DatabaseSeeder extends Seeder
         $this->command->info("   👨‍💼 Program Manager: programs@hariri.org / password123");
         $this->command->info("   👩‍🔧 Project Coordinator: projects@hariri.org / password123");
         $this->command->info("   👨‍🌾 Field Officer: field@hariri.org / password123");
-        $this->command->info("   👁️  Viewer: viewer@hariri.org / password123");
         
         $this->command->info("\n" . str_repeat("=", 50));
         $this->command->info("✨ Ready to test your application!");

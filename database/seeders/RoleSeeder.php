@@ -14,12 +14,12 @@ class RoleSeeder extends Seeder
             [
                 'role_id' => Str::uuid(),
                 'role_name' => 'Super Admin',
-                'description' => 'Full system administrator with all permissions',
+                'description' => 'Full system administrator',
             ],
             [
                 'role_id' => Str::uuid(),
                 'role_name' => 'HR Manager',
-                'description' => 'Manages employees, users, and permissions',
+                'description' => 'Manages employees, users',
             ],
             [
                 'role_id' => Str::uuid(),
@@ -36,11 +36,7 @@ class RoleSeeder extends Seeder
                 'role_name' => 'Field Officer',
                 'description' => 'Field operations and data collection',
             ],
-            [
-                'role_id' => Str::uuid(),
-                'role_name' => 'Viewer',
-                'description' => 'Read-only access to view data',
-            ],
+           
         ];
 
         foreach ($roles as $role) {

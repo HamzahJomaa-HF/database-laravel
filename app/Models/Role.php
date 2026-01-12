@@ -21,16 +21,7 @@ class Role extends Model
         'deleted_at' => 'datetime',
     ];
     
-    public function permissions()
-    {
-        return $this->belongsToMany(Permission::class, 'role_permissions', 'role_id', 'permission_id')
-                    ->withTimestamps();
-    }
     
-    public function hasPermission($permissionName)
-    {
-        return $this->permissions()->where('name', $permissionName)->exists();
-    }
     
     public function employees()
     {

@@ -18,7 +18,6 @@ class EmployeeSeeder extends Seeder
         $programManagerRole = Role::where('role_name', 'Program Manager')->first();
         $projectCoordinatorRole = Role::where('role_name', 'Project Coordinator')->first();
         $fieldOfficerRole = Role::where('role_name', 'Field Officer')->first();
-        $viewerRole = Role::where('role_name', 'Viewer')->first();
         
         // Default password for all seeded users
         $defaultPassword = 'password123';
@@ -100,21 +99,7 @@ class EmployeeSeeder extends Seeder
                 'email_verified_at' => now(),
             ],
             
-            // Viewer (Read-only)
-            [
-                'employee_id' => Str::uuid(),
-                'first_name' => 'Nour',
-                'last_name' => 'Salem',
-                'email' => 'viewer@hariri.org',
-                'password' => Hash::make($defaultPassword),
-                'phone_number' => '+96170000006',
-                'employee_type' => 'intern',
-                'start_date' => now()->subMonth(),
-                'end_date' => now()->addMonths(6),
-                'role_id' => $viewerRole->role_id,
-                'is_active' => true,
-                'email_verified_at' => now(),
-            ],
+           
         ];
         
         foreach ($employees as $employee) {

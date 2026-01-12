@@ -99,61 +99,21 @@ class Employee extends Authenticatable
         return $this->belongsTo(Role::class, 'role_id', 'role_id');
     }
 
-    
-
     public function moduleAccess()
     {
         return $this->hasMany(ModuleAccess::class, 'employee_id', 'employee_id');
-    }
-
-   
-
-   
-    // =============== PERMISSION METHODS ===============
-
-    public function hasPermission($permissionName)
-    {
-        // Check employee-specific permissions first
-        $employeePermission = $this->employeePermissions()
-            ->where('name', $permissionName)
-            ->first();
-        
-        if ($employeePermission) {
-            return (bool) $employeePermission->pivot->is_granted;
-        }
-        
-        // Check role permissions
-        if ($this->role && $this->role->hasPermission($permissionName)) {
-            return true;
-        }
-        
-        return false;
-    }
-
-    public function hasAnyPermission(array $permissions)
-    {
-        foreach ($permissions as $permission) {
-            if ($this->hasPermission($permission)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public function hasAllPermissions(array $permissions)
-    {
-        foreach ($permissions as $permission) {
-            if (!$this->hasPermission($permission)) {
-                return false;
-            }
-        }
-        return true;
     }
 
     // =============== MODULE ACCESS METHODS ===============
 
     public function hasAccess($module, $requiredLevel = 'view', $resourceId = null, $resourceType = null)
     {
+        // Validate the access level
+        $validLevels = ['view', 'create', 'edit', 'delete', 'manage', 'full'];
+        if (!in_array($requiredLevel, $validLevels)) {
+            return false;
+        }
+        
         // Check if employee has "all" module with full access
         $allAccess = $this->moduleAccess()
             ->where('module', 'all')
@@ -180,7 +140,13 @@ class Employee extends Authenticatable
             return false;
         }
         
-        return $access->hasLevel($requiredLevel);
+        // IMPORTANT: ModuleAccess model must have hasLevel() method
+        // If not, you can implement the logic here:
+        $levelHierarchy = ['view' => 1, 'create' => 2, 'edit' => 3, 'delete' => 4, 'manage' => 5, 'full' => 6];
+        $userLevel = $levelHierarchy[$access->access_level] ?? 0;
+        $requiredLevelValue = $levelHierarchy[$requiredLevel] ?? 0;
+        
+        return $userLevel >= $requiredLevelValue;
     }
 
     // Convenience methods for specific modules
@@ -258,27 +224,18 @@ class Employee extends Authenticatable
             ->filter();
     }
 
-    // Combined check (Permission + Module Access)
-    public function canPerform($module, $action, $resourceId = null, $resourceType = null)
+    public function scopeWithModuleAccess($query, $module, $level = 'view')
     {
-        // Map action to access level
-        $accessLevelMap = [
-            'view' => 'view',
-            'create' => 'create',
-            'edit' => 'edit',
-            'delete' => 'delete',
-            'manage' => 'manage',
-        ];
+        $levels = ['view', 'create', 'edit', 'delete', 'manage', 'full'];
+        $requiredIndex = array_search($level, $levels);
         
-        $requiredAccessLevel = $accessLevelMap[$action] ?? 'view';
-        
-        // First check module access
-        if (!$this->hasAccess($module, $requiredAccessLevel, $resourceId, $resourceType)) {
-            return false;
-        }
-        
-        // Optionally check specific permission
-        $permissionName = "{$action}-{$module}";
-        return $this->hasPermission($permissionName);
+        return $query->whereHas('moduleAccess', function($q) use ($module, $levels, $requiredIndex) {
+            $q->where('module', $module);
+            
+            if ($requiredIndex !== false) {
+                $applicableLevels = array_slice($levels, $requiredIndex);
+                $q->whereIn('access_level', $applicableLevels);
+            }
+        });
     }
 }
