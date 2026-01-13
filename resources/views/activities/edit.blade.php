@@ -801,171 +801,217 @@
         // ============================================
         // ACTION PLAN, COMPONENTS, AND ACTIVITIES HANDLING
         // ============================================
-        // Initialize Action Plan Select2
-        $('#action_plan_id').select2({
-            placeholder: 'Select an action plan...',
-            allowClear: true,
-            width: '100%',
-            minimumResultsForSearch: 10
-        });
-
-        // Initialize RP Components Select2
-        $('#rp_component_id').select2({
-            placeholder: 'Select a reporting component...',
-            allowClear: true,
-            width: '100%',
-            minimumResultsForSearch: 10
-        });
-
-        // Initialize RP Activities Select2
-        $('#rp_activities_select').select2({
-            placeholder: 'Select reporting activities...',
-            allowClear: true,
-            width: '100%',
-            closeOnSelect: false,
-            multiple: true
-        });
-        
-        // Initialize the custom multiple select for focal points
-        $('#focal_points_select').select2({
-            placeholder: 'Select focal points...',
-            allowClear: true,
-            width: '100%',
-            closeOnSelect: false,
-            multiple: true
-        });
-
         // Store selected component ID
         const selectedComponentId = '{{ $selectedComponentIdSingle ?? "" }}';
         
         // Store selected activity IDs globally
         const selectedRpActivityIds = {!! json_encode($selectedRpActivityIds ?? []) !!};
+        
+        // Initialize all selects and load pre-selected data
+        $(document).ready(function() {
+            // Initialize Action Plan Select2
+            const actionPlanSelect = $('#action_plan_id');
+            const selectedActionPlan = actionPlanSelect.val();
+            actionPlanSelect.select2({
+                placeholder: 'Select an action plan...',
+                allowClear: true,
+                width: '100%',
+                minimumResultsForSearch: 10
+            });
+            // Ensure selected value is preserved
+            if (selectedActionPlan) {
+                actionPlanSelect.val(selectedActionPlan).trigger('change');
+            }
+
+            // Initialize RP Components Select2 (options already in HTML from controller)
+            const componentSelect = $('#rp_component_id');
+            if (componentSelect.find('option').length > 1) {
+                const selectedComponent = componentSelect.val();
+                componentSelect.select2({
+                    placeholder: 'Select a reporting component...',
+                    allowClear: true,
+                    width: '100%',
+                    minimumResultsForSearch: 10
+                });
+                // Ensure selected value is preserved
+                if (selectedComponent) {
+                    componentSelect.val(selectedComponent).trigger('change');
+                }
+            }
+
+            // Initialize RP Activities Select2
+            $('#rp_activities_select').select2({
+                placeholder: 'Select reporting activities...',
+                allowClear: true,
+                width: '100%',
+                closeOnSelect: false,
+                multiple: true
+            });
+            
+            // Initialize the custom multiple select for focal points
+            $('#focal_points_select').select2({
+                placeholder: 'Select focal points...',
+                allowClear: true,
+                width: '100%',
+                closeOnSelect: false,
+                multiple: true
+            });
+            
+            // Load activities if component is already selected
+            const initialComponentId = componentSelect.val();
+            if (initialComponentId && selectedRpActivityIds.length > 0) {
+                // Wait a bit for Select2 to be fully initialized, then load activities
+                setTimeout(function() {
+                    loadRPActivitiesByComponent(initialComponentId);
+                }, 300);
+            }
+        });
 
         // Function to load components based on selected action plan
         function loadComponentsByActionPlan(actionPlanId) {
             const componentsSelect = $('#rp_component_id');
             const activitiesSelect = $('#rp_activities_select');
             
-            if (!actionPlanId) {
-                // If no action plan selected, show all components
-                componentsSelect.empty();
-                componentsSelect.append('<option value="">Loading all components...</option>');
-                componentsSelect.trigger('change');
+            // Return a promise so we can chain activities loading
+            return new Promise(function(resolve, reject) {
+                if (!actionPlanId) {
+                    // If no action plan selected, show all components
+                    componentsSelect.empty();
+                    componentsSelect.append('<option value="">Loading all components...</option>');
+                    componentsSelect.trigger('change');
+                    
+                    // Disable while loading
+                    componentsSelect.prop('disabled', true);
+                    
+                    // Load all components
+                    $.ajax({
+                        url: '{{ route("activities.get-rp-components") }}',
+                        method: 'GET',
+                        dataType: 'json',
+                        success: function(response) {
+                            componentsSelect.empty();
+                            componentsSelect.prop('disabled', false);
+                            
+                            if (response.success && response.data && response.data.length > 0) {
+                                componentsSelect.append('<option value="">Select a Reporting Component</option>');
+                                
+                                let foundSelected = false;
+                                response.data.forEach(component => {
+                                    const option = $('<option>')
+                                        .val(component.rp_components_id)
+                                        .text(component.code + ' - ' + component.name);
+                                    
+                                    // Select if it was previously selected
+                                    if (selectedComponentId && component.rp_components_id == selectedComponentId) {
+                                        option.prop('selected', true);
+                                        foundSelected = true;
+                                    }
+                                    
+                                    componentsSelect.append(option);
+                                });
+                                
+                                // Reinitialize Select2 to reflect the selection
+                                componentsSelect.select2('destroy').select2({
+                                    placeholder: 'Select a reporting component...',
+                                    allowClear: true,
+                                    width: '100%',
+                                    minimumResultsForSearch: 10
+                                });
+                                
+                                // Ensure the selected value is set in Select2
+                                if (foundSelected && selectedComponentId) {
+                                    componentsSelect.val(selectedComponentId).trigger('change');
+                                }
+                            } else {
+                                componentsSelect.append('<option value="">No components available</option>');
+                            }
+                            
+                            // Clear activities when components are loaded/changed
+                            activitiesSelect.empty();
+                            activitiesSelect.append('<option value="" disabled>Select a reporting component first</option>');
+                            activitiesSelect.trigger('change');
+                            
+                            resolve();
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('Error loading components:', error);
+                            componentsSelect.empty();
+                            componentsSelect.append('<option value="">Error loading components</option>');
+                            componentsSelect.prop('disabled', false);
+                            reject(error);
+                        }
+                    });
+                    
+                    return;
+                }
                 
-                // Disable while loading
+                // Show loading state
+                componentsSelect.empty();
+                componentsSelect.append('<option value="">Loading components...</option>');
+                componentsSelect.trigger('change');
                 componentsSelect.prop('disabled', true);
                 
-                // Load all components
+                // Load components via AJAX
                 $.ajax({
-                    url: '{{ route("activities.get-rp-components") }}',
+                    url: '{{ route("activities.get-components-by-action-plan") }}',
                     method: 'GET',
+                    data: {
+                        action_plan_id: actionPlanId
+                    },
                     dataType: 'json',
                     success: function(response) {
                         componentsSelect.empty();
                         componentsSelect.prop('disabled', false);
                         
-                        if (response.success && response.data && response.data.length > 0) {
+                        if (response.success && response.components && response.components.length > 0) {
                             componentsSelect.append('<option value="">Select a Reporting Component</option>');
                             
-                            response.data.forEach(component => {
+                            let foundSelected = false;
+                            response.components.forEach(component => {
                                 const option = $('<option>')
                                     .val(component.rp_components_id)
                                     .text(component.code + ' - ' + component.name);
                                 
                                 // Select if it was previously selected
-                                if (component.rp_components_id === selectedComponentId) {
+                                if (selectedComponentId && component.rp_components_id == selectedComponentId) {
                                     option.prop('selected', true);
+                                    foundSelected = true;
                                 }
                                 
                                 componentsSelect.append(option);
                             });
                             
-                            componentsSelect.select2({
+                            // Reinitialize Select2 to reflect the selection
+                            componentsSelect.select2('destroy').select2({
                                 placeholder: 'Select a reporting component...',
                                 allowClear: true,
                                 width: '100%',
                                 minimumResultsForSearch: 10
                             });
+                            
+                            // Ensure the selected value is set in Select2
+                            if (foundSelected && selectedComponentId) {
+                                componentsSelect.val(selectedComponentId).trigger('change');
+                            }
                         } else {
-                            componentsSelect.append('<option value="">No components available</option>');
+                            componentsSelect.append('<option value="">No components found for this action plan</option>');
                         }
                         
-                        // Clear activities when components are loaded/changed
+                        // Clear activities
                         activitiesSelect.empty();
                         activitiesSelect.append('<option value="" disabled>Select a reporting component first</option>');
                         activitiesSelect.trigger('change');
+                        
+                        resolve();
                     },
                     error: function(xhr, status, error) {
                         console.error('Error loading components:', error);
                         componentsSelect.empty();
                         componentsSelect.append('<option value="">Error loading components</option>');
                         componentsSelect.prop('disabled', false);
+                        reject(error);
                     }
                 });
-                
-                return;
-            }
-            
-            // Show loading state
-            componentsSelect.empty();
-            componentsSelect.append('<option value="">Loading components...</option>');
-            componentsSelect.trigger('change');
-            componentsSelect.prop('disabled', true);
-            
-            // Load components via AJAX
-            $.ajax({
-                url: '{{ route("activities.get-components-by-action-plan") }}',
-                method: 'GET',
-                data: {
-                    action_plan_id: actionPlanId
-                },
-                dataType: 'json',
-                success: function(response) {
-                    componentsSelect.empty();
-                    componentsSelect.prop('disabled', false);
-                    
-                    if (response.success && response.components && response.components.length > 0) {
-                        componentsSelect.append('<option value="">Select a Reporting Component</option>');
-                        
-                        response.components.forEach(component => {
-                            const option = $('<option>')
-                                .val(component.rp_components_id)
-                                .text(component.code + ' - ' + component.name);
-                            
-                            // Select if it was previously selected
-                            if (component.rp_components_id === selectedComponentId) {
-                                option.prop('selected', true);
-                            }
-                            
-                            componentsSelect.append(option);
-                        });
-                        
-                        componentsSelect.select2({
-                            placeholder: 'Select a reporting component...',
-                            allowClear: true,
-                            width: '100%',
-                            minimumResultsForSearch: 10
-                        });
-                        
-                        // If we have a selected component, load its activities
-                        if (selectedComponentId) {
-                            loadRPActivitiesByComponent(selectedComponentId);
-                        }
-                    } else {
-                        componentsSelect.append('<option value="">No components found for this action plan</option>');
-                    }
-                    
-                    // Clear activities
-                    activitiesSelect.empty();
-                    activitiesSelect.append('<option value="" disabled>Select a reporting component first</option>');
-                    activitiesSelect.trigger('change');
-                },
-                error: function(xhr, status, error) {
-                    console.error('Error loading components:', error);
-                    componentsSelect.empty();
-                    componentsSelect.append('<option value="">Error loading components</option>');
-                    componentsSelect.prop('disabled', false);
-                }
             });
         }
 
@@ -1033,7 +1079,8 @@
                                 }
                             });
                             
-                            activitiesSelect.select2({
+                            // Reinitialize Select2
+                            activitiesSelect.select2('destroy').select2({
                                 placeholder: 'Select reporting activities...',
                                 allowClear: true,
                                 width: '100%',
@@ -1044,7 +1091,13 @@
                             // Select previously chosen activities
                             if (selectedRpActivityIds && selectedRpActivityIds.length > 0) {
                                 const stringIds = selectedRpActivityIds.map(id => String(id));
+                                // Set the values and trigger change
                                 activitiesSelect.val(stringIds).trigger('change');
+                                
+                                // Also ensure Select2 displays the selected items
+                                setTimeout(function() {
+                                    activitiesSelect.val(stringIds).trigger('change');
+                                }, 100);
                             }
                         }
                     } else {
@@ -1086,20 +1139,31 @@
             loadRPActivitiesByComponent(componentId);
         });
 
-        // Load components on page load if action plan is selected
+        // Initialize components Select2 if options exist in HTML
+        if ($('#rp_component_id option').length > 1) {
+            $('#rp_component_id').select2({
+                placeholder: 'Select a reporting component...',
+                allowClear: true,
+                width: '100%',
+                minimumResultsForSearch: 10
+            });
+        }
+        
+        // Load components and activities on page load if they're already selected
         $(document).ready(function() {
             const initialActionPlanId = $('#action_plan_id').val();
-            if (initialActionPlanId) {
-                loadComponentsByActionPlan(initialActionPlanId);
+            const initialComponentId = $('#rp_component_id').val();
+            
+            // If component is already selected in HTML, load its activities
+            if (initialComponentId && selectedRpActivityIds.length > 0) {
+                // Wait a bit for Select2 to be fully initialized, then load activities
+                setTimeout(function() {
+                    loadRPActivitiesByComponent(initialComponentId);
+                }, 300);
             }
             
-            // Load activities on page load if component is already selected
-            const initialComponentId = $('#rp_component_id').val();
-            if (initialComponentId && selectedRpActivityIds.length > 0) {
-                setTimeout(() => {
-                    loadRPActivitiesByComponent(initialComponentId);
-                }, 1000);
-            }
+            // Only reload components if action plan changes (not on initial load)
+            // The HTML already has the correct components loaded by the controller
         });
 
         // ============================================
