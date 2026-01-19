@@ -5,11 +5,20 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\Program;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class ProgramSeeder extends Seeder
 {
     public function run(): void
     {
+        // Check if programs table already has data
+        if (Program::count() > 0) {
+            $this->command->info('⚠️ Programs table already has data. Skipping seeding.');
+            return;
+        }
+
+        $this->command->info('Creating main/parent programs...');
+        
         // Map to store folder_name to program_id relationships
         $folderToIdMap = [];
         
@@ -132,8 +141,6 @@ class ProgramSeeder extends Seeder
             ],
         ];
 
-        $this->command->info('Creating main/parent programs...');
-        
         foreach ($mainPrograms as $programData) {
             $program = Program::create(array_merge($programData, [
                 'description' => $programData['name'],
@@ -424,11 +431,5 @@ class ProgramSeeder extends Seeder
         $this->command->info("✅ Successfully seeded {$totalPrograms} programs!");
         $this->command->info("   - Main/Parent programs: " . count($mainPrograms));
         $this->command->info("   - Detailed/Child programs: " . count($detailedPrograms));
-        $this->command->info("\nExternal IDs auto-generated based on program_type:");
-        $this->command->info("   - Center: CT_YYYY_MM_001");
-        $this->command->info("   - Local Program/Network: LP_YYYY_MM_001");
-        $this->command->info("   - Flagship: FL_YYYY_MM_001");
-        $this->command->info("   - Center Program: CT_YYYY_MM_001");
-        $this->command->info("   - Sub-Program: SP_YYYY_MM_001");
     }
 }

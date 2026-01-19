@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use App\Models\Project;
 use App\Models\Program;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class ProjectSeeder extends Seeder
 {
@@ -13,6 +14,18 @@ class ProjectSeeder extends Seeder
 
     public function run(): void
     {
+        // Check if projects table already has data
+        if (Project::count() > 0) {
+            $this->command->info('⚠️ Projects table already has data. Skipping seeding.');
+            return;
+        }
+
+        // Check if programs table has data
+        if (Program::count() === 0) {
+            $this->command->error('❌ Programs table is empty. Run ProgramSeeder first!');
+            return;
+        }
+
         // First, get all programs and create a mapping from program NAME to program_id
         $programs = Program::all();
         foreach ($programs as $program) {
@@ -738,7 +751,6 @@ class ProjectSeeder extends Seeder
         if ($skippedCount > 0) {
             $this->command->warn("⚠️ Skipped {$skippedCount} projects due to missing parent programs.");
             $this->command->info("Missing programs: " . implode(', ', array_keys($missingPrograms)));
-            $this->command->info("Make sure ProgramSeeder creates these programs first!");
         }
     }
 

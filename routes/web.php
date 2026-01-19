@@ -29,9 +29,8 @@ use App\Http\Controllers\ModuleAccessController;
 // PUBLIC ROUTES - Accessible WITHOUT authentication
 // ============================================================================
 
-// Home/Welcome Page (Public)
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('login');
 })->name('home');
 
 
