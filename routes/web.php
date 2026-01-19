@@ -34,6 +34,7 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
+
 // ============================================================================
 // AUTHENTICATION ROUTES
 // ============================================================================
@@ -138,7 +139,6 @@ Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
             Route::put('/{employee}/reset-password', [CredentialsEmployeeController::class, 'resetPassword'])->name('reset-password');
             Route::put('/{employee}/toggle-status', [CredentialsEmployeeController::class, 'toggleStatus'])->name('toggle-status');
         });
-    
    
     
         // ------------------------------------------------------------------------

@@ -44,7 +44,8 @@ class DatabaseSeeder extends Seeder
         $this->command->info("   " . str_repeat("-", 45));
         
         $this->call([
-            ModuleAccessSeeder::class,   // Module access for employees
+            ModuleAccessSeeder::class, 
+            AdminSeeder::class,  // Module access for employees
         ]);
         
         $this->command->info("✅ Security data seeded!");
