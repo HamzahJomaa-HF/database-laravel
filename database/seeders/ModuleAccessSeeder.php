@@ -2,101 +2,94 @@
 
 namespace Database\Seeders;
 
-use App\Models\Employee;
-use App\Models\ModuleAccess;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class ModuleAccessSeeder extends Seeder
 {
-    public function run()
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
     {
-        // Get employees
-        $superAdmin = Employee::where('email', 'admin@hariri.org')->first();
-        $hrManager = Employee::where('email', 'hr@hariri.org')->first();
-        $programManager = Employee::where('email', 'programs@hariri.org')->first();
-        $projectCoordinator = Employee::where('email', 'projects@hariri.org')->first();
-        $fieldOfficer = Employee::where('email', 'field@hariri.org')->first();
-        
-        // Clear existing module access
-        ModuleAccess::truncate();
-        
-        // 1. Super Admin: Full access to everything
-        ModuleAccess::create([
-            'access_id' => Str::uuid(),
-            'employee_id' => $superAdmin->employee_id,
-            'module' => 'all',
-            'access_level' => 'full',
-        ]);
-        
-        // 2. HR Manager: Full access to system modules
-        $hrModules = [
-            ['module' => 'users', 'access_level' => 'manage'],
-            ['module' => 'reports', 'access_level' => 'manage'],
-            ['module' => 'action_plans', 'access_level' => 'view'],
-            ['module' => 'surveys', 'access_level' => 'view'],
+        // Define the modules, access levels (must match ENUM values), and descriptions
+        $modules = [
+            // Core Modules - using ENUM values
+            'Programs' => [
+                'none' => 'Cannot view or interact with any program data',
+                'view' => 'Can only view program information, no modifications',
+                'create' => 'Can create new programs but cannot edit or delete',
+                'edit' => 'Can edit existing programs but cannot create or delete',
+                'delete' => 'Can delete programs but cannot create or edit',
+                'manage' => 'Full Create, Read, Update, Delete permissions',
+                'full' => 'Administrator level access with all permissions'
+            ],
+            'Projects' => [
+                'none' => 'Cannot view or interact with any project data',
+                'view' => 'Can only view project information, no modifications',
+                'create' => 'Can create new projects but cannot edit or delete',
+                'edit' => 'Can edit existing projects but cannot create or delete',
+                'delete' => 'Can delete projects but cannot create or edit',
+                'manage' => 'Full Create, Read, Update, Delete permissions',
+                'full' => 'Administrator level access with all permissions'
+            ],
+            'Users' => [
+                'none' => 'Cannot view or interact with any user/employee data',
+                'view' => 'Can only view user information, no modifications',
+                'create' => 'Can create new users but cannot edit or delete',
+                'edit' => 'Can edit existing users but cannot create or delete',
+                'delete' => 'Can delete users but cannot create or edit',
+                'manage' => 'Full Create, Read, Update, Delete permissions',
+                'full' => 'Administrator level access with all permissions'
+            ],
+            'Activities' => [
+                'none' => 'Cannot view or interact with any activity data',
+                'view' => 'Can only view activity information, no modifications',
+                'create' => 'Can create new activities but cannot edit or delete',
+                'edit' => 'Can edit existing activities but cannot create or delete',
+                'delete' => 'Can delete activities but cannot create or edit',
+                'manage' => 'Full Create, Read, Update, Delete permissions',
+                'full' => 'Administrator level access with all permissions'
+            ],
+            // Additional Modules
+            'Dashboard' => [
+                'none' => 'Cannot access the dashboard',
+                'view' => 'Can view dashboard data but cannot customize',
+                'full' => 'Full access to dashboard with customization options'
+            ],
+            'Reports' => [
+                'none' => 'Cannot access any reports',
+                'view' => 'Can view pre-generated reports',
+                'create' => 'Can generate and view reports', // Using 'create' for generate
+                'full' => 'Full access to all reporting features'
+            ]
         ];
-        
-        foreach ($hrModules as $module) {
-            ModuleAccess::create([
-                'access_id' => Str::uuid(),
-                'employee_id' => $hrManager->employee_id,
-                'module' => $module['module'],
-                'access_level' => $module['access_level'],
-            ]);
+
+        $records = [];
+        $now = now();
+
+        foreach ($modules as $module => $accessLevels) {
+            foreach ($accessLevels as $accessLevel => $description) {
+                $records[] = [
+                    'access_id' => (string) \Illuminate\Support\Str::uuid(),
+                    'module' => $module,
+                    'access_level' => $accessLevel,
+                    'description' => $description,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                    'deleted_at' => null
+                ];
+            }
         }
+
+        // Optional: Clear existing data first to avoid duplicates
+        DB::table('module_access')->truncate();
         
-        // 3. Program Manager: Manage programs, projects, activities
-        $programManagerModules = [
-            ['module' => 'programs', 'access_level' => 'manage'],
-            ['module' => 'projects', 'access_level' => 'manage'],
-            ['module' => 'activities', 'access_level' => 'manage'],
-            ['module' => 'surveys', 'access_level' => 'manage'],
-            ['module' => 'reports', 'access_level' => 'manage'],
-        ];
-        
-        foreach ($programManagerModules as $module) {
-            ModuleAccess::create([
-                'access_id' => Str::uuid(),
-                'employee_id' => $programManager->employee_id,
-                'module' => $module['module'],
-                'access_level' => $module['access_level'],
-            ]);
-        }
-        
-        // 4. Project Coordinator: Edit projects and activities
-        $coordinatorModules = [
-            ['module' => 'projects', 'access_level' => 'edit'],
-            ['module' => 'activities', 'access_level' => 'edit'],
-            ['module' => 'surveys', 'access_level' => 'edit'],
-        ];
-        
-        foreach ($coordinatorModules as $module) {
-            ModuleAccess::create([
-                'access_id' => Str::uuid(),
-                'employee_id' => $projectCoordinator->employee_id,
-                'module' => $module['module'],
-                'access_level' => $module['access_level'],
-            ]);
-        }
-        
-        // 5. Field Officer: Create activities and surveys
-        $fieldOfficerModules = [
-            ['module' => 'activities', 'access_level' => 'create'],
-            ['module' => 'surveys', 'access_level' => 'create'],
-        ];
-        
-        foreach ($fieldOfficerModules as $module) {
-            ModuleAccess::create([
-                'access_id' => Str::uuid(),
-                'employee_id' => $fieldOfficer->employee_id,
-                'module' => $module['module'],
-                'access_level' => $module['access_level'],
-            ]);
-        }
-        
-        
-        
-        $this->command->info('✓ Module access seeded successfully!');
+        // Insert data into the module_access table
+        DB::table('module_access')->insert($records);
+
+        $this->command->info('Module access permissions seeded successfully!');
+        $this->command->info('Total records inserted: ' . count($records));
     }
 }

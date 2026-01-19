@@ -19,7 +19,7 @@ return new class extends Migration
             $table->date('end_date')->nullable();
              $table->string('external_id', 255)->nullable();
             $table->uuid('role_id')->nullable(); // COLUMN ONLY
-            $table->uuid('project_id')->nullable(); // COLUMN ONLY
+            $table->uuid('project_id')->nullable(); //we took this off and added it back in this migration modify_employee_project_relations
             $table->timestamps();
         });
     }

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use App\Models\Employee;
 
 class LoginController extends Controller
 {
@@ -13,7 +15,6 @@ class LoginController extends Controller
      */
     public function showLoginForm()
     {
-        // If already logged in as employee, redirect to dashboard
         if (Auth::guard('employee')->check()) {
             return redirect()->route('dashboard');
         }
@@ -26,34 +27,65 @@ class LoginController extends Controller
      */
     public function login(Request $request)
     {
-        // Validate credentials
-        $credentials = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required|min:6',
-        ]);
-        
-        // Remember me checkbox
-        $remember = $request->filled('remember');
-        
-        // Attempt login with EMPLOYEE guard
-        if (Auth::guard('employee')->attempt($credentials, $remember)) {
-            $request->session()->regenerate();
+        try {
+            Log::info('Login attempt started', ['email' => $request->email]);
             
-            // Check if employee is active
-            $employee = Auth::guard('employee')->user();
-            if (!$employee->isActive()) {
-                Auth::guard('employee')->logout();
-                return back()->withErrors([
-                    'email' => 'Your account is inactive. Please contact administrator.',
-                ]);
+            // Validate credentials
+            $credentials = $request->validate([
+                'email' => 'required|email',
+                'password' => 'required|min:6',
+            ]);
+            
+            $remember = $request->filled('remember');
+            
+            // ✅ Use Laravel's built-in Auth with employee guard
+            if (Auth::guard('employee')->attempt($credentials, $remember)) {
+                $request->session()->regenerate();
+                
+                $employee = Auth::guard('employee')->user();
+                
+                // Check if credentials exist and employee is active
+                if (!$employee->credentials) {
+                    Log::error('No credentials record', ['employee_id' => $employee->employee_id]);
+                    Auth::guard('employee')->logout();
+                    return back()->withErrors(['email' => 'Account not properly configured.']);
+                }
+                
+                if (!$employee->credentials->is_active) {
+                    Log::warning('Inactive account attempt', ['employee_id' => $employee->employee_id]);
+                    Auth::guard('employee')->logout();
+                    return back()->withErrors(['email' => 'Account is inactive.']);
+                }
+                
+                // Update last login
+                $employee->credentials->update(['last_login_at' => now()]);
+                
+                Log::info('Login successful', ['employee_id' => $employee->employee_id]);
+                return redirect()->intended(route('dashboard'));
+                
+            } else {
+                Log::warning('Authentication failed', ['email' => $request->email]);
+                
+                // Check if email exists to give specific error
+                $employeeExists = Employee::where('email', $request->email)->exists();
+                
+                if (!$employeeExists) {
+                    return back()->withErrors(['email' => 'Email address not found.']);
+                }
+                
+                return back()->withErrors(['email' => 'Invalid password.']);
             }
             
-            return redirect()->intended(route('dashboard'));
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::warning('Validation failed', ['errors' => $e->errors()]);
+            return back()->withErrors($e->errors());
+            
+        } catch (\Exception $e) {
+            Log::error('Login error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->withErrors(['email' => 'An error occurred. Please try again.']);
         }
-        
-        return back()->withErrors([
-            'email' => 'The provided credentials do not match our records.',
-        ]);
     }
     
     /**
@@ -61,11 +93,14 @@ class LoginController extends Controller
      */
     public function logout(Request $request)
     {
-        Auth::guard('employee')->logout();
-        
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-        
-        return redirect('/');
+        try {
+            Auth::guard('employee')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return redirect('/');
+        } catch (\Exception $e) {
+            Log::error('Logout error: ' . $e->getMessage());
+            return redirect('/');
+        }
     }
 }

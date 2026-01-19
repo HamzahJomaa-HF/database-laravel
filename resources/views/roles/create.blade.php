@@ -237,6 +237,17 @@
             border-bottom: 2px solid var(--border-color);
         }
         
+        /* Permission checkboxes container */
+        .permission-checkboxes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        
+        .permission-checkbox-item {
+            flex: 0 0 calc(50% - 0.375rem);
+        }
+        
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .permissions-container {
@@ -258,58 +269,10 @@
             .buttons-wrapper .btn {
                 width: 100%;
             }
-        }
-        
-        /* Custom checkbox styling */
-        .custom-checkbox {
-            position: relative;
-            padding-left: 1.75rem;
-            cursor: pointer;
-        }
-        
-        .custom-checkbox input {
-            position: absolute;
-            opacity: 0;
-            cursor: pointer;
-            height: 0;
-            width: 0;
-        }
-        
-        .checkmark {
-            position: absolute;
-            top: 0;
-            left: 0;
-            height: 1.25rem;
-            width: 1.25rem;
-            background-color: white;
-            border: 1px solid #d1d5db;
-            border-radius: 0.25rem;
-        }
-        
-        .custom-checkbox:hover input ~ .checkmark {
-            background-color: #f3f4f6;
-        }
-        
-        .custom-checkbox input:checked ~ .checkmark {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-        }
-        
-        .checkmark:after {
-            content: "";
-            position: absolute;
-            display: none;
-        }
-        
-        .custom-checkbox input:checked ~ .checkmark:after {
-            display: block;
-            left: 7px;
-            top: 3px;
-            width: 5px;
-            height: 10px;
-            border: solid white;
-            border-width: 0 2px 2px 0;
-            transform: rotate(45deg);
+            
+            .permission-checkbox-item {
+                flex: 0 0 100%;
+            }
         }
     </style>
 </head>
@@ -410,24 +373,31 @@
                                     <div class="resource-container">
                                         <div class="permission-title">Programs</div>
                                         <div class="permission-options">
-                                            @foreach(['none', 'view', 'create', 'edit', 'delete', 'manage', 'full'] as $access)
-                                            <div class="form-check">
-                                                <input type="radio" name="module_access[Programs]" 
-                                                       id="Programs_{{ $access }}" value="{{ $access }}"
-                                                       class="form-check-input" {{ $access == 'none' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="Programs_{{ $access }}">
-                                                    @switch($access)
-                                                        @case('none') No Access @break
-                                                        @case('view') Can View Only @break
-                                                        @case('create') Can Create @break
-                                                        @case('edit') Can Edit @break
-                                                        @case('delete') Can Delete @break
-                                                        @case('manage') Can Manage (Full CRUD) @break
-                                                        @case('full') Full Access (Admin) @break
-                                                    @endswitch
-                                                </label>
+                                            <div class="permission-checkboxes">
+                                                @php
+                                                    // Get all Programs permissions from database
+                                                    $programsPermissions = \App\Models\ModuleAccess::where('module', 'Programs')->get();
+                                                @endphp
+                                                @foreach($programsPermissions as $permission)
+                                                <div class="permission-checkbox-item">
+                                                    <div class="form-check">
+                                                        <input type="checkbox" name="module_access_ids[]" 
+                                                               id="programs_{{ $permission->access_level }}" 
+                                                               value="{{ $permission->access_id }}"
+                                                               class="form-check-input permission-checkbox">
+                                                        <label class="form-check-label" for="programs_{{ $permission->access_level }}">
+                                                            {{ $permission->access_level === 'none' ? 'No Access' : 
+                                                               ($permission->access_level === 'view' ? 'Can View Only' :
+                                                               ($permission->access_level === 'create' ? 'Can Create' :
+                                                               ($permission->access_level === 'edit' ? 'Can Edit' :
+                                                               ($permission->access_level === 'delete' ? 'Can Delete' :
+                                                               ($permission->access_level === 'manage' ? 'Can Manage (Full CRUD)' :
+                                                               ($permission->access_level === 'full' ? 'Full Access (Admin)' : $permission->access_level)))))) }}
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                @endforeach
                                             </div>
-                                            @endforeach
                                         </div>
                                     </div>
 
@@ -435,49 +405,61 @@
                                     <div class="resource-container">
                                         <div class="permission-title">Projects</div>
                                         <div class="permission-options">
-                                            @foreach(['none', 'view', 'create', 'edit', 'delete', 'manage', 'full'] as $access)
-                                            <div class="form-check">
-                                                <input type="radio" name="module_access[Projects]" 
-                                                       id="Projects_{{ $access }}" value="{{ $access }}"
-                                                       class="form-check-input" {{ $access == 'none' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="Projects_{{ $access }}">
-                                                    @switch($access)
-                                                        @case('none') No Access @break
-                                                        @case('view') Can View Only @break
-                                                        @case('create') Can Create @break
-                                                        @case('edit') Can Edit @break
-                                                        @case('delete') Can Delete @break
-                                                        @case('manage') Can Manage (Full CRUD) @break
-                                                        @case('full') Full Access (Admin) @break
-                                                    @endswitch
-                                                </label>
+                                            <div class="permission-checkboxes">
+                                                @php
+                                                    $projectsPermissions = \App\Models\ModuleAccess::where('module', 'Projects')->get();
+                                                @endphp
+                                                @foreach($projectsPermissions as $permission)
+                                                <div class="permission-checkbox-item">
+                                                    <div class="form-check">
+                                                        <input type="checkbox" name="module_access_ids[]" 
+                                                               id="projects_{{ $permission->access_level }}" 
+                                                               value="{{ $permission->access_id }}"
+                                                               class="form-check-input permission-checkbox">
+                                                        <label class="form-check-label" for="projects_{{ $permission->access_level }}">
+                                                            {{ $permission->access_level === 'none' ? 'No Access' : 
+                                                               ($permission->access_level === 'view' ? 'Can View Only' :
+                                                               ($permission->access_level === 'create' ? 'Can Create' :
+                                                               ($permission->access_level === 'edit' ? 'Can Edit' :
+                                                               ($permission->access_level === 'delete' ? 'Can Delete' :
+                                                               ($permission->access_level === 'manage' ? 'Can Manage (Full CRUD)' :
+                                                               ($permission->access_level === 'full' ? 'Full Access (Admin)' : $permission->access_level)))))) }}
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                @endforeach
                                             </div>
-                                            @endforeach
                                         </div>
                                     </div>
 
                                     <!-- Users -->
                                     <div class="resource-container">
-                                        <div class="permission-title">Users (Employees)</div>
+                                        <div class="permission-title">Users</div>
                                         <div class="permission-options">
-                                            @foreach(['none', 'view', 'create', 'edit', 'delete', 'manage', 'full'] as $access)
-                                            <div class="form-check">
-                                                <input type="radio" name="module_access[Users]" 
-                                                       id="Users_{{ $access }}" value="{{ $access }}"
-                                                       class="form-check-input" {{ $access == 'none' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="Users_{{ $access }}">
-                                                    @switch($access)
-                                                        @case('none') No Access @break
-                                                        @case('view') Can View Only @break
-                                                        @case('create') Can Create @break
-                                                        @case('edit') Can Edit @break
-                                                        @case('delete') Can Delete @break
-                                                        @case('manage') Can Manage (Full CRUD) @break
-                                                        @case('full') Full Access (Admin) @break
-                                                    @endswitch
-                                                </label>
+                                            <div class="permission-checkboxes">
+                                                @php
+                                                    $usersPermissions = \App\Models\ModuleAccess::where('module', 'Users')->get();
+                                                @endphp
+                                                @foreach($usersPermissions as $permission)
+                                                <div class="permission-checkbox-item">
+                                                    <div class="form-check">
+                                                        <input type="checkbox" name="module_access_ids[]" 
+                                                               id="users_{{ $permission->access_level }}" 
+                                                               value="{{ $permission->access_id }}"
+                                                               class="form-check-input permission-checkbox">
+                                                        <label class="form-check-label" for="users_{{ $permission->access_level }}">
+                                                            {{ $permission->access_level === 'none' ? 'No Access' : 
+                                                               ($permission->access_level === 'view' ? 'Can View Only' :
+                                                               ($permission->access_level === 'create' ? 'Can Create' :
+                                                               ($permission->access_level === 'edit' ? 'Can Edit' :
+                                                               ($permission->access_level === 'delete' ? 'Can Delete' :
+                                                               ($permission->access_level === 'manage' ? 'Can Manage (Full CRUD)' :
+                                                               ($permission->access_level === 'full' ? 'Full Access (Admin)' : $permission->access_level)))))) }}
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                @endforeach
                                             </div>
-                                            @endforeach
                                         </div>
                                     </div>
 
@@ -485,30 +467,36 @@
                                     <div class="resource-container">
                                         <div class="permission-title">Activities</div>
                                         <div class="permission-options">
-                                            @foreach(['none', 'view', 'create', 'edit', 'delete', 'manage', 'full'] as $access)
-                                            <div class="form-check">
-                                                <input type="radio" name="module_access[Activities]" 
-                                                       id="Activities_{{ $access }}" value="{{ $access }}"
-                                                       class="form-check-input" {{ $access == 'none' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="Activities_{{ $access }}">
-                                                    @switch($access)
-                                                        @case('none') No Access @break
-                                                        @case('view') Can View Only @break
-                                                        @case('create') Can Create @break
-                                                        @case('edit') Can Edit @break
-                                                        @case('delete') Can Delete @break
-                                                        @case('manage') Can Manage (Full CRUD) @break
-                                                        @case('full') Full Access (Admin) @break
-                                                    @endswitch
-                                                </label>
+                                            <div class="permission-checkboxes">
+                                                @php
+                                                    $activitiesPermissions = \App\Models\ModuleAccess::where('module', 'Activities')->get();
+                                                @endphp
+                                                @foreach($activitiesPermissions as $permission)
+                                                <div class="permission-checkbox-item">
+                                                    <div class="form-check">
+                                                        <input type="checkbox" name="module_access_ids[]" 
+                                                               id="activities_{{ $permission->access_level }}" 
+                                                               value="{{ $permission->access_id }}"
+                                                               class="form-check-input permission-checkbox">
+                                                        <label class="form-check-label" for="activities_{{ $permission->access_level }}">
+                                                            {{ $permission->access_level === 'none' ? 'No Access' : 
+                                                               ($permission->access_level === 'view' ? 'Can View Only' :
+                                                               ($permission->access_level === 'create' ? 'Can Create' :
+                                                               ($permission->access_level === 'edit' ? 'Can Edit' :
+                                                               ($permission->access_level === 'delete' ? 'Can Delete' :
+                                                               ($permission->access_level === 'manage' ? 'Can Manage (Full CRUD)' :
+                                                               ($permission->access_level === 'full' ? 'Full Access (Admin)' : $permission->access_level)))))) }}
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                @endforeach
                                             </div>
-                                            @endforeach
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Additional Modules (if needed) -->
+                            <!-- Additional Modules -->
                             <div class="module-group">
                                 <h3 class="module-group-title">Additional Modules</h3>
                                 <div class="permissions-container">
@@ -516,20 +504,26 @@
                                     <div class="resource-container">
                                         <div class="permission-title">Dashboard</div>
                                         <div class="permission-options">
-                                            @foreach(['none', 'view', 'full'] as $access)
-                                            <div class="form-check">
-                                                <input type="radio" name="module_access[Dashboard]" 
-                                                       id="Dashboard_{{ $access }}" value="{{ $access }}"
-                                                       class="form-check-input" {{ $access == 'none' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="Dashboard_{{ $access }}">
-                                                    @switch($access)
-                                                        @case('none') No Access @break
-                                                        @case('view') Can View Dashboard @break
-                                                        @case('full') Full Dashboard Access @break
-                                                    @endswitch
-                                                </label>
+                                            <div class="permission-checkboxes">
+                                                @php
+                                                    $dashboardPermissions = \App\Models\ModuleAccess::where('module', 'Dashboard')->get();
+                                                @endphp
+                                                @foreach($dashboardPermissions as $permission)
+                                                <div class="permission-checkbox-item">
+                                                    <div class="form-check">
+                                                        <input type="checkbox" name="module_access_ids[]" 
+                                                               id="dashboard_{{ $permission->access_level }}" 
+                                                               value="{{ $permission->access_id }}"
+                                                               class="form-check-input permission-checkbox">
+                                                        <label class="form-check-label" for="dashboard_{{ $permission->access_level }}">
+                                                            {{ $permission->access_level === 'none' ? 'No Access' : 
+                                                               ($permission->access_level === 'view' ? 'Can View Dashboard' :
+                                                               ($permission->access_level === 'full' ? 'Full Dashboard Access' : $permission->access_level)) }}
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                @endforeach
                                             </div>
-                                            @endforeach
                                         </div>
                                     </div>
 
@@ -537,21 +531,27 @@
                                     <div class="resource-container">
                                         <div class="permission-title">Reports</div>
                                         <div class="permission-options">
-                                            @foreach(['none', 'view', 'create', 'full'] as $access)
-                                            <div class="form-check">
-                                                <input type="radio" name="module_access[Reports]" 
-                                                       id="Reports_{{ $access }}" value="{{ $access }}"
-                                                       class="form-check-input" {{ $access == 'none' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="Reports_{{ $access }}">
-                                                    @switch($access)
-                                                        @case('none') No Access @break
-                                                        @case('view') Can View Reports @break
-                                                        @case('create') Can Generate Reports @break
-                                                        @case('full') Full Reports Access @break
-                                                    @endswitch
-                                                </label>
+                                            <div class="permission-checkboxes">
+                                                @php
+                                                    $reportsPermissions = \App\Models\ModuleAccess::where('module', 'Reports')->get();
+                                                @endphp
+                                                @foreach($reportsPermissions as $permission)
+                                                <div class="permission-checkbox-item">
+                                                    <div class="form-check">
+                                                        <input type="checkbox" name="module_access_ids[]" 
+                                                               id="reports_{{ $permission->access_level }}" 
+                                                               value="{{ $permission->access_id }}"
+                                                               class="form-check-input permission-checkbox">
+                                                        <label class="form-check-label" for="reports_{{ $permission->access_level }}">
+                                                            {{ $permission->access_level === 'none' ? 'No Access' : 
+                                                               ($permission->access_level === 'view' ? 'Can View Reports' :
+                                                               ($permission->access_level === 'create' ? 'Can Generate Reports' :
+                                                               ($permission->access_level === 'full' ? 'Full Reports Access' : $permission->access_level))) }}
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                @endforeach
                                             </div>
-                                            @endforeach
                                         </div>
                                     </div>
                                 </div>
@@ -579,13 +579,19 @@
     <script>
         // Quick permission selection
         function selectAllPermissions(accessLevel) {
-            // Select all radio buttons with the given access level
-            const modules = ['Programs', 'Projects', 'Users', 'Activities', 'Dashboard', 'Reports'];
+            // Get all permissions with the specified access level
+            const checkboxes = document.querySelectorAll('.permission-checkbox');
             
-            modules.forEach(module => {
-                const radio = document.querySelector(`input[name="module_access[${module}]"][value="${accessLevel}"]`);
-                if (radio) {
-                    radio.checked = true;
+            checkboxes.forEach(checkbox => {
+                // Extract access level from label text
+                const label = checkbox.closest('.form-check').querySelector('.form-check-label').textContent.trim();
+                const checkboxAccessLevel = getAccessLevelFromLabel(label);
+                
+                // Check if this checkbox matches the selected access level
+                if (checkboxAccessLevel === accessLevel) {
+                    checkbox.checked = true;
+                } else {
+                    checkbox.checked = false;
                 }
             });
             
@@ -602,6 +608,18 @@
             
             // Show success message
             showToast(`${accessLevel.charAt(0).toUpperCase() + accessLevel.slice(1)} permissions applied to all modules`);
+        }
+        
+        // Helper function to extract access level from label text
+        function getAccessLevelFromLabel(label) {
+            if (label.includes('No Access')) return 'none';
+            if (label.includes('View Only') || label.includes('View Dashboard') || label.includes('View Reports')) return 'view';
+            if (label.includes('Can Create') || label.includes('Generate Reports')) return 'create';
+            if (label.includes('Can Edit')) return 'edit';
+            if (label.includes('Can Delete')) return 'delete';
+            if (label.includes('Full CRUD')) return 'manage';
+            if (label.includes('Admin') || label.includes('Full Dashboard') || label.includes('Full Reports')) return 'full';
+            return 'none';
         }
         
         // Initialize tab functionality
@@ -634,17 +652,10 @@
                 return false;
             }
             
-            // Check if at least one permission is selected (not all 'none')
-            let hasPermission = false;
-            const permissionRadios = document.querySelectorAll('input[type="radio"]:checked');
+            // Check if at least one permission is selected
+            const checkedPermissions = document.querySelectorAll('input[name="module_access_ids[]"]:checked');
             
-            permissionRadios.forEach(radio => {
-                if (radio.value !== 'none') {
-                    hasPermission = true;
-                }
-            });
-            
-            if (!hasPermission) {
+            if (checkedPermissions.length === 0) {
                 e.preventDefault();
                 if (confirm('This role has no permissions. Are you sure you want to create it?')) {
                     return true;

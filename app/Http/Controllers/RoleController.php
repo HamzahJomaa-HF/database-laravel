@@ -7,23 +7,22 @@ use App\Models\ModuleAccess;
 use App\Models\RoleModuleAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str; // Add this import
+use Illuminate\Support\Str;
 
 class RoleController extends Controller
 {
     /**
      * Display a listing of roles.
      */
-   public function index()
-{
-    // Don't specify columns in the relationship - let Laravel handle it
-    $roles = Role::with('moduleAccesses')
-        ->withCount('employees')
-        ->latest()
-        ->paginate(10);
+    public function index()
+    {
+        $roles = Role::with('moduleAccesses')
+            ->withCount('employees')
+            ->latest()
+            ->paginate(10);
 
-    return view('roles.index', compact('roles'));
-}
+        return view('roles.index', compact('roles'));
+    }
 
     /**
      * Show the form for creating a new role.
@@ -44,8 +43,8 @@ class RoleController extends Controller
         $validator = Validator::make($request->all(), [
             'role_name' => 'required|string|max:255|unique:roles,role_name',
             'description' => 'nullable|string|max:500',
-            'module_access' => 'nullable|array',
-            'module_access.*' => 'in:none,view,create,edit,delete,manage,full', // Add validation
+            'module_access_ids' => 'nullable|array',
+            'module_access_ids.*' => 'exists:module_access,access_id',
         ]);
 
         if ($validator->fails()) {
@@ -59,28 +58,15 @@ class RoleController extends Controller
             'description' => $request->description,
         ]);
 
-        // Handle module access permissions
-        if ($request->has('module_access')) {
-            foreach ($request->module_access as $module => $accessLevel) {
-                if ($accessLevel !== 'none') {
-                    // Find or create module access WITH UUID
-                    $moduleAccess = ModuleAccess::firstOrCreate(
-                        [
-                            'module' => $module,
-                            'access_level' => $accessLevel,
-                        ],
-                        [
-                            'access_id' => Str::uuid(), // Add UUID for new records
-                        ]
-                    );
-
-                    // Create role-module access relationship WITH UUID
-                    RoleModuleAccess::create([
-                        'role_id' => $role->role_id,
-                        'access_id' => $moduleAccess->access_id,
-                        'roles_module_access_id' => Str::uuid(), // Add UUID
-                    ]);
-                }
+        // Handle module access permissions - using module_access_ids array
+        if ($request->has('module_access_ids')) {
+            foreach ($request->module_access_ids as $accessId) {
+                // Create role-module access relationship in pivot table
+                RoleModuleAccess::create([
+                    'role_id' => $role->role_id,
+                    'access_id' => $accessId,
+                    'roles_module_access_id' => Str::uuid(),
+                ]);
             }
         }
 
@@ -93,8 +79,7 @@ class RoleController extends Controller
      */
     public function show(Role $role)
     {
-        // Load the correct relationship name
-        $role->load(['employees', 'moduleAccesses']); // Remove .moduleAccess
+        $role->load(['employees', 'moduleAccesses']);
         
         return view('roles.show', compact('role'));
     }
@@ -104,12 +89,16 @@ class RoleController extends Controller
      */
     public function edit(Role $role)
     {
+        // Get all module accesses grouped by module
         $modules = ModuleAccess::all()->groupBy('module');
         
-        // Load the correct relationship
+        // Load the role's current permissions
         $role->load('moduleAccesses');
         
-        return view('roles.edit', compact('role', 'modules'));
+        // Get the access_ids of current permissions
+        $currentPermissionIds = $role->moduleAccesses->pluck('access_id')->toArray();
+        
+        return view('roles.edit', compact('role', 'modules', 'currentPermissionIds'));
     }
 
     /**
@@ -120,8 +109,8 @@ class RoleController extends Controller
         $validator = Validator::make($request->all(), [
             'role_name' => 'required|string|max:255|unique:roles,role_name,' . $role->role_id . ',role_id',
             'description' => 'nullable|string|max:500',
-            'module_access' => 'nullable|array',
-            'module_access.*' => 'in:none,view,create,edit,delete,manage,full',
+            'module_access_ids' => 'nullable|array',
+            'module_access_ids.*' => 'exists:module_access,access_id',
         ]);
 
         if ($validator->fails()) {
@@ -136,30 +125,17 @@ class RoleController extends Controller
         ]);
 
         // Update module access permissions
-        if ($request->has('module_access')) {
-            // Delete existing module access
-            RoleModuleAccess::where('role_id', $role->role_id)->delete();
-            
-            foreach ($request->module_access as $module => $accessLevel) {
-                if ($accessLevel !== 'none') {
-                    // Find or create module access WITH UUID
-                    $moduleAccess = ModuleAccess::firstOrCreate(
-                        [
-                            'module' => $module,
-                            'access_level' => $accessLevel,
-                        ],
-                        [
-                            'access_id' => Str::uuid(), // Add UUID for new records
-                        ]
-                    );
-
-                    // Create role-module access relationship WITH UUID
-                    RoleModuleAccess::create([
-                        'role_id' => $role->role_id,
-                        'access_id' => $moduleAccess->access_id,
-                        'roles_module_access_id' => Str::uuid(), // Add UUID
-                    ]);
-                }
+        // Delete existing role-module access relationships
+        RoleModuleAccess::where('role_id', $role->role_id)->delete();
+        
+        // Add new permissions if any
+        if ($request->has('module_access_ids')) {
+            foreach ($request->module_access_ids as $accessId) {
+                RoleModuleAccess::create([
+                    'role_id' => $role->role_id,
+                    'access_id' => $accessId,
+                    'roles_module_access_id' => Str::uuid(),
+                ]);
             }
         }
 
@@ -178,7 +154,7 @@ class RoleController extends Controller
                 ->with('error', 'Cannot delete role that has employees assigned. Reassign employees first.');
         }
 
-        // Delete role-module access relationships
+        // Delete role-module access relationships from pivot table
         RoleModuleAccess::where('role_id', $role->role_id)->delete();
         
         $role->delete();
@@ -194,10 +170,12 @@ class RoleController extends Controller
     {
         $modules = ModuleAccess::all()->groupBy('module');
         
-        // Load the correct relationship
         $role->load('moduleAccesses');
         
-        return view('roles.permissions', compact('role', 'modules'));
+        // Get the access_ids of current permissions
+        $currentPermissionIds = $role->moduleAccesses->pluck('access_id')->toArray();
+        
+        return view('roles.permissions', compact('role', 'modules', 'currentPermissionIds'));
     }
 
     /**
@@ -206,8 +184,8 @@ class RoleController extends Controller
     public function updatePermissions(Request $request, Role $role)
     {
         $validator = Validator::make($request->all(), [
-            'module_access' => 'required|array',
-            'module_access.*' => 'required|string|in:none,view,create,edit,delete,manage,full',
+            'module_access_ids' => 'nullable|array',
+            'module_access_ids.*' => 'exists:module_access,access_id',
         ]);
 
         if ($validator->fails()) {
@@ -216,59 +194,21 @@ class RoleController extends Controller
                 ->withInput();
         }
 
-        // Delete existing module access
+        // Delete existing role-module access relationships
         RoleModuleAccess::where('role_id', $role->role_id)->delete();
         
-        foreach ($request->module_access as $module => $accessLevel) {
-            if ($accessLevel !== 'none') {
-                // Find or create module access WITH UUID
-                $moduleAccess = ModuleAccess::firstOrCreate(
-                    [
-                        'module' => $module,
-                        'access_level' => $accessLevel,
-                    ],
-                    [
-                        'access_id' => Str::uuid(), // Add UUID for new records
-                    ]
-                );
-
-                // Create role-module access relationship WITH UUID
+        // Add new permissions if any
+        if ($request->has('module_access_ids')) {
+            foreach ($request->module_access_ids as $accessId) {
                 RoleModuleAccess::create([
                     'role_id' => $role->role_id,
-                    'access_id' => $moduleAccess->access_id,
-                    'roles_module_access_id' => Str::uuid(), // Add UUID
+                    'access_id' => $accessId,
+                    'roles_module_access_id' => Str::uuid(),
                 ]);
             }
         }
 
         return redirect()->route('roles.show', $role)
             ->with('success', 'Role permissions updated successfully.');
-    }
-
-    /**
-     * Get roles for API (AJAX requests).
-     */
-    public function apiIndex()
-    {
-        $roles = Role::select('role_id', 'role_name')
-            ->orderBy('role_name')
-            ->get();
-        
-        return response()->json($roles);
-    }
-
-    /**
-     * Get role permissions for API.
-     */
-    public function apiPermissions(Role $role)
-    {
-        $permissions = $role->moduleAccesses()
-            ->select('module', 'access_level')
-            ->get()
-            ->mapWithKeys(function ($item) {
-                return [$item->module => $item->access_level];
-            });
-        
-        return response()->json($permissions);
     }
 }

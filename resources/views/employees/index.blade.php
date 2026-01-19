@@ -1,17 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employees Management </title>
-    
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+@extends('layouts.app')
+
+@section('title', 'Employees Management')
+
+@section('styles')
     <!-- Kendo UI CSS (for similar styling) -->
     <link href="https://kendo.cdn.telerik.com/themes/6.7.0/default/default-main.css" rel="stylesheet">
-    
+  
     <style>
         :root {
             --primary-color: #2563eb;
@@ -21,73 +15,11 @@
             --table-row-alt-bg: #f8fafc;
         }
         
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f9fafb;
-            color: #374151;
-            margin: 0;
-            padding: 0;
-        }
-        
-        .main-container {
-            display: flex;
-            min-height: 100vh;
-        }
-        
-        .navigation-bar {
-            width: 250px;
-            background-color: white;
-            border-right: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .nav-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .logo {
-            width: 160px;
-            height: 57px;
-            margin-bottom: 1rem;
-        }
-        
-        .environment {
-            background-color: #dc2626;
-            color: white;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-        }
-        
-        .environment .version {
-            font-size: 0.7rem;
-            opacity: 0.9;
-        }
-        
-        .dashboard-content-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .main-nav {
-            background-color: white;
-            border-bottom: 1px solid var(--border-color);
-            padding: 1rem 1.5rem;
-            display: flex;
-            justify-content: flex-end;
-        }
-        
-        .dashboard-content {
-            flex: 1;
-            padding: 1.5rem;
-            overflow-y: auto;
+        .page-title {
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
         }
         
         .main-div {
@@ -95,13 +27,6 @@
             border-radius: 0.5rem;
             padding: 1.5rem;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-        
-        .page-title {
-            font-weight: bold;
-            color: var(--primary-color);
-            margin-bottom: 1.5rem;
-            font-size: 1.5rem;
         }
         
         .filtering-bar-container {
@@ -393,15 +318,6 @@
         }
         
         @media (max-width: 768px) {
-            .main-container {
-                flex-direction: column;
-            }
-            
-            .navigation-bar {
-                width: 100%;
-                height: auto;
-            }
-            
             .filtering-bar-container {
                 flex-direction: column;
                 align-items: stretch;
@@ -425,259 +341,216 @@
             }
         }
     </style>
-</head>
-<body>
-    <div class="main-container">
-        <!-- Navigation Sidebar -->
-        <div class="navigation-bar">
-            <div class="nav-header">
-                <div class="nav-button-responsive">
-                    <div class="collapse-button">
-                        <button type="button" class="btn btn-none">
-                            <i class="fas fa-bars"></i>
+@endsection
+
+@section('content')
+<div class="dashboard-content">
+    <div class="main-div">
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="page-title">Employees</h4>
+            <div class="action-buttons">
+                <a href="{{ route('roles.index') }}" class="btn-outline">
+                    <i class="fas fa-user-shield"></i> Roles
+                </a>
+                <a href="{{ route('employees.create') }}" class="btn-primary">
+                    <i class="fas fa-plus"></i> Add Employee
+                </a>
+            </div>
+        </div>
+
+        <!-- Filtering Bar -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="filtering-bar-container">
+                    <div class="search-input-container">
+                        <input type="text" 
+                               class="search-input" 
+                               placeholder="Search by name or email..." 
+                               value="{{ request('search') }}"
+                               id="searchInput">
+                            <path d="M21.53 20.47l-3.66-3.66A8.98 8.98 0 0 0 20 11a9 9 0 1 0-9 9c2.215 0 4.24-.804 5.808-2.13l3.66 3.66a.75.75 0 1 0 1.06-1.06zM3.5 11a7.5 7.5 0 1 1 15 0 7.5 7.5 0 0 1-15 0z"></path>
+                        </svg>
+                    </div>
+                    
+                    <div class="filters-container">
+                        <select class="filter-select" id="roleFilter">
+                            <option value="">All Roles</option>
+                            @foreach($roles as $role)
+                                <option value="{{ $role->role_id }}" {{ request('role') == $role->role_id ? 'selected' : '' }}>
+                                    {{ $role->role_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        
+                        <select class="filter-select" id="statusFilter">
+                            <option value="">All Status</option>
+                            <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
+                            <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                        </select>
+                        
+                        <button class="btn-outline" onclick="resetFilters()">
+                            <i class="fas fa-redo"></i> Reset
                         </button>
                     </div>
                 </div>
-                <a href="/">
-                    <img src="/logo.svg" alt="logo" class="logo">
-                </a>
-                <div class="environment">
-                    PROD <span class="version">v1.4.0</span>
-                </div>
-                <button type="button" class="collapse-btn">
-                    <i class="fas fa-chevron-left"></i>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#employees-tab">
+                    Employees ({{ $employees->total() }})
                 </button>
-            </div>
-        </div>
+            </li>
+        </ul>
 
-        <!-- Main Content -->
-        <div class="dashboard-content-container">
-            <!-- Top Navigation -->
-            <nav class="main-nav">
-                <div class="dropdown">
-                    <button type="button" class="dropdown-toggle btn btn-primary">
-                        <div class="img-container">
-                            <i class="fas fa-user"></i>
-                        </div>
-                        <div class="caret-container">
-                            Admin <i class="fas fa-chevron-down"></i>
-                        </div>
-                    </button>
-                </div>
-            </nav>
-
-            <!-- Dashboard Content -->
-            <div class="dashboard-content">
-                <div class="main-div">
-                    <!-- Page Header -->
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h4 class="page-title">Employees</h4>
-                        <div class="action-buttons">
-                            <a href="{{ route('roles.index') }}" class="btn-outline">
-                                <i class="fas fa-user-shield"></i> Roles
-                            </a>
-                            <a href="{{ route('employees.create') }}" class="btn-primary">
-                                <i class="fas fa-plus"></i> Add Employee
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- Filtering Bar -->
-                    <div class="card mb-4">
-                        <div class="card-body">
-                            <div class="filtering-bar-container">
-                                <div class="search-input-container">
-                                    <input type="text" 
-                                           class="search-input" 
-                                           placeholder="Search by name or email..." 
-                                           value="{{ request('search') }}"
-                                           id="searchInput">
-                                    <svg class="search-icon" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M21.53 20.47l-3.66-3.66A8.98 8.98 0 0 0 20 11a9 9 0 1 0-9 9c2.215 0 4.24-.804 5.808-2.13l3.66 3.66a.75.75 0 1 0 1.06-1.06zM3.5 11a7.5 7.5 0 1 1 15 0 7.5 7.5 0 0 1-15 0z"></path>
-                                    </svg>
-                                </div>
-                                
-                                <div class="filters-container">
-                                    <select class="filter-select" id="roleFilter">
-                                        <option value="">All Roles</option>
-                                        @foreach($roles as $role)
-                                            <option value="{{ $role->role_id }}" {{ request('role') == $role->role_id ? 'selected' : '' }}>
-                                                {{ $role->role_name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    
-                                    <select class="filter-select" id="statusFilter">
-                                        <option value="">All Status</option>
-                                        <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
-                                        <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
-                                    </select>
-                                    
-                                    <button class="btn-outline" onclick="resetFilters()">
-                                        <i class="fas fa-redo"></i> Reset
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Tabs -->
-                    <ul class="nav nav-tabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#employees-tab">
-                                Employees ({{ $employees->total() }})
-                            </button>
-                        </li>
-                    </ul>
-
-                    <!-- Table -->
-                    <div class="scrollable-grid mt-4">
-                        <div class="table-container">
-                            @if($employees->count() > 0)
-                                <table class="table">
-                                    <thead>
-                                        <tr>
-                                            <th>Full Name</th>
-                                            <th>Email</th>
-                                            <th>Role</th>
-                                            <th>Status</th>
-                                            <th>Phone Number</th>
-                                            <th>Employee Type</th>
-                                            <th>Start Date</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach($employees as $employee)
-                                        <tr class="{{ $loop->even ? 'table-row-alt' : '' }}">
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    <div class="avatar-circle me-3">
-                                                        <span class="avatar-text">
-                                                            {{ substr($employee->first_name, 0, 1) }}{{ substr($employee->last_name, 0, 1) }}
-                                                        </span>
-                                                    </div>
-                                                    <div>
-                                                        <div class="fw-medium">{{ $employee->first_name }} {{ $employee->last_name }}</div>
-                                                        <div class="text-muted small">{{ $employee->external_id ?? 'No ID' }}</div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>{{ $employee->email }}</td>
-                                            <td>
-                                                @if($employee->role)
-                                                    <span class="badge bg-primary">{{ $employee->role->role_name }}</span>
-                                                @else
-                                                    <span class="badge bg-secondary">No Role</span>
-                                                @endif
-                                            </td>
-                                            <td>
-                                                @if($employee->credentials && $employee->credentials->is_active)
-                                                    <div class="toggle-container">
-                                                        <div class="toggle toggle-on" onclick="toggleStatus('{{ $employee->employee_id }}')">
-                                                            <div class="toggle-knob"></div>
-                                                        </div>
-                                                    </div>
-                                                @else
-                                                    <div class="toggle-container">
-                                                        <div class="toggle" onclick="toggleStatus('{{ $employee->employee_id }}')">
-                                                            <div class="toggle-knob"></div>
-                                                        </div>
-                                                    </div>
-                                                @endif
-                                            </td>
-                                            <td>{{ $employee->phone_number ?? '-' }}</td>
-                                            <td>{{ $employee->employee_type ?? '-' }}</td>
-                                            <td>{{ $employee->start_date ? $employee->start_date->format('Y-m-d') : '-' }}</td>
-                                            <td>
-                                                <div class="d-flex gap-2">
-                                                    <button class="btn btn-sm btn-outline-primary" 
-                                                            onclick="viewEmployee('{{ $employee->employee_id }}')"
-                                                            title="View">
-                                                        <i class="fas fa-eye"></i>
-                                                    </button>
-                                                    <button class="btn btn-sm btn-outline-secondary"
-                                                            onclick="editEmployee('{{ $employee->employee_id }}')"
-                                                            title="Edit">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <button class="reset-button btn-sm"
-                                                            onclick="resetPassword('{{ $employee->employee_id }}')">
-                                                        Reset Password
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            @else
-                                <div class="empty-state">
-                                    <i class="fas fa-users empty-state-icon"></i>
-                                    <h5 class="mb-2">No employees found</h5>
-                                    <p class="text-muted">Add your first employee to get started</p>
-                                    <a href="{{ route('employees.create') }}" class="btn-primary mt-3">
-                                        <i class="fas fa-plus"></i> Add Employee
-                                    </a>
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-
-                    <!-- Pagination -->
-                    @if($employees->hasPages())
-                    <div class="pagination-container">
-                        <div class="pagination-numbers">
-                            @if($employees->onFirstPage())
-                                <button class="pagination-nav-button" disabled>
-                                    <i class="fas fa-chevron-left"></i>
-                                </button>
-                            @else
-                                <a href="{{ $employees->previousPageUrl() }}" class="pagination-nav-button">
-                                    <i class="fas fa-chevron-left"></i>
-                                </a>
-                            @endif
-                            
-                            @foreach(range(1, min(5, $employees->lastPage())) as $page)
-                                <a href="{{ $employees->url($page) }}" 
-                                   class="pagination-button {{ $employees->currentPage() == $page ? 'active' : '' }}">
-                                    {{ $page }}
-                                </a>
+        <!-- Table -->
+        <div class="scrollable-grid mt-4">
+            <div class="table-container">
+                @if($employees->count() > 0)
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Full Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Phone Number</th>
+                                <th>Employee Type</th>
+                                <th>Start Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($employees as $employee)
+                            <tr class="{{ $loop->even ? 'table-row-alt' : '' }}">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle me-3">
+                                            <span class="avatar-text">
+                                                {{ substr($employee->first_name, 0, 1) }}{{ substr($employee->last_name, 0, 1) }}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <div class="fw-medium">{{ $employee->first_name }} {{ $employee->last_name }}</div>
+                                            <div class="text-muted small">{{ $employee->external_id ?? 'No ID' }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>{{ $employee->email }}</td>
+                                <td>
+                                    @if($employee->role)
+                                        <span class="badge bg-primary">{{ $employee->role->role_name }}</span>
+                                    @else
+                                        <span class="badge bg-secondary">No Role</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($employee->credentials && $employee->credentials->is_active)
+                                        <div class="toggle-container">
+                                            <div class="toggle toggle-on" onclick="toggleStatus('{{ $employee->employee_id }}')">
+                                                <div class="toggle-knob"></div>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <div class="toggle-container">
+                                            <div class="toggle" onclick="toggleStatus('{{ $employee->employee_id }}')">
+                                                <div class="toggle-knob"></div>
+                                            </div>
+                                        </div>
+                                    @endif
+                                </td>
+                                <td>{{ $employee->phone_number ?? '-' }}</td>
+                                <td>{{ $employee->employee_type ?? '-' }}</td>
+                                <td>{{ $employee->start_date ? $employee->start_date->format('Y-m-d') : '-' }}</td>
+                                <td>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-sm btn-outline-primary" 
+                                                onclick="viewEmployee('{{ $employee->employee_id }}')"
+                                                title="View">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary"
+                                                onclick="editEmployee('{{ $employee->employee_id }}')"
+                                                title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="reset-button btn-sm"
+                                                onclick="resetPassword('{{ $employee->employee_id }}')">
+                                            Reset Password
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
                             @endforeach
-                            
-                            @if($employees->hasMorePages())
-                                <a href="{{ $employees->nextPageUrl() }}" class="pagination-nav-button">
-                                    <i class="fas fa-chevron-right"></i>
-                                </a>
-                            @else
-                                <button class="pagination-nav-button" disabled>
-                                    <i class="fas fa-chevron-right"></i>
-                                </button>
-                            @endif
-                        </div>
-                        
-                        <div class="pagination-info">
-                            Showing {{ $employees->firstItem() }} to {{ $employees->lastItem() }} of {{ $employees->total() }} entries
-                        </div>
-                        
-                        <div>
-                            <select class="filter-select" onchange="changePerPage(this.value)">
-                                <option value="10" {{ $employees->perPage() == 10 ? 'selected' : '' }}>10</option>
-                                <option value="25" {{ $employees->perPage() == 25 ? 'selected' : '' }}>25</option>
-                                <option value="50" {{ $employees->perPage() == 50 ? 'selected' : '' }}>50</option>
-                                <option value="100" {{ $employees->perPage() == 100 ? 'selected' : '' }}>100</option>
-                            </select>
-                        </div>
+                        </tbody>
+                    </table>
+                @else
+                    <div class="empty-state">
+                        <i class="fas fa-users empty-state-icon"></i>
+                        <h5 class="mb-2">No employees found</h5>
+                        <p class="text-muted">Add your first employee to get started</p>
+                        <a href="{{ route('employees.create') }}" class="btn-primary mt-3">
+                            <i class="fas fa-plus"></i> Add Employee
+                        </a>
                     </div>
-                    @endif
-                </div>
+                @endif
             </div>
         </div>
-    </div>
 
-    <!-- Bootstrap JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+        <!-- Pagination -->
+        @if($employees->hasPages())
+        <div class="pagination-container">
+            <div class="pagination-numbers">
+                @if($employees->onFirstPage())
+                    <button class="pagination-nav-button" disabled>
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                @else
+                    <a href="{{ $employees->previousPageUrl() }}" class="pagination-nav-button">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                @endif
+                
+                @foreach(range(1, min(5, $employees->lastPage())) as $page)
+                    <a href="{{ $employees->url($page) }}" 
+                       class="pagination-button {{ $employees->currentPage() == $page ? 'active' : '' }}">
+                        {{ $page }}
+                    </a>
+                @endforeach
+                
+                @if($employees->hasMorePages())
+                    <a href="{{ $employees->nextPageUrl() }}" class="pagination-nav-button">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                @else
+                    <button class="pagination-nav-button" disabled>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                @endif
+            </div>
+            
+            <div class="pagination-info">
+                Showing {{ $employees->firstItem() }} to {{ $employees->lastItem() }} of {{ $employees->total() }} entries
+            </div>
+            
+            <div>
+                <select class="filter-select" onchange="changePerPage(this.value)">
+                    <option value="10" {{ $employees->perPage() == 10 ? 'selected' : '' }}>10</option>
+                    <option value="25" {{ $employees->perPage() == 25 ? 'selected' : '' }}>25</option>
+                    <option value="50" {{ $employees->perPage() == 50 ? 'selected' : '' }}>50</option>
+                    <option value="100" {{ $employees->perPage() == 100 ? 'selected' : '' }}>100</option>
+                </select>
+            </div>
+        </div>
+        @endif
+    </div>
+</div>
+@endsection
+
+@section('scripts')
     <script>
         // Search functionality
         const searchInput = document.getElementById('searchInput');
@@ -787,5 +660,4 @@
             }
         });
     </script>
-</body>
-</html>
+@endsection

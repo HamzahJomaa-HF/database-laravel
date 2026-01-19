@@ -7,7 +7,11 @@ use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Relations\HasOne; // Add this import
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Hash;
 
 class Employee extends Authenticatable
 {
@@ -27,7 +31,6 @@ class Employee extends Authenticatable
 
     protected $fillable = [
         'employee_id',
-        'project_id',
         'role_id',
         'first_name',
         'last_name',
@@ -38,6 +41,95 @@ class Employee extends Authenticatable
         'end_date',
         'external_id',
     ];
+
+    // ✅ CRITICAL: Override to get password from credentials table
+    public function getAuthPassword()
+    {
+        return $this->credentials ? $this->credentials->password_hash : null;
+    }
+
+    // ✅ Check if employee account is active
+    public function isActive(): bool
+    {
+        return $this->credentials && $this->credentials->is_active;
+    }
+
+    // ✅ SIMPLIFIED: Get accessible modules
+    public function getAccessibleModules()
+    {
+        if (!$this->role_id) {
+            return collect();
+        }
+        
+        return $this->role->moduleAccesses;
+    }
+     public function hasFullAccess(): bool
+    {
+       if (!$this->role_id) {
+        return false;
+    }
+    
+    // Option 1: Check if role name contains 'admin' (case-insensitive)
+    if ($this->role && stripos($this->role->role_name, 'admin') !== false) {
+        return true;
+    }
+    
+    // Option 2: Check if the role has 'full' access on at least 3 major modules
+    $majorModules = ['Users', 'Projects', 'Programs', 'Activities', 'Reports', 'Dashboard'];
+    $fullAccessCount = 0;
+    
+    foreach ($majorModules as $module) {
+        if ($this->hasPermission($module, 'full')) {
+            $fullAccessCount++;
+        }
+    }
+    
+      // If user has 'full' access on 4 or more major modules, consider it full access
+      return $fullAccessCount >= 4;
+}
+    // ✅ SIMPLIFIED: Check if employee has specific permission
+   public function hasPermission($module, $accessLevel = null): bool
+{
+    if (!$this->role_id) {
+        return false;
+    }
+    
+    // Try to find module in both cases
+    $moduleAccess = $this->role->moduleAccesses
+        ->where('module', $module)
+        ->first();
+    
+    // If not found, try with capitalized version
+    if (!$moduleAccess) {
+        $moduleAccess = $this->role->moduleAccesses
+            ->where('module', ucfirst($module))
+            ->first();
+    }
+    
+    // If still not found, try with lowercase version
+    if (!$moduleAccess) {
+        $moduleAccess = $this->role->moduleAccesses
+            ->where('module', strtolower($module))
+            ->first();
+    }
+    
+    if (!$moduleAccess) {
+        return false;
+    }
+    
+    // If no specific access level required, just module access is enough
+    if (!$accessLevel) {
+        return true;
+    }
+    
+    // Check specific access level
+    return $accessLevel === '*' || $moduleAccess->access_level === $accessLevel;
+}
+    // ✅ Check if employee can access module (alias for hasPermission)
+    public function canAccessModule($module): bool
+    {
+        return $this->hasPermission($module);
+    }
 
     protected static function boot()
     {
@@ -72,27 +164,50 @@ class Employee extends Authenticatable
                 );
             }
         });
+        
     }
 
-    // =============== RELATIONSHIPS ===============
+    // =============== CORRECTED RELATIONSHIPS ===============
 
-    public function project()
+    public function projectEmployees(): HasMany
     {
-        return $this->belongsTo(Project::class, 'project_id', 'project_id');
+        return $this->hasMany(ProjectEmployee::class, 'employee_id', 'employee_id');
     }
 
-    public function role()
+    public function projects(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Project::class,
+            'project_employees',
+            'employee_id',
+            'project_id',
+            'employee_id',
+            'project_id'
+        );
+    }
+
+    // ✅ CORRECTED: Use BelongsTo relationship
+    public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class, 'role_id', 'role_id');
     }
+    
+    // ✅ REMOVED: Complex hasManyThrough (not needed)
+    // The roleModuleAccesses() method was overly complex
 
-    // Fix the return type - use HasOne from Illuminate\Database\Eloquent\Relations\HasOne
+    // ✅ CORRECTED: Single credential relationship
     public function credentials(): HasOne
     {
         return $this->hasOne(CredentialsEmployee::class, 'employee_id', 'employee_id');
     }
 
-    public function getFullNameAttribute()
+    // ✅ Helper method to check role
+    public function hasRole($roleName): bool
+    {
+        return $this->role && $this->role->role_name === $roleName;
+    }
+
+    public function getFullNameAttribute(): string
     {
         return "{$this->first_name} {$this->last_name}";
     }
