@@ -18,6 +18,7 @@ class ModuleAccess extends Model
     protected $fillable = [
         'module',
         'access_level',
+        'description',
     ];
 
     protected static function boot()

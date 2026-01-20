@@ -54,15 +54,20 @@ class Employee extends Authenticatable
         return $this->credentials && $this->credentials->is_active;
     }
 
-    // ✅ SIMPLIFIED: Get accessible modules
-    public function getAccessibleModules()
-    {
-        if (!$this->role_id) {
-            return collect();
-        }
-        
-        return $this->role->moduleAccesses;
+    //  Get accessible modules
+   public function getAccessibleModules()
+{
+    if (!$this->role_id) {
+        return collect();
     }
+    
+    //  Eager load if not already loaded
+    if (!$this->relationLoaded('role') || !$this->role->relationLoaded('moduleAccesses')) {
+        $this->load('role.moduleAccesses');
+    }
+    
+    return $this->role->moduleAccesses;
+}
      public function hasFullAccess(): bool
     {
        if (!$this->role_id) {

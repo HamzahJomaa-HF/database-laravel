@@ -18,7 +18,8 @@ class EmployeeController extends Controller
      */
     public function index()
     {
-        $employees = Employee::with(['role', 'credentials', 'projectEmployees.project'])
+        $employees = Employee::with(['role.moduleAccesses', 'credentials', 'projectEmployees.project'])
+
             ->latest()
             ->paginate(20);
         
@@ -135,7 +136,7 @@ class EmployeeController extends Controller
      */
     public function show(Employee $employee)
     {
-        $employee->load(['role', 'credentials', 'projectEmployees.project']);
+     $employee->load(['role.moduleAccesses', 'credentials', 'projectEmployees.project']);
         
         return view('employees.show', compact('employee'));
     }
@@ -302,8 +303,8 @@ public function toggleStatus($id)
      */
     public function trashed()
     {
-        $employees = Employee::onlyTrashed()
-            ->with(['role', 'credentials', 'projectEmployees.project'])
+      $employees = Employee::onlyTrashed()
+        ->with(['role.moduleAccesses', 'credentials', 'projectEmployees.project'])
             ->latest()
             ->paginate(20);
         

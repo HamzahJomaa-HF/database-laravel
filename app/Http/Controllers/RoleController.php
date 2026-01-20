@@ -78,7 +78,8 @@ class RoleController extends Controller
      */
     public function show(Role $role)
     {
-        $role->load(['employees', 'moduleAccesses']);
+        $role->load(['employees.role.moduleAccesses', 'moduleAccesses']);
+
         
         return view('roles.show', compact('role'));
     }

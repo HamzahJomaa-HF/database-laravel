@@ -10,7 +10,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class CredentialsEmployee extends Authenticatable
+class CredentialsEmployee extends Model
 {
     use HasFactory, HasUuids, Notifiable, SoftDeletes;
 
