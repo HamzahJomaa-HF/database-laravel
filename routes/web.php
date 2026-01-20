@@ -30,9 +30,8 @@ use App\Http\Controllers\ModuleAccessController;
 // ============================================================================
 
 Route::get('/', function () {
-    return redirect()->route('login');
-})->name('home');
-
+    return view('welcome'); // or dashboard
+})->middleware('auth')->name('home');
 
 // ============================================================================
 // AUTHENTICATION ROUTES
