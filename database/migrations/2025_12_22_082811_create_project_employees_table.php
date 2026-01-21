@@ -12,7 +12,7 @@ return new class extends Migration
             $table->uuid('project_employee_id')->primary();
             $table->text('description')->nullable();
             $table->string('external_id', 255)->nullable();
-            $table->uuid('program_id');
+            $table->uuid('program_id');//we took this out in this migration modify_employee_project_relations
             $table->uuid('employee_id');
             $table->timestamps();
         });

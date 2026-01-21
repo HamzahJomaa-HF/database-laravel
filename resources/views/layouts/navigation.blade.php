@@ -1,4 +1,3 @@
-{{-- resources/views/partials/sidebar.blade.php --}}
 <div class="d-flex flex-column h-100 py-3">
     {{-- Brand --}}
     <div class="navbar-brand text-center mb-4 px-3">
@@ -18,9 +17,30 @@
     @auth('employee')
         @php
             $employee = auth()->guard('employee')->user();
-            $accessibleModules = $employee->getAccessibleModules();
-            $hasFullAccess = in_array('all', $accessibleModules);
+            // Load role with module accesses
+            if (!$employee->relationLoaded('role')) {
+                $employee->load('role.moduleAccesses');
+            }
+            $hasFullAccess = $employee->hasFullAccess();
+            
+            // Debug: Show what modules the employee has access to
+            $debugModules = $employee->role->moduleAccesses ?? collect();
+            
+            // Check specific module access with simpler logic
+            $canAccessUsers = $employee->hasPermission('Users') || $hasFullAccess;
+            $canAccessEmployees = $employee->hasPermission('Employees') || $hasFullAccess; // Employees use Users module
+            $canAccessRoles = $employee->hasPermission('Employees') || $hasFullAccess;
+            $canAccessPrograms = $employee->hasPermission('Programs') || $hasFullAccess;
+            $canAccessProjects = $employee->hasPermission('Projects') || $hasFullAccess;
+            $canAccessActivities = $employee->hasPermission('Activities') || $hasFullAccess;
+            $canAccessReports = $employee->hasPermission('Reports') || $hasFullAccess;
+            $canAccessDashboard = $employee->hasPermission('Dashboard') || $hasFullAccess;
+            $canAccessActionPlans = $employee->hasPermission('Reports') || $hasFullAccess;
+            $canAccessModuleAccess = $hasFullAccess; // Only full access for module access
+        
         @endphp
+        
+       
         
         <div class="text-center mb-4 px-3">
             <div class="text-white small">
@@ -41,58 +61,166 @@
     <ul class="nav flex-column mb-2">
         {{-- Dashboard --}}
         @auth('employee')
+            @if($hasFullAccess || $canAccessDashboard)
             <li class="nav-item">
                 <a class="nav-link {{ request()->is('dashboard') ? 'active' : '' }}" href="{{ url('/dashboard') }}">
                     <i class="bi bi-speedometer2 me-2"></i> Dashboard
                 </a>
             </li>
+            @endif
+        @endauth
+        
+        {{-- Employees Directory --}}
+        @auth('employee')
+            @if($hasFullAccess || $canAccessEmployees)
+            <li class="nav-item">
+                <a class="nav-link d-flex justify-content-between align-items-center" 
+                   data-bs-toggle="collapse" href="#employeesDirectoryCollapse" role="button">
+                    <span>
+                        <i class="bi bi-person-badge me-2"></i> Employees Directory
+                    </span>
+                    <i class="bi bi-chevron-down collapse-icon"></i>
+                </a>
+                <div class="collapse {{ request()->is('employees*') ? 'show' : '' }}" id="employeesDirectoryCollapse">
+                    <ul class="nav flex-column sub-menu ms-4">
+                        {{-- All Employees --}}
+                        @if($hasFullAccess || $employee->hasPermission('Employees'))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('employees.index') ? 'active' : '' }}" 
+                               href="{{ route('employees.index') }}">
+                                <i class="bi bi-list-ul me-2"></i> All Employees
+                            </a>
+                        </li>
+                        @endif
+                        
+                        {{-- Add New Employee --}}
+                        @if($hasFullAccess || $employee->hasPermission('Employees'))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('employees.create') ? 'active' : '' }}" 
+                               href="{{ route('employees.create') }}">
+                                <i class="bi bi-person-plus me-2"></i> Add New Employee
+                            </a>
+                        </li>
+                        @endif
+                        
+                        {{-- Search Employees --}}
+                        @if($hasFullAccess || $employee->hasPermission('Employees'))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('employees.search') ? 'active' : '' }}" 
+                               href="{{ route('employees.search') }}">
+                                <i class="bi bi-search me-2"></i> Search Employees
+                            </a>
+                        </li>
+                        @endif
+                        
+                        {{-- Trashed Employees --}}
+                        @if($hasFullAccess || $employee->hasPermission('Employees'))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('employees.trashed') ? 'active' : '' }}" 
+                               href="{{ route('employees.trashed') }}">
+                                <i class="bi bi-trash me-2"></i> Trashed Employees
+                            </a>
+                        </li>
+                        @endif
+                        
+                        {{-- Import Employees --}}
+                        @if($hasFullAccess || $employee->hasPermission('Employees'))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('employees.import') ? 'active' : '' }}" 
+                               href="{{ route('employees.import') }}">
+                                <i class="bi bi-cloud-upload me-2"></i> Import Employees
+                            </a>
+                        </li>
+                        @endif
+                        
+                        {{-- Export Employees --}}
+                        @if($hasFullAccess || $employee->hasPermission('Employees'))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('employees.export') ? 'active' : '' }}" 
+                               href="{{ route('employees.export') }}">
+                                <i class="bi bi-download me-2"></i> Export Employees
+                            </a>
+                        </li>
+                        @endif
+                    </ul>
+                </div>
+            </li>
+            @endif
+        @endauth
+        
+        {{-- Roles Directory --}}
+        @auth('employee')
+            @if($hasFullAccess || $canAccessRoles)
+            <li class="nav-item">
+                <a class="nav-link d-flex justify-content-between align-items-center" 
+                   data-bs-toggle="collapse" href="#rolesDirectoryCollapse" role="button">
+                    <span>
+                        <i class="bi bi-shield-shaded me-2"></i> Roles Directory
+                    </span>
+                    <i class="bi bi-chevron-down collapse-icon"></i>
+                </a>
+                <div class="collapse {{ request()->is('roles*') ? 'show' : '' }}" id="rolesDirectoryCollapse">
+                    <ul class="nav flex-column sub-menu ms-4">
+                        {{-- All Roles --}}
+                        @if($hasFullAccess || $employee->hasPermission('Employees'))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('roles.index') ? 'active' : '' }}" 
+                               href="{{ route('roles.index') }}">
+                                <i class="bi bi-list-ul me-2"></i> All Roles
+                            </a>
+                        </li>
+                        @endif
+                        
+                        {{-- Create Role --}}
+                        @if($hasFullAccess || $employee->hasPermission('Employees'))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('roles.create') ? 'active' : '' }}" 
+                               href="{{ route('roles.create') }}">
+                                <i class="bi bi-plus-circle me-2"></i> Create Role
+                            </a>
+                        </li>
+                        @endif
+                        
+                        {{-- Module Access --}}
+                        @if($hasFullAccess || $canAccessModuleAccess)
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->is('module-access*') ? 'active' : '' }}" 
+                               href="{{ route('module-access.index') }}">
+                                <i class="bi bi-lock me-2"></i> Module Access
+                            </a>
+                        </li>
+                        @endif
+                    </ul>
+                </div>
+            </li>
+            @endif
         @endauth
         
         {{-- User Directory --}}
-        @if(!auth()->guard('employee')->check() || 
-            $hasFullAccess || 
-            (auth()->guard('employee')->check() && $employee->hasModuleAccess('users', 'view')))
-        <li class="nav-item">
-            <a class="nav-link d-flex justify-content-between align-items-center" 
-               data-bs-toggle="collapse" href="#userDirectoryCollapse" role="button">
-                <span>
-                    <i class="bi bi-file-earmark-spreadsheet me-2"></i> Action Plans
-                </span>
-                <i class="bi bi-chevron-down collapse-icon"></i>
-            </a>
-            <div class="collapse {{ request()->is('action-plans*') || request()->is('reporting*') ? 'show' : '' }}" id="actionPlansCollapse">
-                <ul class="nav flex-column sub-menu ms-4">
-                    {{-- Excel Import --}}
-                    <div class="sub-header ms-2 mt-2">Excel Operations</div>
-
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->is('reporting/import') ? 'active' : '' }}"
-                            href="{{ url('/reporting/import') }}">
-                            <i class="bi bi-upload me-2"></i> Import Excel File
-                        </a>
-                    </li>
-
-                    {{-- Action Plan Management --}}
-                    <div class="sub-header ms-2 mt-2">Action Plans</div>
-
-                    {{-- ADD THIS: Link to All Action Plans --}}
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('action-plans.index') ? 'active' : '' }}"
-                            href="{{ route('action-plans.index') }}">
-                            <i class="bi bi-list-ul me-2"></i> All Action Plans
-                        </a>
-                    </li>
-
-                    {{-- Placeholder for other routes --}}
-                    <li class="nav-item">
-                        <a class="nav-link text-white-50 disabled" href="#">
-                            <i class="bi bi-plus-circle me-2"></i> Create Action Plan
-                        </a>
-                    </li>
-                    
-                    {{-- Show "Add New User" only if logged in AND has create access --}}
-                    @if(auth()->guard('employee')->check())
-                        @if($hasFullAccess || $employee->hasModuleAccess('users', 'create'))
+        @auth('employee')
+            @if($hasFullAccess || $canAccessUsers)
+            <li class="nav-item">
+                <a class="nav-link d-flex justify-content-between align-items-center" 
+                   data-bs-toggle="collapse" href="#userDirectoryCollapse" role="button">
+                    <span>
+                        <i class="bi bi-people me-2"></i> User Directory
+                    </span>
+                    <i class="bi bi-chevron-down collapse-icon"></i>
+                </a>
+                <div class="collapse {{ request()->is('users*') ? 'show' : '' }}" id="userDirectoryCollapse">
+                    <ul class="nav flex-column sub-menu ms-4">
+                        {{-- User Management --}}
+                        @if($hasFullAccess || $employee->hasPermission('Users'))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('users.index') ? 'active' : '' }}" 
+                               href="{{ route('users.index') }}">
+                                <i class="bi bi-list-ul me-2"></i> All Users
+                            </a>
+                        </li>
+                        @endif
+                        
+                        {{-- Add New User --}}
+                        @if($hasFullAccess || $employee->hasPermission('Users'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('users.create') ? 'active' : '' }}" 
                                href="{{ route('users.create') }}">
@@ -100,19 +228,19 @@
                             </a>
                         </li>
                         @endif
-                    @endif
-                    
-                    {{-- User Statistics --}}
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('users.statistics') ? 'active' : '' }}" 
-                           href="{{ route('users.statistics') }}">
-                            <i class="bi bi-bar-chart me-2"></i> User Statistics
-                        </a>
-                    </li>
-                    
-                    {{-- Show "Import Users" only if logged in AND has manage access --}}
-                    @if(auth()->guard('employee')->check())
-                        @if($hasFullAccess || $employee->hasModuleAccess('users', 'manage'))
+                        
+                        {{-- User Statistics --}}
+                        @if($hasFullAccess || $employee->hasPermission('Users'))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('users.statistics') ? 'active' : '' }}" 
+                               href="{{ route('users.statistics') }}">
+                                <i class="bi bi-bar-chart me-2"></i> User Statistics
+                            </a>
+                        </li>
+                        @endif
+                        
+                        {{-- Import Users --}}
+                        @if($hasFullAccess || $employee->hasPermission('Users'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('users.import.form') ? 'active' : '' }}" 
                                href="{{ route('users.import.form') }}">
@@ -120,328 +248,238 @@
                             </a>
                         </li>
                         @endif
-                    @endif
-                    
-                    {{-- Export Users --}}
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('users.export.excel') ? 'active' : '' }}" 
-                           href="{{ route('users.export.excel') }}">
-                            <i class="bi bi-download me-2"></i> Export Users
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </li>
-        @endif
+                        
+                        {{-- Export Users --}}
+                        @if($hasFullAccess || $employee->hasPermission('Users'))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('users.export.excel') ? 'active' : '' }}" 
+                               href="{{ route('users.export.excel') }}">
+                                <i class="bi bi-download me-2"></i> Export Users
+                            </a>
+                        </li>
+                        @endif
+                    </ul>
+                </div>
+            </li>
+            @endif
+        @endauth
 
         {{-- Program Directory --}}
-        @if(!auth()->guard('employee')->check() || 
-            $hasFullAccess || 
-            (auth()->guard('employee')->check() && $employee->hasModuleAccess('programs', 'view')))
-        <li class="nav-item">
-            <a class="nav-link d-flex justify-content-between align-items-center" 
-               data-bs-toggle="collapse" href="#programDirectoryCollapse" role="button">
-                <span>
-                    <i class="bi bi-journal-text me-2"></i> Program Directory
-                </span>
-                <i class="bi bi-chevron-down collapse-icon"></i>
-            </a>
-            <div class="collapse {{ request()->is('programs*') ? 'show' : '' }}" id="programDirectoryCollapse">
-                <ul class="nav flex-column sub-menu ms-4">
-                    {{-- Program Management --}}
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="bi bi-list-ul me-2"></i> All Programs
-                        </a>
-                    </li>
-                    
-                    {{-- Show "Add New Program" only if logged in AND has create access --}}
-                    @if(auth()->guard('employee')->check())
-                        @if($hasFullAccess || $employee->hasModuleAccess('programs', 'create'))
+        @auth('employee')
+            @if($hasFullAccess || $canAccessPrograms)
+            <li class="nav-item">
+                <a class="nav-link d-flex justify-content-between align-items-center" 
+                   data-bs-toggle="collapse" href="#programDirectoryCollapse" role="button">
+                    <span>
+                        <i class="bi bi-journal-text me-2"></i> Program Directory
+                    </span>
+                    <i class="bi bi-chevron-down collapse-icon"></i>
+                </a>
+                <div class="collapse {{ request()->is('programs*') ? 'show' : '' }}" id="programDirectoryCollapse">
+                    <ul class="nav flex-column sub-menu ms-4">
+                        {{-- Program Management --}}
+                        @if($hasFullAccess || $employee->hasPermission('Programs'))
                         <li class="nav-item">
-                            <a class="nav-link" href="#">
+                            <a class="nav-link {{ request()->routeIs('programs.index') ? 'active' : '' }}" 
+                               href="{{ route('programs.index') }}">
+                                <i class="bi bi-list-ul me-2"></i> All Programs
+                            </a>
+                        </li>
+                        @endif
+                        
+                        {{-- Add New Program --}}
+                        @if($hasFullAccess || $employee->hasPermission('Programs'))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('programs.create') ? 'active' : '' }}" 
+                               href="{{ route('programs.create') }}">
                                 <i class="bi bi-plus-circle me-2"></i> Add New Program
                             </a>
                         </li>
                         @endif
-                    @endif
-                    
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="bi bi-bar-chart me-2"></i> Program Statistics
-                        </a>
-                    </li>
-                    
-                    {{-- Show "Import Programs" only if logged in AND has manage access --}}
-                    @if(auth()->guard('employee')->check())
-                        @if($hasFullAccess || $employee->hasModuleAccess('programs', 'manage'))
+                    </ul>
+                </div>
+            </li>
+            @endif
+        @endauth
+
+        {{-- Project Directory --}}
+        @auth('employee')
+            @if($hasFullAccess || $canAccessProjects)
+            <li class="nav-item">
+                <a class="nav-link d-flex justify-content-between align-items-center" 
+                   data-bs-toggle="collapse" href="#projectDirectoryCollapse" role="button">
+                    <span>
+                        <i class="bi bi-folder me-2"></i> Project Directory
+                    </span>
+                    <i class="bi bi-chevron-down collapse-icon"></i>
+                </a>
+                <div class="collapse {{ request()->is('projects*') ? 'show' : '' }}" id="projectDirectoryCollapse">
+                    <ul class="nav flex-column sub-menu ms-4">
+                        {{-- Project Management --}}
+                        @if($hasFullAccess || $employee->hasPermission('Projects'))
                         <li class="nav-item">
-                            <a class="nav-link" href="#">
-                                <i class="bi bi-cloud-upload me-2"></i> Import Programs
+                            <a class="nav-link {{ request()->routeIs('projects.index') ? 'active' : '' }}" 
+                               href="{{ route('projects.index') }}">
+                                <i class="bi bi-list-ul me-2"></i> All Projects
                             </a>
                         </li>
                         @endif
-                    @endif
-                    
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="bi bi-download me-2"></i> Export Programs
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </li>
-        @endif
-
-        {{-- Project Directory --}}
-        @if(!auth()->guard('employee')->check() || 
-            $hasFullAccess || 
-            (auth()->guard('employee')->check() && $employee->hasModuleAccess('projects', 'view')))
-        <li class="nav-item">
-            <a class="nav-link d-flex justify-content-between align-items-center" 
-               data-bs-toggle="collapse" href="#projectDirectoryCollapse" role="button">
-                <span>
-                    <i class="bi bi-folder me-2"></i> Project Directory
-                </span>
-                <i class="bi bi-chevron-down collapse-icon"></i>
-            </a>
-            <div class="collapse {{ request()->is('projects*') ? 'show' : '' }}" id="projectDirectoryCollapse">
-                <ul class="nav flex-column sub-menu ms-4">
-                    {{-- Project Management --}}
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="bi bi-list-ul me-2"></i> All Projects
-                        </a>
-                    </li>
-                    
-                    {{-- Show "Add New Project" only if logged in AND has create access --}}
-                    @if(auth()->guard('employee')->check())
-                        @if($hasFullAccess || $employee->hasModuleAccess('projects', 'create'))
+                        
+                        {{-- Add New Project --}}
+                        @if($hasFullAccess || $employee->hasPermission('Projects'))
                         <li class="nav-item">
-                            <a class="nav-link" href="#">
+                            <a class="nav-link {{ request()->routeIs('projects.create') ? 'active' : '' }}" 
+                               href="{{ route('projects.create') }}">
                                 <i class="bi bi-plus-circle me-2"></i> Add New Project
                             </a>
                         </li>
                         @endif
-                    @endif
-                    
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="bi bi-bar-chart me-2"></i> Project Statistics
-                        </a>
-                    </li>
-                    
-                    {{-- Show "Import Projects" only if logged in AND has manage access --}}
-                    @if(auth()->guard('employee')->check())
-                        @if($hasFullAccess || $employee->hasModuleAccess('projects', 'manage'))
+                    </ul>
+                </div>
+            </li>
+            @endif
+        @endauth
+
+        {{-- Activity Directory --}}
+        @auth('employee')
+            @if($hasFullAccess || $canAccessActivities)
+            <li class="nav-item">
+                <a class="nav-link d-flex justify-content-between align-items-center" 
+                   data-bs-toggle="collapse" href="#activityDirectoryCollapse" role="button">
+                    <span>
+                        <i class="bi bi-calendar-event me-2"></i> Activity Directory
+                    </span>
+                    <i class="bi bi-chevron-down collapse-icon"></i>
+                </a>
+                <div class="collapse {{ request()->is('activities*') ? 'show' : '' }}" id="activityDirectoryCollapse">
+                    <ul class="nav flex-column sub-menu ms-4">
+                        {{-- Activity Management --}}
+                        @if($hasFullAccess || $employee->hasPermission('Activities'))
                         <li class="nav-item">
-                            <a class="nav-link" href="#">
-                                <i class="bi bi-cloud-upload me-2"></i> Import Projects
+                            <a class="nav-link {{ request()->routeIs('activities.index') ? 'active' : '' }}" 
+                               href="{{ route('activities.index') }}">
+                                <i class="bi bi-list-ul me-2"></i> All Activities
                             </a>
                         </li>
                         @endif
-                    @endif
-                    
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="bi bi-download me-2"></i> Export Projects
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </li>
-        @endif
-
-        {{-- Activity Directory --}}
-        @if(!auth()->guard('employee')->check() || 
-            $hasFullAccess || 
-            (auth()->guard('employee')->check() && $employee->hasModuleAccess('activities', 'view')))
-        <li class="nav-item">
-            <a class="nav-link d-flex justify-content-between align-items-center" 
-               data-bs-toggle="collapse" href="#activityDirectoryCollapse" role="button">
-                <span>
-                    <i class="bi bi-calendar-event me-2"></i> Activity Directory
-                </span>
-                <i class="bi bi-chevron-down collapse-icon"></i>
-            </a>
-            <div class="collapse {{ request()->is('activities*') ? 'show' : '' }}" id="activityDirectoryCollapse">
-                <ul class="nav flex-column sub-menu ms-4">
-                    {{-- Activity Management --}}
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('activities.index') ? 'active' : '' }}" 
-                           href="{{ route('activities.index') }}">
-                            <i class="bi bi-list-ul me-2"></i> All Activities
-                        </a>
-                    </li>
-                    
-                    {{-- Show "Create Activity" only if logged in AND has create access --}}
-                    @if(auth()->guard('employee')->check())
-                        @if($hasFullAccess || $employee->hasModuleAccess('activities', 'create'))
+                        
+                        {{-- Create Activity --}}
+                        @if($hasFullAccess || $employee->hasPermission('Activities'))
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ route('activities.create') }}">
+                            <a class="nav-link {{ request()->routeIs('activities.create') ? 'active' : '' }}" 
+                               href="{{ route('activities.create') }}">
                                 <i class="bi bi-plus-circle me-2"></i> Create Activity
                             </a>
                         </li>
                         @endif
-                    @endif
-                    
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="bi bi-bar-chart me-2"></i> Activity Statistics
-                        </a>
-                    </li>
-                    
-                    {{-- Show "Import Activities" only if logged in AND has manage access --}}
-                    @if(auth()->guard('employee')->check())
-                        @if($hasFullAccess || $employee->hasModuleAccess('activities', 'manage'))
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">
-                                <i class="bi bi-cloud-upload me-2"></i> Import Activities
-                            </a>
-                        </li>
-                        @endif
-                    @endif
-                    
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="bi bi-download me-2"></i> Export Activities
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </li>
-        @endif
+                    </ul>
+                </div>
+            </li>
+            @endif
+        @endauth
 
         {{-- Action Plans --}}
-        @if(!auth()->guard('employee')->check() || 
-            $hasFullAccess || 
-            (auth()->guard('employee')->check() && ($employee->hasModuleAccess('action_plans', 'view') || $employee->hasModuleAccess('reports', 'view'))))
-        <li class="nav-item">
-            <a class="nav-link d-flex justify-content-between align-items-center" 
-               data-bs-toggle="collapse" href="#actionPlansCollapse" role="button">
-                <span>
-                    <i class="bi bi-file-earmark-spreadsheet me-2"></i> Action Plans
-                </span>
-                <i class="bi bi-chevron-down collapse-icon"></i>
-            </a>
-            <div class="collapse {{ request()->is('action-plans*') || request()->is('reporting*') ? 'show' : '' }}" id="actionPlansCollapse">
-                <ul class="nav flex-column sub-menu ms-4">
-                    {{-- Excel Import --}}
-                    <div class="sub-header ms-2 mt-2">Excel Operations</div>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->is('reporting/import') ? 'active' : '' }}" 
-                           href="{{ url('/reporting/import') }}">
-                            <i class="bi bi-upload me-2"></i> Import Excel File
-                        </a>
-                    </li>
-                    
-                    {{-- Action Plan Management --}}
-                    <div class="sub-header ms-2 mt-2">Action Plans</div>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('action-plans.index') ? 'active' : '' }}" 
-                           href="{{ route('action-plans.index') }}">
-                            <i class="bi bi-list-ul me-2"></i> All Action Plans
-                        </a>
-                    </li>
-                    
-                    {{-- Show "Create Action Plan" only if logged in AND has create access --}}
-                    @if(auth()->guard('employee')->check())
-                        @if($hasFullAccess || $employee->hasModuleAccess('action_plans', 'create'))
+        @auth('employee')
+            @if($hasFullAccess || $canAccessActionPlans || $canAccessReports)
+            <li class="nav-item">
+                <a class="nav-link d-flex justify-content-between align-items-center" 
+                   data-bs-toggle="collapse" href="#actionPlansCollapse" role="button">
+                    <span>
+                        <i class="bi bi-file-earmark-spreadsheet me-2"></i> Action Plans
+                    </span>
+                    <i class="bi bi-chevron-down collapse-icon"></i>
+                </a>
+                <div class="collapse {{ request()->is('action-plans*') || request()->is('reporting*') ? 'show' : '' }}" id="actionPlansCollapse">
+                    <ul class="nav flex-column sub-menu ms-4">
+                        {{-- Excel Import --}}
+                        @if($hasFullAccess || $employee->hasPermission('Reports'))
+                        <div class="sub-header ms-2 mt-2">Excel Operations</div>
+                        
                         <li class="nav-item">
-                            <a class="nav-link" href="#">
-                                <i class="bi bi-plus-circle me-2"></i> Create Action Plan
+                            <a class="nav-link {{ request()->is('reporting/import') ? 'active' : '' }}" 
+                               href="{{ url('/reporting/import') }}">
+                                <i class="bi bi-upload me-2"></i> Import Excel File
                             </a>
                         </li>
                         @endif
-                    @endif
-                    
-                    {{-- Show "Download Template" only if logged in AND has view access --}}
-                    @if(auth()->guard('employee')->check())
-                        @if($hasFullAccess || $employee->hasModuleAccess('action_plans', 'view'))
+                        
+                        {{-- Action Plan Management --}}
+                        @if($hasFullAccess || $employee->hasPermission('Reports'))
+                        <div class="sub-header ms-2 mt-2">Action Plans</div>
+                        
                         <li class="nav-item">
-                            <a class="nav-link" href="#">
-                                <i class="bi bi-download me-2"></i> Download Template
+                            <a class="nav-link {{ request()->routeIs('action-plans.index') ? 'active' : '' }}" 
+                               href="{{ route('action-plans.index') }}">
+                                <i class="bi bi-list-ul me-2"></i> All Action Plans
                             </a>
                         </li>
                         @endif
-                    @endif
-                    
-                    {{-- Show "Export to Excel" only if logged in AND has manage access --}}
-                    @if(auth()->guard('employee')->check())
-                        @if($hasFullAccess || $employee->hasModuleAccess('action_plans', 'manage'))
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">
-                                <i class="bi bi-file-earmark-excel me-2"></i> Export to Excel
-                            </a>
-                        </li>
-                        @endif
-                    @endif
-                </ul>
-            </div>
-        </li>
-        @endif
+                    </ul>
+                </div>
+            </li>
+            @endif
+        @endauth
                         
         {{-- Cross-Platform Analytics --}}
-        @if(!auth()->guard('employee')->check() || 
-            $hasFullAccess || 
-            (auth()->guard('employee')->check() && $employee->hasModuleAccess('reports', 'view')))
-        <div class="nav-header mt-4">Cross-Platform Analytics</div>
-        <ul class="nav flex-column mb-2">
-            <li class="nav-item">
-                <a class="nav-link" href="#">
-                    <i class="bi bi-speedometer me-2"></i> Executive Dashboard
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="#">
-                    <i class="bi bi-pie-chart-fill me-2"></i> Overall Statistics
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="#">
-                    <i class="bi bi-graph-up-arrow me-2"></i> Performance Overview
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="#">
-                    <i class="bi bi-arrow-left-right me-2"></i> Data Integration
-                </a>
-            </li>
-        </ul>
-        @endif
+        @auth('employee')
+            @if($hasFullAccess || $canAccessReports)
+            <div class="nav-header mt-4">Cross-Platform Analytics</div>
+            <ul class="nav flex-column mb-2">
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        <i class="bi bi-speedometer me-2"></i> Executive Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        <i class="bi bi-pie-chart-fill me-2"></i> Overall Statistics
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        <i class="bi bi-graph-up-arrow me-2"></i> Performance Overview
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        <i class="bi bi-arrow-left-right me-2"></i> Data Integration
+                    </a>
+                </li>
+            </ul>
+            @endif
+        @endauth
 
         {{-- Administration --}}
-        @if(auth()->guard('employee')->check() && 
-            ($hasFullAccess || $employee->hasModuleAccess('all', 'manage')))
-        <div class="nav-header mt-4">Administration</div>
-        <ul class="nav flex-column">
-            <li class="nav-item">
-                <a class="nav-link" href="#">
-                    <i class="bi bi-gear me-2"></i> System Settings
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="#">
-                    <i class="bi bi-shield-lock me-2"></i> Security & Permissions
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="#">
-                    <i class="bi bi-database me-2"></i> Data Management
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="#">
-                    <i class="bi bi-upload me-2"></i> Bulk Operations
-                </a>
-            </li>
-        </ul>
-        @endif
+        @auth('employee')
+            @if($hasFullAccess)
+            <div class="nav-header mt-4">Administration</div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        <i class="bi bi-gear me-2"></i> System Settings
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        <i class="bi bi-shield-lock me-2"></i> Security & Permissions
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        <i class="bi bi-database me-2"></i> Data Management
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        <i class="bi bi-upload me-2"></i> Bulk Operations
+                    </a>
+                </li>
+            </ul>
+            @endif
+        @endauth
         
         {{-- Authentication Section --}}
-        @if(auth()->guard('employee')->check())
+        @auth('employee')
             {{-- Logout --}}
             <div class="mt-auto p-3">
                 <div class="card bg-dark border-0">
@@ -472,7 +510,7 @@
                     </div>
                 </div>
             </div>
-        @endif
+        @endauth
     </ul>
 </div>
 
@@ -530,6 +568,12 @@
 .badge {
     font-size: 0.6rem;
     padding: 0.2rem 0.4rem;
+}
+
+/* Debug info */
+.debug-info {
+    font-size: 0.7rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 </style>
 

@@ -6,9 +6,9 @@
     <title>Login - Hariri Foundation</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body class="bg-light">
+<body class="bg-light d-flex justify-content-center align-items-center min-vh-100">
     <div class="container">
-        <div class="row justify-content-center mt-5">
+        <div class="row justify-content-center">
             <div class="col-md-6">
                 <div class="card shadow">
                     <div class="card-header bg-primary text-white">
@@ -64,13 +64,7 @@
                         
                         <hr class="my-4">
                         
-                        <div class="text-center">
-                            <p class="text-muted mb-0">
-                                <strong>Test Credentials:</strong><br>
-                                admin@hariri.org / password123<br>
-                                hr@hariri.org / password123
-                            </p>
-                        </div>
+                        
                     </div>
                 </div>
             </div>

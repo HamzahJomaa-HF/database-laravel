@@ -270,8 +270,8 @@
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
                                 <div class="me-2 text-end d-none d-md-block">
-                                    <div class="fw-semibold text-dark" style="font-size: 0.9rem;">Adrian D.</div>
-                                    <div class="text-muted small">Administrator</div>
+                                    <div class="fw-semibold text-dark" style="font-size: 0.9rem;">{{ Auth::user()->first_name }} {{ Auth::user()->last_name }}</div>
+                                    <div class="text-muted small">{{ Auth::user()->employee_type }}</div>
                                 </div>
                                 <div class="position-relative">
                                     <img src="https://placehold.co/40x40/4361ee/FFFFFF?text=AD" class="rounded-circle border border-2 border-white shadow" alt="User Avatar">

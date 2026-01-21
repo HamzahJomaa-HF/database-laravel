@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ProjectEmployee extends Model
 {
-     use SoftDeletes;
+    use SoftDeletes;
     use HasFactory, HasUuids;
 
     protected $primaryKey = 'project_employee_id';
@@ -19,7 +19,7 @@ class ProjectEmployee extends Model
 
     protected $fillable = [
         'project_employee_id',
-        'program_id',
+        'project_id',
         'employee_id',
         'description',
         'external_id',
@@ -30,11 +30,9 @@ class ProjectEmployee extends Model
         parent::boot();
 
         static::creating(function ($projectEmployee) {
-            // Generate UUID for primary key
-            if (empty($projectEmployee->project_employee_id)) {
-                $projectEmployee->project_employee_id = (string) Str::uuid();
-            }
-
+            // REMOVE THE MANUAL UUID GENERATION - HasUuids trait handles it automatically
+            // The HasUuids trait will set the UUID for you, so this code is redundant
+            
             // Generate sequential external_id: PROJEMP_{YYYY}_{MM}_{sequence}
             if (empty($projectEmployee->external_id)) {
                 $year = now()->format('Y');
@@ -67,10 +65,10 @@ class ProjectEmployee extends Model
      * Relationships
      */
 
-    // Each ProjectEmployee belongs to a Program
-    public function program()
+    // Each ProjectEmployee belongs to a Project
+    public function project()
     {
-        return $this->belongsTo(Program::class, 'program_id', 'program_id');
+        return $this->belongsTo(Project::class, 'project_id', 'project_id');
     }
 
     // Each ProjectEmployee belongs to an Employee

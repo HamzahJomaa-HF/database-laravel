@@ -30,11 +30,14 @@ return new class extends Migration
             
             // Unique constraint: one access record per employee-module-resource
             $table->unique(['employee_id', 'module', 'resource_id', 'resource_type']);
+            $table->softDeletes();
         });
     }
 
     public function down()
     {
         Schema::dropIfExists('module_access');
+          $table->dropSoftDeletes();
+
     }
 };

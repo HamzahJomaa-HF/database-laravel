@@ -22,7 +22,6 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        /* Sidebar-styled card headers */
         .card-header-sidebar {
             background: linear-gradient(135deg, var(--sidebar-bg) 0%, #34495e 100%);
             color: white;
@@ -31,11 +30,6 @@
             border-radius: 8px 8px 0 0;
         }
 
-        .card-header-sidebar i {
-            font-size: 1.2rem;
-        }
-
-        /* Dashboard cards */
         .dashboard-card {
             border: none;
             border-radius: 10px;
@@ -57,7 +51,6 @@
             overflow: hidden;
         }
 
-        /* Module grid with scroll */
         .module-grid-container {
             max-height: 300px;
             overflow-y: auto;
@@ -79,31 +72,6 @@
             border-radius: 4px;
         }
 
-        .module-grid-container::-webkit-scrollbar-thumb:hover {
-            background: #a1a1a1;
-        }
-
-        .module-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 0.75rem;
-        }
-
-        .module-item {
-            background: white;
-            border-radius: 8px;
-            padding: 0.875rem;
-            border-left: 4px solid var(--primary-color);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            transition: all 0.2s ease;
-        }
-
-        .module-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-
-        /* Access level badges */
         .access-level-badge {
             font-size: 0.65rem;
             padding: 0.2rem 0.4rem;
@@ -115,9 +83,7 @@
         .access-edit { background-color: var(--warning-color) !important; }
         .access-delete { background-color: var(--danger-color) !important; }
         .access-manage { background-color: var(--primary-color) !important; }
-        .access-full { background-color: var(--success-color) !important; }
 
-        /* Quick access cards */
         .quick-access-card {
             border: 1px solid #e0e0e0;
             border-radius: 8px;
@@ -133,11 +99,6 @@
             transform: translateY(-3px);
         }
 
-        .quick-access-card .card-body {
-            padding: 1.25rem;
-            text-align: center;
-        }
-
         .quick-access-icon {
             width: 50px;
             height: 50px;
@@ -151,7 +112,6 @@
             font-size: 1.25rem;
         }
 
-        /* User profile section */
         .user-profile-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border-radius: 10px;
@@ -172,36 +132,28 @@
             margin-right: 1rem;
         }
 
-        /* Navigation */
         .navbar {
             background: var(--sidebar-bg) !important;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             padding: 0.75rem 0;
         }
 
-        .navbar-brand {
-            font-weight: 600;
-            font-size: 1.25rem;
+        .compact-text {
+            font-size: 0.85rem;
+            line-height: 1.4;
         }
 
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .module-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .quick-access-card .card-body {
-                padding: 1rem;
-            }
-            
-            .user-avatar {
-                width: 60px;
-                height: 60px;
-                font-size: 1.75rem;
-            }
+        .compact-text-sm {
+            font-size: 0.8rem;
         }
 
-        /* Equal height cards */
+        .module-count-badge {
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+
         .row.equal-height {
             display: flex;
             flex-wrap: wrap;
@@ -212,7 +164,6 @@
             flex-direction: column;
         }
 
-        /* Footer */
         footer {
             background: var(--sidebar-bg);
             color: white;
@@ -221,22 +172,16 @@
             font-size: 0.85rem;
         }
 
-        /* Module counter badge */
-        .module-count-badge {
-            background-color: rgba(255, 255, 255, 0.2);
-            padding: 0.2rem 0.6rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-        }
-
-        /* Compact text */
-        .compact-text {
-            font-size: 0.85rem;
-            line-height: 1.4;
-        }
-
-        .compact-text-sm {
-            font-size: 0.8rem;
+        @media (max-width: 768px) {
+            .quick-access-card .card-body {
+                padding: 1rem;
+            }
+            
+            .user-avatar {
+                width: 60px;
+                height: 60px;
+                font-size: 1.75rem;
+            }
         }
     </style>
 </head>
@@ -261,7 +206,7 @@
                             <div class="fw-bold">{{ $employee->first_name }} {{ $employee->last_name }}</div>
                             <small class="d-block">
                                 {{ $employee->role->role_name ?? 'No role assigned' }}
-                                @if(in_array('all', $employee->getAccessibleModules()))
+                                @if($employee->hasFullAccess())
                                     <span class="badge bg-success ms-1">Super Admin</span>
                                 @endif
                             </small>
@@ -315,7 +260,7 @@
             </div>
         </div>
 
-        <!-- Dashboard Content - Equal Height Row -->
+        <!-- Dashboard Content -->
         <div class="row equal-height g-3">
             <!-- Left Column - User Information -->
             <div class="col-lg-4">
@@ -346,7 +291,13 @@
                                 <div class="p-2 bg-light rounded">
                                     <label class="form-label text-muted small mb-1">Status</label>
                                     <div>
-                                        @if($employee->is_active)
+                                        @php
+                                            // Load credentials if not loaded
+                                            if (!$employee->relationLoaded('credentials')) {
+                                                $employee->load('credentials');
+                                            }
+                                        @endphp
+                                        @if($employee->isActive())
                                             <span class="badge bg-success compact-text-sm">
                                                 <i class="bi bi-check-circle me-1"></i>Active
                                             </span>
@@ -389,14 +340,14 @@
                         </div>
                         @php
                             $accessibleModules = $employee->getAccessibleModules();
-                            $moduleCount = count(array_filter($accessibleModules, fn($module) => $module !== 'all'));
+                            $moduleCount = $accessibleModules->count();
                         @endphp
                         <span class="module-count-badge compact-text-sm">
                             <i class="bi bi-grid-1x2 me-1"></i>{{ $moduleCount }} modules
                         </span>
                     </div>
                     <div class="card-body">
-                        @if(in_array('all', $accessibleModules))
+                        @if($employee->hasFullAccess())
                             <div class="alert alert-success mb-3 py-2">
                                 <div class="d-flex align-items-center">
                                     <i class="bi bi-stars fs-5 me-2"></i>
@@ -408,7 +359,7 @@
                             </div>
                         @endif
 
-                        @if(empty($accessibleModules))
+                        @if($accessibleModules->isEmpty())
                             <div class="alert alert-warning text-center py-3">
                                 <i class="bi bi-exclamation-triangle fs-4 mb-2 d-block"></i>
                                 <h6 class="mb-1">No Module Access</h6>
@@ -421,46 +372,46 @@
                             </p>
                             
                             <div class="module-grid-container">
-                                <div class="module-grid">
-                                    @foreach($accessibleModules as $module)
-                                        @if($module !== 'all')
+                                <div class="row row-cols-1 row-cols-md-2 g-3">
+                                    @foreach($accessibleModules as $moduleAccess)
+                                        @if($moduleAccess->module !== 'all')
                                             @php
-                                                $access = $employee->moduleAccess()
-                                                    ->where('module', $module)
-                                                    ->whereNull('resource_id')
-                                                    ->first();
-                                                $accessLevel = $access ? $access->access_level : 'view';
+                                                $module = $moduleAccess->module;
+                                                $accessLevel = $moduleAccess->access_level ?? 'view';
                                                 
-                                                // Map modules to icons
+                                                // Fix: Use proper module names (from your database)
                                                 $moduleIcons = [
-                                                    'users' => 'bi-people',
-                                                    'activities' => 'bi-calendar-event',
-                                                    'programs' => 'bi-diagram-3',
-                                                    'projects' => 'bi-kanban',
-                                                    'action_plans' => 'bi-journal-text',
-                                                    'surveys' => 'bi-clipboard-data',
-                                                    'cops' => 'bi-building',
-                                                    'portfolios' => 'bi-folder',
-                                                    'reports' => 'bi-bar-chart',
-                                                    'nationality' => 'bi-globe',
-                                                    'diploma' => 'bi-award',
-                                                    'roles' => 'bi-person-badge',
-                                                    'employees' => 'bi-person-workspace',
+                                                    'Users' => 'bi-people',
+                                                    'Activities' => 'bi-calendar-event',
+                                                    'Programs' => 'bi-diagram-3',
+                                                    'Projects' => 'bi-kanban',
+                                                    'Action_plans' => 'bi-journal-text',
+                                                    'Surveys' => 'bi-clipboard-data',
+                                                    'COPs' => 'bi-building',
+                                                    'Portfolios' => 'bi-folder',
+                                                    'Reports' => 'bi-bar-chart',
+                                                    'Nationality' => 'bi-globe',
+                                                    'Diploma' => 'bi-award',
+                                                    'Roles' => 'bi-person-badge',
+                                                    'Employees' => 'bi-person-workspace',
+                                                    'Dashboard' => 'bi-speedometer2',
                                                 ];
                                             @endphp
-                                            <div class="module-item">
-                                                <div class="d-flex justify-content-between align-items-start mb-1">
-                                                    <div class="d-flex align-items-center">
-                                                        <i class="bi {{ $moduleIcons[$module] ?? 'bi-grid' }} me-1 text-primary"></i>
-                                                        <h6 class="mb-0 text-capitalize compact-text">{{ str_replace('_', ' ', $module) }}</h6>
+                                            <div class="col">
+                                                <div class="module-item border rounded p-3 bg-white shadow-sm">
+                                                    <div class="d-flex justify-content-between align-items-start mb-1">
+                                                        <div class="d-flex align-items-center">
+                                                            <i class="bi {{ $moduleIcons[$module] ?? 'bi-grid' }} me-1 text-primary"></i>
+                                                            <h6 class="mb-0 text-capitalize compact-text">{{ str_replace('_', ' ', $module) }}</h6>
+                                                        </div>
+                                                        <span class="access-level-badge access-{{ $accessLevel }}">
+                                                            {{ $accessLevel }}
+                                                        </span>
                                                     </div>
-                                                    <span class="access-level-badge access-{{ $accessLevel }}">
-                                                        {{ $accessLevel }}
-                                                    </span>
+                                                    <p class="text-muted small mb-0 compact-text-sm">
+                                                        Access: <span class="fw-bold text-capitalize">{{ $accessLevel }}</span>
+                                                    </p>
                                                 </div>
-                                                <p class="text-muted small mb-0 compact-text-sm">
-                                                    Access: <span class="fw-bold text-capitalize">{{ $accessLevel }}</span>
-                                                </p>
                                             </div>
                                         @endif
                                     @endforeach
@@ -490,16 +441,16 @@
                         
                         <div class="row g-3">
                             <!-- Activities -->
-                            @if($employee->hasModuleAccess('activities', 'view'))
+                            @if($employee->hasPermission('Activities', 'view'))
                             <div class="col-xl-3 col-lg-4 col-md-6">
-                                <a href="{{ route('protected.activities.index') }}" 
+                                <a href="{{ route('activities.index') }}" 
                                    class="quick-access-card card">
                                     <div class="card-body">
                                         <div class="quick-access-icon">
                                             <i class="bi bi-calendar-event"></i>
                                         </div>
                                         <h6 class="card-title mb-2 compact-text">Activities</h6>
-                                        @if($employee->hasModuleAccess('activities', 'create'))
+                                        @if($employee->hasPermission('Activities', 'create'))
                                             <span class="badge bg-success module-badge compact-text-sm">
                                                 <i class="bi bi-plus-circle me-1"></i>Create
                                             </span>
@@ -510,16 +461,16 @@
                             @endif
                             
                             <!-- Users -->
-                            @if($employee->hasModuleAccess('users', 'view'))
+                            @if($employee->hasPermission('Users', 'view'))
                             <div class="col-xl-3 col-lg-4 col-md-6">
-                                <a href="{{ route('protected.users.index') }}" 
+                                <a href="{{ route('users.index') }}" 
                                    class="quick-access-card card">
                                     <div class="card-body">
                                         <div class="quick-access-icon">
                                             <i class="bi bi-people"></i>
                                         </div>
                                         <h6 class="card-title mb-2 compact-text">Users</h6>
-                                        @if($employee->hasModuleAccess('users', 'create'))
+                                        @if($employee->hasPermission('Users', 'create'))
                                             <span class="badge bg-success module-badge compact-text-sm">
                                                 <i class="bi bi-plus-circle me-1"></i>Create
                                             </span>
@@ -530,7 +481,7 @@
                             @endif
                             
                             <!-- Action Plans -->
-                            @if($employee->hasModuleAccess('action_plans', 'view'))
+                            @if($employee->hasPermission('Action_plans', 'view'))
                             <div class="col-xl-3 col-lg-4 col-md-6">
                                 <a href="{{ route('action-plans.index') }}" 
                                    class="quick-access-card card">
@@ -545,9 +496,9 @@
                             @endif
                             
                             <!-- Programs -->
-                            @if($employee->hasModuleAccess('programs', 'view'))
+                            @if($employee->hasPermission('Programs', 'view'))
                             <div class="col-xl-3 col-lg-4 col-md-6">
-                                <a href="#" 
+                                <a href="{{ route('programs.index') }}" 
                                    class="quick-access-card card">
                                     <div class="card-body">
                                         <div class="quick-access-icon">
@@ -560,9 +511,9 @@
                             @endif
                             
                             <!-- Projects -->
-                            @if($employee->hasModuleAccess('projects', 'view'))
+                            @if($employee->hasPermission('Projects', 'view'))
                             <div class="col-xl-3 col-lg-4 col-md-6">
-                                <a href="#" 
+                                <a href="{{ route('projects.index') }}" 
                                    class="quick-access-card card">
                                     <div class="card-body">
                                         <div class="quick-access-icon">
@@ -575,9 +526,9 @@
                             @endif
                             
                             <!-- Surveys -->
-                            @if($employee->hasModuleAccess('surveys', 'view'))
+                            @if($employee->hasPermission('Surveys', 'view'))
                             <div class="col-xl-3 col-lg-4 col-md-6">
-                                <a href="#" 
+                                <a href="{{ route('surveys.index') }}" 
                                    class="quick-access-card card">
                                     <div class="card-body">
                                         <div class="quick-access-icon">
@@ -590,7 +541,7 @@
                             @endif
                             
                             <!-- Reporting -->
-                            @if($employee->hasModuleAccess('reports', 'view') || $employee->hasModuleAccess('action_plans', 'view'))
+                            @if($employee->hasPermission('Reports', 'view') || $employee->hasPermission('Action_plans', 'view'))
                             <div class="col-xl-3 col-lg-4 col-md-6">
                                 <a href="{{ url('/reporting/import') }}" 
                                    class="quick-access-card card">
