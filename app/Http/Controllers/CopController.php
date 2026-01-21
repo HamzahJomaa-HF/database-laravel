@@ -136,9 +136,36 @@ class CopController extends Controller
     /**
      * Display a listing of COPs.
      */
-    public function index()
-    {
-        $cops = Cop::latest()->paginate(10);
-        return view('cops.index', compact('cops'));
+   public function index(Request $request)
+{
+    $query = Cop::query();
+    
+    // Search by name or description
+    if ($request->has('search') && $request->search != '') {
+        $search = $request->search;
+        $query->where(function($q) use ($search) {
+            $q->where('cop_name', 'ILIKE', "%{$search}%")
+              ->orWhere('external_id', 'ILIKE', "%{$search}%");
+        });
     }
+    
+    // Apply sorting
+    $sortBy = $request->sort_by ?? 'created_at';
+    $sortOrder = $request->sort_order ?? 'desc';
+    
+    // Validate sort fields to prevent SQL injection
+    $allowedSortFields = ['cop_name', 'external_id', 'created_at', 'updated_at'];
+    $allowedSortOrders = ['asc', 'desc'];
+    
+    if (in_array($sortBy, $allowedSortFields) && in_array($sortOrder, $allowedSortOrders)) {
+        $query->orderBy($sortBy, $sortOrder);
+    } else {
+        $query->latest();
+    }
+    
+    // Paginate results
+    $cops = $query->paginate($request->per_page ?? 10)->withQueryString();
+    
+    return view('cops.index', compact('cops'));
+}
 }

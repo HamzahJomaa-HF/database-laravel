@@ -207,9 +207,44 @@ class PortfolioController extends Controller
     /**
      * Display a listing of portfolios.
      */
-    public function index()
+     /**
+     * Display a listing of portfolios with filtering.
+     */
+    public function index(Request $request)
     {
-        $portfolios = Portfolio::latest()->paginate(10);
-        return view('portfolios.index', compact('portfolios'));
+        $query = Portfolio::query();
+        
+        // Search by name or description
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'ILIKE', "%{$search}%")
+                  ->orWhere('description', 'ILIKE', "%{$search}%")
+                  ->orWhere('external_id', 'ILIKE', "%{$search}%");
+            });
+        }
+        
+        // Filter by type
+        if ($request->has('type') && $request->type != '') {
+            $query->where('type', $request->type);
+        }
+        
+        // Filter by associated COP
+        if ($request->has('cop_id') && $request->cop_id != '') {
+            $query->whereHas('cops', function($q) use ($request) {
+                $q->where('cop_id', $request->cop_id);
+            });
+        }
+        
+        // Apply sorting
+        $query->latest();
+        
+        // Paginate results
+        $portfolios = $query->paginate($request->per_page ?? 10)->withQueryString();
+        
+        // Get COPs for filter dropdown
+        $cops = Cop::orderBy('cop_name')->get();
+        
+        return view('portfolios.index', compact('portfolios', 'cops'));
     }
 }
