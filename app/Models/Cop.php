@@ -11,13 +11,13 @@ class Cop extends Model
 {
      use SoftDeletes;
     use HasFactory;
+    protected $table = 'cops';
 
     protected $primaryKey = 'cop_id';
     public $incrementing = false;
     protected $keyType = 'string';
 
     protected $fillable = [
-        'program_id',
         'cop_name',
         'description',
         'external_id',
@@ -61,8 +61,21 @@ class Cop extends Model
         });
     }
 
-    public function program()
+    public function portfolios()
     {
-        return $this->belongsTo(Program::class, 'program_id', 'program_id');
+        return $this->belongsToMany(
+            Portfolio::class,
+            'cops_portfolios',
+            'cop_id',
+            'portfolio_id'
+        )->withTimestamps();
     }
+    public function activities()
+{
+    return $this->hasMany(
+        Activity::class,
+        'target_cop',  // Foreign key in activities table
+        'cop_id'       // Primary key in cops table
+    );
+}
 }

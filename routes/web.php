@@ -13,6 +13,10 @@ use App\Http\Controllers\CredentialsEmployeeController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ModuleAccessController;
+use App\Http\Controllers\PortfolioController;
+use App\Http\Controllers\CopController;
+
+
 
 /*
 |--------------------------------------------------------------------------
@@ -28,6 +32,30 @@ use App\Http\Controllers\ModuleAccessController;
 // ============================================================================
 // PUBLIC ROUTES - Accessible WITHOUT authentication
 // ============================================================================
+
+Route::get('/portfolios', [PortfolioController::class, 'index'])->name('portfolios.index');
+Route::get('/portfolios/create', [PortfolioController::class, 'create'])->name('portfolios.create');
+Route::post('/portfolios', [PortfolioController::class, 'store'])->name('portfolios.store');
+Route::get('/portfolios/{id}/edit', [PortfolioController::class, 'edit'])->name('portfolios.edit');
+Route::put('/portfolios/{id}', [PortfolioController::class, 'update'])->name('portfolios.update');
+Route::delete('/portfolios/{id}', [PortfolioController::class, 'destroy'])->name('portfolios.destroy');
+
+
+
+//Cops Management Routes
+
+
+Route::get('/cops', [CopController::class, 'index'])->name('cops.index');
+Route::get('/cops/create', [CopController::class, 'create'])->name('cops.create');
+Route::post('/cops', [CopController::class, 'store'])->name('cops.store');
+
+Route::get('/cops/{id}/edit', [CopController::class, 'edit'])->name('cops.edit');
+Route::put('/cops/{id}', [CopController::class, 'update'])->name('cops.update');
+Route::delete('/cops/{id}', [CopController::class, 'destroy'])->name('cops.destroy');
+
+
+
+
 
 Route::get('/', function () {
     return redirect()->route('login');
