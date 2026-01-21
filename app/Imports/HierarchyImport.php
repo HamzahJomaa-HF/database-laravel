@@ -197,43 +197,58 @@ class HierarchyImport implements ToCollection, WithHeadingRow
     /**
      * Handle component creation/update - NO CHANGES NEEDED
      */
-    private function handleComponent(string $code, string $name, ?string $action_plan_id = null)
-    {
-        if (isset($this->componentMap[$code])) {
-            $this->results['details']['components']['existing']++;
-            return $this->componentMap[$code];
-        }
+private function handleComponent(string $code, string $name, ?string $action_plan_id = null)
+{
+    $cleanCode = $this->cleanCode($code);
 
-        $existing = DB::table('rp_components')
-            ->where('code', $code)
-            ->first(['rp_components_id']);
+    // Cache key must include action_plan_id (null-safe)
+    $mapKey = $cleanCode . '|' . ($action_plan_id ?? 'NULL');
 
-        if ($existing) {
-            $this->componentMap[$code] = $existing->rp_components_id;
-            $this->results['details']['components']['existing']++;
-            Log::info("Found existing component: {$code}");
-            return $existing->rp_components_id;
-        }
-
-        $componentId = Str::uuid();
-        DB::table('rp_components')->insert([
-            'rp_components_id' => $componentId,
-            'external_id' => Str::uuid(),
-            'name' => $this->truncateForDb($name),
-            'code' => $this->cleanCode($code),
-            'description' => null,
-            'action_plan_id' => $action_plan_id,
-            'created_at' => now(),
-            'updated_at' => now(),
-            'deleted_at' => null
-        ]);
-        
-        $this->componentMap[$code] = $componentId;
-        $this->results['details']['components']['new']++;
-        Log::info("Created new component: {$code} - {$name}");
-        
-        return $componentId;
+    if (isset($this->componentMap[$mapKey])) {
+        $this->results['details']['components']['existing']++;
+        return $this->componentMap[$mapKey];
     }
+
+    // Reuse only if BOTH code and action_plan_id match (and not soft-deleted)
+    $existing = DB::table('rp_components')
+        ->where('code', $cleanCode)
+        ->whereNull('deleted_at')
+        ->when($action_plan_id === null, function ($q) {
+            $q->whereNull('action_plan_id');
+        }, function ($q) use ($action_plan_id) {
+            $q->where('action_plan_id', $action_plan_id);
+        })
+        ->first(['rp_components_id']);
+
+    if ($existing) {
+        $this->componentMap[$mapKey] = $existing->rp_components_id;
+        $this->results['details']['components']['existing']++;
+        Log::info("Found existing component for action_plan: {$cleanCode} (action_plan_id=" . ($action_plan_id ?? 'NULL') . ")");
+        return $existing->rp_components_id;
+    }
+
+    // If same code exists under another action plan, we intentionally create a new row
+    $componentId = Str::uuid();
+
+    DB::table('rp_components')->insert([
+        'rp_components_id' => $componentId,
+        'external_id' => Str::uuid(),
+        'name' => $this->truncateForDb($name),
+        'code' => $cleanCode,
+        'description' => null,
+        'action_plan_id' => $action_plan_id,
+        'created_at' => now(),
+        'updated_at' => now(),
+        'deleted_at' => null,
+    ]);
+
+    $this->componentMap[$mapKey] = $componentId;
+    $this->results['details']['components']['new']++;
+    Log::info("Created new component: {$cleanCode} - {$name} (action_plan_id=" . ($action_plan_id ?? 'NULL') . ")");
+
+    return $componentId;
+}
+
 
     /**
      * Handle program creation/update - UPDATED to never return null

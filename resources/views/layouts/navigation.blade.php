@@ -56,17 +56,37 @@
             <a class="nav-link d-flex justify-content-between align-items-center" 
                data-bs-toggle="collapse" href="#userDirectoryCollapse" role="button">
                 <span>
-                    <i class="bi bi-people me-2"></i> User Directory
+                    <i class="bi bi-file-earmark-spreadsheet me-2"></i> Action Plans
                 </span>
                 <i class="bi bi-chevron-down collapse-icon"></i>
             </a>
-            <div class="collapse {{ request()->is('users*') ? 'show' : '' }}" id="userDirectoryCollapse">
+            <div class="collapse {{ request()->is('action-plans*') || request()->is('reporting*') ? 'show' : '' }}" id="actionPlansCollapse">
                 <ul class="nav flex-column sub-menu ms-4">
-                    {{-- User Management --}}
+                    {{-- Excel Import --}}
+                    <div class="sub-header ms-2 mt-2">Excel Operations</div>
+
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('users.index') ? 'active' : '' }}" 
-                           href="{{ route('users.index') }}">
-                            <i class="bi bi-list-ul me-2"></i> All Users
+                        <a class="nav-link {{ request()->is('reporting/import') ? 'active' : '' }}"
+                            href="{{ url('/reporting/import') }}">
+                            <i class="bi bi-upload me-2"></i> Import Excel File
+                        </a>
+                    </li>
+
+                    {{-- Action Plan Management --}}
+                    <div class="sub-header ms-2 mt-2">Action Plans</div>
+
+                    {{-- ADD THIS: Link to All Action Plans --}}
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('action-plans.index') ? 'active' : '' }}"
+                            href="{{ route('action-plans.index') }}">
+                            <i class="bi bi-list-ul me-2"></i> All Action Plans
+                        </a>
+                    </li>
+
+                    {{-- Placeholder for other routes --}}
+                    <li class="nav-item">
+                        <a class="nav-link text-white-50 disabled" href="#">
+                            <i class="bi bi-plus-circle me-2"></i> Create Action Plan
                         </a>
                     </li>
                     
@@ -457,49 +477,49 @@
 </div>
 
 <style>
-.nav-header {
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: rgba(255, 255, 255, 0.6);
-    padding: 0.5rem 1rem;
-    margin-top: 0.5rem;
-}
+    .nav-header {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: rgba(255, 255, 255, 0.6);
+        padding: 0.5rem 1rem;
+        margin-top: 0.5rem;
+    }
 
-.sub-header {
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.5);
-    padding: 0.5rem 0;
-    margin-top: 0.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
+    .sub-header {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.5);
+        padding: 0.5rem 0;
+        margin-top: 0.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
 
-.sub-menu {
-    border-left: 2px solid rgba(255, 255, 255, 0.1);
-    padding-left: 0.5rem;
-    margin: 0.25rem 0;
-}
+    .sub-menu {
+        border-left: 2px solid rgba(255, 255, 255, 0.1);
+        padding-left: 0.5rem;
+        margin: 0.25rem 0;
+    }
 
-.sub-menu .nav-link {
-    font-size: 0.875rem;
-    padding: 0.375rem 0.75rem;
-    border-radius: 0.375rem;
-    color: rgba(255, 255, 255, 0.8);
-}
+    .sub-menu .nav-link {
+        font-size: 0.875rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        color: rgba(255, 255, 255, 0.8);
+    }
 
-.sub-menu .nav-link:hover,
-.sub-menu .nav-link.active {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: white;
-}
+    .sub-menu .nav-link:hover,
+    .sub-menu .nav-link.active {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
 
-.collapse-icon {
-    transition: transform 0.2s ease-in-out;
-    font-size: 0.75rem;
-}
+    .collapse-icon {
+        transition: transform 0.2s ease-in-out;
+        font-size: 0.75rem;
+    }
 
 /* Better brand display */
 .navbar-brand .text-uppercase {
@@ -514,27 +534,27 @@
 </style>
 
 <script>
-// Add collapse icon rotation
-document.addEventListener('DOMContentLoaded', function() {
-    const collapseLinks = document.querySelectorAll('[data-bs-toggle="collapse"]');
-    
-    collapseLinks.forEach(link => {
-        link.addEventListener('click', function() {
-            const icon = this.querySelector('.collapse-icon');
-            if (icon) {
-                icon.style.transform = icon.style.transform === 'rotate(180deg)' ? 'rotate(0deg)' : 'rotate(180deg)';
+    // Add collapse icon rotation
+    document.addEventListener('DOMContentLoaded', function() {
+        const collapseLinks = document.querySelectorAll('[data-bs-toggle="collapse"]');
+
+        collapseLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                const icon = this.querySelector('.collapse-icon');
+                if (icon) {
+                    icon.style.transform = icon.style.transform === 'rotate(180deg)' ? 'rotate(0deg)' : 'rotate(180deg)';
+                }
+            });
+
+            // Set initial state for open collapses
+            const targetId = link.getAttribute('href');
+            const targetCollapse = document.querySelector(targetId);
+            if (targetCollapse && targetCollapse.classList.contains('show')) {
+                const icon = link.querySelector('.collapse-icon');
+                if (icon) {
+                    icon.style.transform = 'rotate(180deg)';
+                }
             }
         });
-        
-        // Set initial state for open collapses
-        const targetId = link.getAttribute('href');
-        const targetCollapse = document.querySelector(targetId);
-        if (targetCollapse && targetCollapse.classList.contains('show')) {
-            const icon = link.querySelector('.collapse-icon');
-            if (icon) {
-                icon.style.transform = 'rotate(180deg)';
-            }
-        }
     });
-});
 </script>

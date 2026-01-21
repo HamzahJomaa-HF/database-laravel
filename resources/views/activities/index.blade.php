@@ -224,12 +224,21 @@
                                                 </span>
                                             </div>
                                             <div>
-                                                <div class="fw-semibold text-dark mb-1">
-                                                    {{ $activity->activity_title_en }}
-                                                </div>
-                                                @if($activity->activity_title_ar)
-                                                    <div class="small text-muted">{{ $activity->activity_title_ar }}</div>
-                                                @endif
+                                                <div class="d-flex align-items-center flex-wrap fw-semibold text-dark mb-1">
+    @if($activity->activity_title_en)
+        <span>{{ $activity->activity_title_en }}</span>
+    @endif
+
+    @if($activity->activity_title_en && $activity->activity_title_ar)
+        <span class="text-muted mx-2">|</span>
+    @endif
+
+    @if($activity->activity_title_ar)
+        <span class="small text-muted" dir="rtl">
+            {{ $activity->activity_title_ar }}
+        </span>
+    @endif
+</div>
                                                 <div class="small text-muted">
                                                     ID: {{ $activity->folder_name ?? $activity->external_id ?? 'N/A' }}
                                                 </div>

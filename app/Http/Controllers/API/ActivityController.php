@@ -77,6 +77,7 @@ class ActivityController extends Controller
      *             @OA\Property(property="end_date", type="string", format="date", example="2025-10-22"),
      *             @OA\Property(property="parent_activity", type="string", format="uuid", example="a1b2c3d4-5678-90ab-cdef-1234567890ab"),
      *             @OA\Property(property="target_cop", type="string", format="uuid", example="b2c3d4e5-6789-0abc-def1-234567890bcd"),
+     *             @OA\Property(property="maximum_capacity", type="number", example="34"),
      *             @OA\Property(
      *                 property="operational_support",
      *                 type="object",
@@ -102,12 +103,13 @@ class ActivityController extends Controller
                 'activity_title_ar' => 'required_without:activity_title_en|string|max:255',
                 'folder_name' => 'nullable|string|max:255',
                 'activity_type' => 'required|string|max:255',
-                'content_network' => 'nullable|string|max:255',
                 'start_date' => 'required|date',
                 'end_date' => 'required|date|after_or_equal:start_date',
                 'parent_activity' => 'nullable|uuid|exists:activities,activity_id',
                 'target_cop' => 'nullable|uuid|exists:users,user_id',
-
+                            'maximum_capacity' => 'nullable|integer|min:0',
+                        'venue' => 'nullable|string|max:255',
+            'content_network' => 'nullable|string',
                 // JSON operational support (4 checkboxes)
                 'operational_support' => 'nullable|array',
             ]);

@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Program;
 use App\Models\Project;
 use App\Models\ProjectActivity;
-use Illuminate\Support\Str ;
+use App\Models\RpActivityMapping;
 
 class ActivityController extends Controller
 {
@@ -282,6 +282,27 @@ class ActivityController extends Controller
                 'pp.name as parent_program_name',
             ])->get();
 
+
+        $rp_activities = RpActivityMapping::where('rp_activity_mappings.activity_id', $id)
+            ->leftJoin('rp_activities', 'rp_activities.rp_activities_id', '=', 'rp_activity_mappings.rp_activities_id')
+            ->leftJoin('rp_actions', 'rp_actions.rp_actions_id', '=', 'rp_activities.rp_actions_id')
+            ->leftJoin('rp_units', 'rp_units.rp_units_id', '=', 'rp_actions.rp_units_id')
+            ->leftJoin('rp_programs', 'rp_programs.rp_programs_id', '=', 'rp_units.rp_programs_id')
+            ->leftJoin('rp_components', 'rp_components.rp_components_id', '=', 'rp_programs.rp_components_id')
+            ->leftJoin('action_plans', 'action_plans.action_plan_id', '=', 'rp_components.action_plan_id')
+            ->select([
+                'rp_activities.name as activity_name',
+                'rp_actions.name as action_name',
+                'rp_units.name as unit_name',
+                'rp_programs.name as program_name',
+                'rp_components.name as component_name',
+                'action_plans.title as action_plan_name',
+                'rp_activities.rp_activities_id',
+                'rp_components.rp_components_id',
+                'action_plans.action_plan_id',
+            ])->get();
+        
+        
         // ============================================
         // PROGRAMS (existing code - good format)
         // ============================================
@@ -292,11 +313,13 @@ class ActivityController extends Controller
         // GOOD FORMAT: Using pluck() -> unique() -> toArray()
         $selected_program = $projects->pluck('parent_program_id')->unique()->toArray();
         $selected_project_ids = $projects->pluck('project_id')->unique()->toArray();
-
-        // ============================================
-        // ACTION PLANS - New section
-        // ============================================
+        
         $actionPlans = ActionPlan::orderBy('title')->get(['action_plan_id', 'title', 'start_date', 'end_date']);
+
+
+        $selected_action_plan_id = $rp_activities->pluck('action_plan_id')->first();
+        $selected_component_id = $rp_activities->pluck('rp_components_id')->first();
+        $selected_rp_activity_ids = $rp_activities->pluck('rp_activities_id')->unique()->toArray();
         
         // Get selected action plan from activity (assuming you have action_plan_id column)
         $selectedActionPlanId = $activity->action_plan_id;
@@ -343,24 +366,22 @@ class ActivityController extends Controller
         return view('activities.edit', compact(
             'activity',
             'actionPlans',           // New: Action plans
-            'selectedActionPlanIdSingle', // New: Selected action plan
-            'rpComponents',
-            'selectedComponentIdSingle',
-            'selectedRpActivityIds',
             'programs',
             'selected_program',
             'selected_project_ids',
-            'projects'
+            'projects',
+            'selected_action_plan_id',
+            'selected_component_id',
+            'selected_rp_activity_ids'
         ));
     }
-
+    
     /**
      * Update the specified activity in storage.
      */
     public function update(Request $request, $id)
     {
         $activity = Activity::findOrFail($id);
-
         // Validate the request - ADD action_plan_id
         $validated = $request->validate([
             'activity_title_en' => 'required|string|max:255',
@@ -376,8 +397,10 @@ class ActivityController extends Controller
             'rp_activities' => 'nullable|array',
             'focal_points' => 'nullable|array',
             'operational_support' => 'nullable|array',
+            'maximum_capacity' => 'nullable|integer|min:0',
+            
         ]);
-
+        
         // Extract the specific arrays from the request
         $extractedData = [
             'rp_activities' => $request->input('rp_activities', []),
@@ -407,7 +430,12 @@ class ActivityController extends Controller
             $validated['focal_points'] = null;
         }
 
-       
+        // Handle rp_activities as JSON in the activity table
+        if (!empty($rpActivities)) {
+            $validated['rp_activities'] = json_encode($rpActivities);
+        } else {
+            $validated['rp_activities'] = null;
+        }
 
         // Update the activity with ALL validated data including action_plan_id, component and activities
         $activity->update($validated);
@@ -761,8 +789,10 @@ class ActivityController extends Controller
      */
     public function getRPComponents(Request $request)
     {
+        
         try {
-            $components = RpComponent::whereNull('deleted_at')
+            $actionPlanId = $request->query('action_plan_id');
+            $components = RpComponent::where("action_plan_id", $actionPlanId)
                 ->orderBy('code')
                 ->get(['rp_components_id', 'code', 'name', 'description']);
 
