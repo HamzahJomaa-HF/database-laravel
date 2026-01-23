@@ -89,13 +89,14 @@ class RoleController extends Controller
      */
     public function edit(Role $role)
     {
-        // Load the role's current permissions
-        $role->load('moduleAccesses');
+            // Get all module accesses
+        $moduleAccesses = ModuleAccess::all();
         
+
         // Get the access_ids of current permissions
         $currentPermissions = $role->moduleAccesses->pluck('access_id')->toArray();
         
-        return view('roles.edit', compact('role', 'currentPermissions'));
+        return view('roles.edit', compact('role', 'currentPermissions', 'moduleAccesses'));
     }
 
     /**

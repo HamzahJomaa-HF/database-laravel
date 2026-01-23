@@ -344,142 +344,63 @@
                 </div>
             </div>
 
+            @php
+                $permissionsByModule = $moduleAccesses->groupBy('module');
+
+                $accessLabels = [
+                    'none'   => 'No Access',
+                    'view'   => 'Can View Only',
+                    'create' => 'Can Create',
+                    'edit'   => 'Can Edit',
+                    'delete' => 'Can Delete',
+                    'manage' => 'Can Manage (Full CRUD)',
+                    'full'   => 'Full Access (Admin)',
+                ];
+            @endphp
             <!-- Permissions Tab -->
             <div class="tab-pane fade" id="permissions" role="tabpanel">
                 <div class="card">
                     <div class="card-body">
                         <p class="text-muted mb-4">Select the permissions this role should have for each module</p>
                         
-                        <!-- Your 4 Main Modules -->
-                        <div class="module-group">
-                            <h3 class="module-group-title">Core Modules</h3>
-                            <div class="permissions-container">
-                                <!-- Programs -->
-                                <div class="resource-container">
-                                    <div class="permission-title">Programs</div>
-                                    <div class="permission-options">
-                                        <div class="permission-checkboxes">
-                                            @php
-                                                // Get all Programs permissions from database
-                                                $programsPermissions = \App\Models\ModuleAccess::where('module', 'Programs')->get();
-                                            @endphp
-                                            @foreach($programsPermissions as $permission)
-                                            <div class="permission-checkbox-item">
-                                                <div class="form-check">
-                                                    <input type="checkbox" name="module_access_ids[]" 
-                                                           id="programs_{{ $permission->access_level }}" 
-                                                           value="{{ $permission->access_id }}"
-                                                           class="form-check-input permission-checkbox">
-                                                    <label class="form-check-label" for="programs_{{ $permission->access_level }}">
-                                                        {{ $permission->access_level === 'none' ? 'No Access' : 
-                                                           ($permission->access_level === 'view' ? 'Can View Only' :
-                                                           ($permission->access_level === 'create' ? 'Can Create' :
-                                                           ($permission->access_level === 'edit' ? 'Can Edit' :
-                                                           ($permission->access_level === 'delete' ? 'Can Delete' :
-                                                           ($permission->access_level === 'manage' ? 'Can Manage (Full CRUD)' :
-                                                           ($permission->access_level === 'full' ? 'Full Access (Admin)' : $permission->access_level)))))) }}
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                </div>
+                            <div class="module-group">
+                                <h3 class="module-group-title">Core Modules</h3>
 
-                                <!-- Projects -->
-                                <div class="resource-container">
-                                    <div class="permission-title">Projects</div>
-                                    <div class="permission-options">
-                                        <div class="permission-checkboxes">
-                                            @php
-                                                $projectsPermissions = \App\Models\ModuleAccess::where('module', 'Projects')->get();
-                                            @endphp
-                                            @foreach($projectsPermissions as $permission)
-                                            <div class="permission-checkbox-item">
-                                                <div class="form-check">
-                                                    <input type="checkbox" name="module_access_ids[]" 
-                                                           id="projects_{{ $permission->access_level }}" 
-                                                           value="{{ $permission->access_id }}"
-                                                           class="form-check-input permission-checkbox">
-                                                    <label class="form-check-label" for="projects_{{ $permission->access_level }}">
-                                                        {{ $permission->access_level === 'none' ? 'No Access' : 
-                                                           ($permission->access_level === 'view' ? 'Can View Only' :
-                                                           ($permission->access_level === 'create' ? 'Can Create' :
-                                                           ($permission->access_level === 'edit' ? 'Can Edit' :
-                                                           ($permission->access_level === 'delete' ? 'Can Delete' :
-                                                           ($permission->access_level === 'manage' ? 'Can Manage (Full CRUD)' :
-                                                           ($permission->access_level === 'full' ? 'Full Access (Admin)' : $permission->access_level)))))) }}
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                </div>
+                                <div class="permissions-container">
+                                    @foreach($permissionsByModule as $module => $permissions)
+                                        <div class="resource-container">
+                                            <div class="permission-title">{{ $module }}</div>
 
-                                <!-- Users -->
-                                <div class="resource-container">
-                                    <div class="permission-title">Users</div>
-                                    <div class="permission-options">
-                                        <div class="permission-checkboxes">
-                                            @php
-                                                $usersPermissions = \App\Models\ModuleAccess::where('module', 'Users')->get();
-                                            @endphp
-                                            @foreach($usersPermissions as $permission)
-                                            <div class="permission-checkbox-item">
-                                                <div class="form-check">
-                                                    <input type="checkbox" name="module_access_ids[]" 
-                                                           id="users_{{ $permission->access_level }}" 
-                                                           value="{{ $permission->access_id }}"
-                                                           class="form-check-input permission-checkbox">
-                                                    <label class="form-check-label" for="users_{{ $permission->access_level }}">
-                                                        {{ $permission->access_level === 'none' ? 'No Access' : 
-                                                           ($permission->access_level === 'view' ? 'Can View Only' :
-                                                           ($permission->access_level === 'create' ? 'Can Create' :
-                                                           ($permission->access_level === 'edit' ? 'Can Edit' :
-                                                           ($permission->access_level === 'delete' ? 'Can Delete' :
-                                                           ($permission->access_level === 'manage' ? 'Can Manage (Full CRUD)' :
-                                                           ($permission->access_level === 'full' ? 'Full Access (Admin)' : $permission->access_level)))))) }}
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                </div>
+                                            <div class="permission-options">
+                                                <div class="permission-checkboxes">
+                                                    @foreach($permissions as $permission)
+                                                        @php
+                                                            $level = $permission->access_level;
+                                                            $id = \Illuminate\Support\Str::slug($module, '_') . '_' . $level;
+                                                        @endphp
 
-                                <!-- Activities -->
-                                <div class="resource-container">
-                                    <div class="permission-title">Activities</div>
-                                    <div class="permission-options">
-                                        <div class="permission-checkboxes">
-                                            @php
-                                                $activitiesPermissions = \App\Models\ModuleAccess::where('module', 'Activities')->get();
-                                            @endphp
-                                            @foreach($activitiesPermissions as $permission)
-                                            <div class="permission-checkbox-item">
-                                                <div class="form-check">
-                                                    <input type="checkbox" name="module_access_ids[]" 
-                                                           id="activities_{{ $permission->access_level }}" 
-                                                           value="{{ $permission->access_id }}"
-                                                           class="form-check-input permission-checkbox">
-                                                    <label class="form-check-label" for="activities_{{ $permission->access_level }}">
-                                                        {{ $permission->access_level === 'none' ? 'No Access' : 
-                                                           ($permission->access_level === 'view' ? 'Can View Only' :
-                                                           ($permission->access_level === 'create' ? 'Can Create' :
-                                                           ($permission->access_level === 'edit' ? 'Can Edit' :
-                                                           ($permission->access_level === 'delete' ? 'Can Delete' :
-                                                           ($permission->access_level === 'manage' ? 'Can Manage (Full CRUD)' :
-                                                           ($permission->access_level === 'full' ? 'Full Access (Admin)' : $permission->access_level)))))) }}
-                                                    </label>
+                                                        <div class="permission-checkbox-item">
+                                                            <div class="form-check">
+                                                                <input type="checkbox"
+                                                                    name="module_access_ids[]"
+                                                                    id="{{ $id }}"
+                                                                    value="{{ $permission->access_id }}"
+                                                                    class="form-check-input permission-checkbox">
+
+                                                                <label class="form-check-label" for="{{ $id }}">
+                                                                    {{ $accessLabels[$level] ?? ucfirst($level) }}
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    @endforeach
                                                 </div>
                                             </div>
-                                            @endforeach
+
                                         </div>
-                                    </div>
+                                    @endforeach
                                 </div>
                             </div>
-                        </div>
+
 
                         <!-- Additional Modules -->
                         <div class="module-group">

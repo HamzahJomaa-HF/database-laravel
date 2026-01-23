@@ -44,6 +44,21 @@ class ModuleAccessSeeder extends Seeder
                 'delete' => 'Can delete activities but cannot create or edit',
                 'full' => 'Administrator level access with all permissions'
             ],
+            'Employees' => [
+                'view'   => 'Can only view employee information, no modifications',
+                'create' => 'Can create new employees but cannot edit or delete',
+                'edit'   => 'Can edit existing employees but cannot create or delete',
+                'delete' => 'Can delete employees but cannot create or edit',
+                'full'   => 'Administrator level access with all permissions'
+            ],
+                'Roles' => [
+        'view'   => 'Can only view roles and permissions',
+        'create' => 'Can create new roles but cannot edit or delete',
+        'edit'   => 'Can edit existing roles but cannot create or delete',
+        'delete' => 'Can delete roles but cannot create or edit',
+        'full'   => 'Administrator level access with all permissions',
+    ],
+    
             // Additional Modules
             'Dashboard' => [
                 'view' => 'Can view dashboard data but cannot customize',
@@ -61,23 +76,26 @@ class ModuleAccessSeeder extends Seeder
 
         foreach ($modules as $module => $accessLevels) {
             foreach ($accessLevels as $accessLevel => $description) {
-                $records[] = [
-                    'access_id' => (string) \Illuminate\Support\Str::uuid(),
-                    'module' => $module,
-                    'access_level' => $accessLevel,
-                    'description' => $description,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                    'deleted_at' => null
-                ];
+
+                $exists = DB::table('module_access')
+                    ->where('module', $module)
+                    ->where('access_level', $accessLevel)
+                    ->exists();
+
+                if (!$exists) {
+                    DB::table('module_access')->insert([
+                        'access_id' => (string) \Illuminate\Support\Str::uuid(),
+                        'module'      => $module,
+                        'access_level'=> $accessLevel,
+                        'description' => $description,
+                        'created_at'  => $now,
+                        'updated_at'  => $now,
+                        'deleted_at'  => null,
+                    ]);
+                }
             }
         }
 
-        // Optional: Clear existing data first to avoid duplicates
-        DB::table('module_access')->truncate();
-        
-        // Insert data into the module_access table
-        DB::table('module_access')->insert($records);
 
         $this->command->info('Module access permissions seeded successfully!');
         $this->command->info('Total records inserted: ' . count($records));
