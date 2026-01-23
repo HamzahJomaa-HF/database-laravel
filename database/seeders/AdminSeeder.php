@@ -12,9 +12,14 @@ class AdminSeeder extends Seeder
     public function run()
     {
         // DB::statement('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
+        $email = config('admin.super_admin_email');
+        $password = config('admin.super_admin_password');
 
-        $email = env('SUPER_ADMIN_EMAIL');
-        $password = env('SUPER_ADMIN_PASSWORD');
+        if (!$email || !$password) {
+            throw new \RuntimeException('SUPER_ADMIN_EMAIL / SUPER_ADMIN_PASSWORD are not set.');
+        }
+
+
         $roleName = 'Super Administrator';
 
         // ----------------------------------
