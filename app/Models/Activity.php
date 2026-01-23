@@ -59,7 +59,7 @@ class Activity extends Model
         'target_cop',
         'operational_support',
         'venue',
-            'maximum_capacity',
+       'maximum_capacity',
         
     ];
 

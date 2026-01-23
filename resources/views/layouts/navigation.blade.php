@@ -103,45 +103,13 @@
                         </li>
                         @endif
                         
-                        {{-- Search Employees --}}
-                        @if($hasFullAccess || $employee->hasPermission('Employees'))
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('employees.search') ? 'active' : '' }}" 
-                               href="{{ route('employees.search') }}">
-                                <i class="bi bi-search me-2"></i> Search Employees
-                            </a>
-                        </li>
-                        @endif
+                       
                         
-                        {{-- Trashed Employees --}}
-                        @if($hasFullAccess || $employee->hasPermission('Employees'))
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('employees.trashed') ? 'active' : '' }}" 
-                               href="{{ route('employees.trashed') }}">
-                                <i class="bi bi-trash me-2"></i> Trashed Employees
-                            </a>
-                        </li>
-                        @endif
+                       
                         
-                        {{-- Import Employees --}}
-                        @if($hasFullAccess || $employee->hasPermission('Employees'))
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('employees.import') ? 'active' : '' }}" 
-                               href="{{ route('employees.import') }}">
-                                <i class="bi bi-cloud-upload me-2"></i> Import Employees
-                            </a>
-                        </li>
-                        @endif
+                       
                         
-                        {{-- Export Employees --}}
-                        @if($hasFullAccess || $employee->hasPermission('Employees'))
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('employees.export') ? 'active' : '' }}" 
-                               href="{{ route('employees.export') }}">
-                                <i class="bi bi-download me-2"></i> Export Employees
-                            </a>
-                        </li>
-                        @endif
+                       
                     </ul>
                 </div>
             </li>
@@ -181,15 +149,7 @@
                         </li>
                         @endif
                         
-                        {{-- Module Access --}}
-                        @if($hasFullAccess || $canAccessModuleAccess)
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->is('module-access*') ? 'active' : '' }}" 
-                               href="{{ route('module-access.index') }}">
-                                <i class="bi bi-lock me-2"></i> Module Access
-                            </a>
-                        </li>
-                        @endif
+                       
                     </ul>
                 </div>
             </li>
@@ -264,81 +224,7 @@
             @endif
         @endauth
 
-        {{-- Program Directory --}}
-        @auth('employee')
-            @if($hasFullAccess || $canAccessPrograms)
-            <li class="nav-item">
-                <a class="nav-link d-flex justify-content-between align-items-center" 
-                   data-bs-toggle="collapse" href="#programDirectoryCollapse" role="button">
-                    <span>
-                        <i class="bi bi-journal-text me-2"></i> Program Directory
-                    </span>
-                    <i class="bi bi-chevron-down collapse-icon"></i>
-                </a>
-                <div class="collapse {{ request()->is('programs*') ? 'show' : '' }}" id="programDirectoryCollapse">
-                    <ul class="nav flex-column sub-menu ms-4">
-                        {{-- Program Management --}}
-                        @if($hasFullAccess || $employee->hasPermission('Programs'))
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('programs.index') ? 'active' : '' }}" 
-                               href="{{ route('programs.index') }}">
-                                <i class="bi bi-list-ul me-2"></i> All Programs
-                            </a>
-                        </li>
-                        @endif
-                        
-                        {{-- Add New Program --}}
-                        @if($hasFullAccess || $employee->hasPermission('Programs'))
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('programs.create') ? 'active' : '' }}" 
-                               href="{{ route('programs.create') }}">
-                                <i class="bi bi-plus-circle me-2"></i> Add New Program
-                            </a>
-                        </li>
-                        @endif
-                    </ul>
-                </div>
-            </li>
-            @endif
-        @endauth
-
-        {{-- Project Directory --}}
-        @auth('employee')
-            @if($hasFullAccess || $canAccessProjects)
-            <li class="nav-item">
-                <a class="nav-link d-flex justify-content-between align-items-center" 
-                   data-bs-toggle="collapse" href="#projectDirectoryCollapse" role="button">
-                    <span>
-                        <i class="bi bi-folder me-2"></i> Project Directory
-                    </span>
-                    <i class="bi bi-chevron-down collapse-icon"></i>
-                </a>
-                <div class="collapse {{ request()->is('projects*') ? 'show' : '' }}" id="projectDirectoryCollapse">
-                    <ul class="nav flex-column sub-menu ms-4">
-                        {{-- Project Management --}}
-                        @if($hasFullAccess || $employee->hasPermission('Projects'))
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('projects.index') ? 'active' : '' }}" 
-                               href="{{ route('projects.index') }}">
-                                <i class="bi bi-list-ul me-2"></i> All Projects
-                            </a>
-                        </li>
-                        @endif
-                        
-                        {{-- Add New Project --}}
-                        @if($hasFullAccess || $employee->hasPermission('Projects'))
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('projects.create') ? 'active' : '' }}" 
-                               href="{{ route('projects.create') }}">
-                                <i class="bi bi-plus-circle me-2"></i> Add New Project
-                            </a>
-                        </li>
-                        @endif
-                    </ul>
-                </div>
-            </li>
-            @endif
-        @endauth
+        
 
         {{-- Activity Directory --}}
         @auth('employee')

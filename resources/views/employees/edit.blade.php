@@ -386,10 +386,7 @@
             color: #065f46;
         }
         
-        .status-inactive {
-            background-color: #fee2e2;
-            color: #991b1b;
-        }
+       
         
         .password-change-toggle {
             color: var(--primary-color);
@@ -470,9 +467,7 @@
                     <div class="d-flex flex-row w-100 justify-content-between mb-4">
                         <h1 class="page-title">
                             Edit Employee
-                            <span class="status-badge {{ $employee->is_active ? 'status-active' : 'status-inactive' }}">
-                                {{ $employee->is_active ? 'Active' : 'Inactive' }}
-                            </span>
+                           
                         </h1>
                         <div class="buttons-wrapper">
                             <a href="{{ route('employees.index') }}" class="btn btn-outline-primary">
@@ -506,7 +501,7 @@
                                     <strong>Name:</strong> {{ $employee->first_name }} {{ $employee->last_name }}<br>
                                     <strong>Email:</strong> {{ $employee->email }}<br>
                                     <strong>Role:</strong> {{ $employee->role->role_name ?? 'Not assigned' }}<br>
-                                    <strong>Employee ID:</strong> {{ $employee->employee_id }}
+                                    
                                 </div>
                             </div>
                         </div>
@@ -638,27 +633,7 @@
                                         </div>
                                     </div>
 
-                                    <div class="row mb-4">
-                                        <div class="col-12">
-                                            <div class="mb-3">
-                                                <label class="form-label" for="is_active">Account Status</label>
-                                                <div class="form-check">
-                                                    <input type="checkbox" 
-                                                           name="is_active" 
-                                                           id="is_active" 
-                                                           class="form-check-input" 
-                                                           value="1"
-                                                           {{ old('is_active', $employee->is_active) ? 'checked' : '' }}>
-                                                    <label class="form-check-label" for="is_active">
-                                                        Active employee account
-                                                    </label>
-                                                </div>
-                                                @error('is_active')
-                                                    <div class="error-message">{{ $message }}</div>
-                                                @enderror
-                                            </div>
-                                        </div>
-                                    </div>
+                            
                                 </div>
 
                                 <!-- Password Section -->

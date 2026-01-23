@@ -134,7 +134,7 @@
                                                 ];
                                             @endphp
                                             @foreach($activityTypes as $key => $label)
-                                                <option value="{{ $key }}" {{ old('activity_type') == $key ? 'selected' : '' }}>
+                                              <option value="{{ $label }}" {{ old('activity_type') == $label ? 'selected' : '' }}>
                                                     {{ $label }}
                                                 </option>
                                             @endforeach
@@ -434,55 +434,73 @@
                             </div>
                         </div>
 
-                        {{-- ====================================== --}}
-                        {{-- SECTION 7: FOCAL POINTS --}}
-                        {{-- ====================================== --}}
-                        <div class="section-card mb-4">
-                            <div class="section-header">
-                                <h6 class="mb-0 fw-semibold">Focal Points</h6>
-                                <span class="text-muted small">Select one or more focal points</span>
-                            </div>
-                            <div class="section-body">
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="form-group mb-0">
-                                            <label for="focal_points_select" class="form-label fw-semibold mb-2">Select Focal Points</label>
-                                            <select id="focal_points_select" 
-                                                    multiple
-                                                    class="form-control @error('focal_points') is-invalid @enderror"
-                                                    name="focal_points[]">
-                                                @php
-                                                    $focalPoints = [
-                                                        ['id' => 1, 'name' => 'Mohamad Ismail'],
-                                                        ['id' => 2, 'name' => 'Mohammad Harriri'],
-                                                        ['id' => 3, 'name' => 'Lilia Chahine'],
-                                                        ['id' => 4, 'name' => 'Nadine Zaidan'],
-                                                        ['id' => 5, 'name' => 'Hatem Assii'],
-                                                        ['id' => 6, 'name' => 'Ahmad Chami'],
-                                                    ];
-                                                    
-                                                    // Get old focal points
-                                                    $selectedFocalPoints = old('focal_points', []);
-                                                @endphp
-                                                @foreach($focalPoints as $point)
-                                                    <option value="{{ $point['id'] }}" 
-                                                            {{ in_array($point['id'], $selectedFocalPoints) ? 'selected' : '' }}>
-                                                        {{ $point['name'] }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                            @error('focal_points')
-                                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                                            @enderror
-                                            @error('focal_points.*')
-                                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
+                       {{-- ====================================== --}}
+{{-- SECTION 7: FOCAL POINTS --}}
+{{-- ====================================== --}}
+<div class="section-card mb-4">
+    <div class="section-header">
+        <h6 class="mb-0 fw-semibold">Focal Points</h6>
+        <span class="text-muted small">Select one or more focal points</span>
+    </div>
+    <div class="section-body">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group mb-0">
+                    <label for="focal_points_select" class="form-label fw-semibold mb-2">Select Focal Points</label>
+                    
+                    @php
+                        // Direct database query in Blade
+                        use Illuminate\Support\Facades\DB;
+                        
+                        // Get all active employees
+                        $employees = DB::table('employees')
+                            ->whereNull('deleted_at')
+                            ->orderBy('first_name')
+                            ->get(['employee_id', 'first_name', 'last_name', 'email', 'employee_type']);
+                        
+                        // Get old selections (if form was submitted with errors)
+                        $selectedFocalPoints = old('focal_points', []);
+                    @endphp
+                    
+                    <select id="focal_points_select" 
+                            multiple
+                            class="form-control @error('focal_points') is-invalid @enderror"
+                            name="focal_points[]">
+                        
+                        @if($employees->count() > 0)
+                            @foreach($employees as $employee)
+                                @php
+                                    $isSelected = in_array($employee->employee_id, $selectedFocalPoints);
+                                    $displayName = trim($employee->first_name . ' ' . $employee->last_name);
+                                    $type = $employee->employee_type ?? 'Unknown Type';
+                                @endphp
+                                
+                                <option value="{{ $employee->employee_id }}" 
+                                        {{ $isSelected ? 'selected' : '' }}>
+                                    {{ $displayName }} - {{ $employee->email }} ({{ $type }})
+                                </option>
+                            @endforeach
+                        @else
+                            <option value="">No employees found in database</option>
+                        @endif
+                    </select>
+                    
+                    @error('focal_points')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                    @error('focal_points.*')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                    
+                    <div class="form-text mt-2">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Select one or more employees as focal points for this activity
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
                         {{-- ========================================== --}}
                         {{-- SECTION 8: OPERATIONAL SUPPORT REQUIRED --}}
                         {{-- ========================================== --}}
