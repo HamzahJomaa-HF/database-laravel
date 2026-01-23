@@ -11,7 +11,7 @@ class AdminSeeder extends Seeder
 {
     public function run()
     {
-        DB::statement('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
+        // DB::statement('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
 
         $email = env('SUPER_ADMIN_EMAIL');
         $password = env('SUPER_ADMIN_PASSWORD');
