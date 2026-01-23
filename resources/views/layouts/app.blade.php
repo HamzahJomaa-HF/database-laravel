@@ -284,7 +284,14 @@
                                 <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>My Profile</a></li>
                                 <li><a class="dropdown-item" href="#"><i class="bi bi-lock me-2"></i>Account Settings</a></li>
                                 <li><hr class="dropdown-divider my-2"></li>
-                                <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                                <li>
+                                    <form method="POST" action="{{ route('logout') }}" class="dropdown-item p-0">
+                                @csrf
+                                <button type="submit" class="btn btn-link text-decoration-none text-danger w-100 text-start p-2">
+                                    <i class="bi bi-box-arrow-right me-2"></i>Logout
+                                </button>
+                            </form>
+                                </li>
                             </ul>
                         </li>
                     </ul>
