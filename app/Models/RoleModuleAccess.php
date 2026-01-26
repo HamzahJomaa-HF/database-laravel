@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class RoleModuleAccess extends Model
 {
     use SoftDeletes;
-    use HasFactory, SoftDeletes, HasUuids;
+    use HasFactory, HasUuids;
 
     /**
      * The table associated with the model.

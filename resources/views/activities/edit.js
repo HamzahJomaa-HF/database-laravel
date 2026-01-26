@@ -30,13 +30,15 @@ document.addEventListener("DOMContentLoaded", function () {
         multiple: true,
     });
 
-    $("#focal_points_select").select2({
-        placeholder: "Select focal points...",
-        allowClear: true,
-        width: "100%",
-        closeOnSelect: false,
-        multiple: true,
-    });
+    
+// Initialize focal points select
+$('#focal_points_select').select2({
+    placeholder: 'Select focal points...',
+    allowClear: true,
+    width: '100%',
+    closeOnSelect: false,
+    multiple: true
+});
 
     // ---------- ROUTES & DATA FROM BLADE ----------
 

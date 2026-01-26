@@ -167,39 +167,48 @@ Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
             Route::put('/{employee}/toggle-status', [CredentialsEmployeeController::class, 'toggleStatus'])->name('toggle-status');
         });
    
-    
-        // ------------------------------------------------------------------------
-    // USERS MODULE
     // ------------------------------------------------------------------------
-    Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
-        ->prefix('users')->name('users.')->group(function () {
-            Route::get('/', [UserController::class, 'index'])->name('index');
-            Route::middleware(['hasPermission:Users.create,Users.manage,Users.full'])
-                ->get('/create', [UserController::class, 'create'])->name('create');
-            Route::middleware(['hasPermission:Users.create,Users.manage,Users.full'])
-                ->post('/', [UserController::class, 'store'])->name('store');
-            Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
-                ->get('/{user_id}', [UserController::class, 'show'])->name('show');
-            Route::middleware(['hasPermission:Users.edit,Users.manage,Users.full'])
-                ->get('/{user_id}/edit', [UserController::class, 'edit'])->name('edit');
-            Route::middleware(['hasPermission:Users.edit,Users.manage,Users.full'])
-                ->put('/{user_id}', [UserController::class, 'update'])->name('update');
-            Route::middleware(['hasPermission:Users.delete,Users.manage,Users.full'])
-                ->delete('/{user_id}', [UserController::class, 'destroy'])->name('destroy');
-            Route::middleware(['hasPermission:Users.manage,Users.full'])
-                ->post('/bulk-delete', [UserController::class, 'bulkDestroy'])->name('bulk.destroy');
-            Route::middleware(['hasPermission:Users.manage,Users.full'])
-                ->get('/import', [UserController::class, 'importForm'])->name('import.form');
-            Route::middleware(['hasPermission:Users.manage,Users.full'])
-                ->post('/import', [UserController::class, 'import'])->name('import');
-            Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
-                ->get('/import/template', [UserController::class, 'downloadTemplate'])->name('import.template');
-            Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
-                ->get('/export', [UserController::class, 'exportExcel'])->name('export.excel');
-            Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
-                ->get('/statistics', [UserController::class, 'statistics'])->name('statistics');
-        });
-    
+// USERS MODULE
+// ------------------------------------------------------------------------
+Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
+    ->prefix('users')->name('users.')->group(function () {
+        Route::get('/', [UserController::class, 'index'])->name('index');
+        
+        // CREATE ROUTES
+        Route::middleware(['hasPermission:Users.create,Users.manage,Users.full'])
+            ->get('/create', [UserController::class, 'create'])->name('create');
+        Route::middleware(['hasPermission:Users.create,Users.manage,Users.full'])
+            ->post('/', [UserController::class, 'store'])->name('store');
+        
+        // IMPORT ROUTES - MUST BE BEFORE {user_id} ROUTES
+        Route::middleware(['hasPermission:Users.manage,Users.full'])
+            ->get('/import', [UserController::class, 'importForm'])->name('import.form'); // SHOW FORM
+        
+        Route::middleware(['hasPermission:Users.manage,Users.full'])
+            ->post('/import', [UserController::class, 'import'])->name('import');
+        
+        Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
+            ->get('/import/template', [UserController::class, 'downloadTemplate'])->name('import.template');
+        
+        // EXPORT & STATISTICS
+        Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
+            ->get('/export', [UserController::class, 'exportExcel'])->name('export.excel');
+        Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
+            ->get('/statistics', [UserController::class, 'statistics'])->name('statistics');
+        
+        Route::middleware(['hasPermission:Users.manage,Users.full'])
+            ->post('/bulk-delete', [UserController::class, 'bulkDestroy'])->name('bulk.destroy');
+        
+        // PARAMETERIZED ROUTES - MUST BE LAST
+        Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
+            ->get('/{user_id}', [UserController::class, 'show'])->name('show');
+        Route::middleware(['hasPermission:Users.edit,Users.manage,Users.full'])
+            ->get('/{user_id}/edit', [UserController::class, 'edit'])->name('edit');
+        Route::middleware(['hasPermission:Users.edit,Users.manage,Users.full'])
+            ->put('/{user_id}', [UserController::class, 'update'])->name('update');
+        Route::middleware(['hasPermission:Users.delete,Users.manage,Users.full'])
+            ->delete('/{user_id}', [UserController::class, 'destroy'])->name('destroy');
+    });
     // ------------------------------------------------------------------------
     // ACTIVITIES MODULE
     // ------------------------------------------------------------------------

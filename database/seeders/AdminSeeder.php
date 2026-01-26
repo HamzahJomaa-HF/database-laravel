@@ -9,88 +9,111 @@ use Illuminate\Support\Str;
 
 class AdminSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     *
-     * @return void
-     */
     public function run()
     {
-        // Enable UUID generation if needed
-        DB::statement('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
+        // DB::statement('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
+        $email = config('admin.super_admin_email');
+        $password = config('admin.super_admin_password');
 
-        // Generate UUIDs
-        $employeeId = Str::uuid();
-        $roleId = Str::uuid();
-        $credentialsId = Str::uuid();
-        
-        // Get all "full" access IDs from module_access
-        $fullAccessIds = DB::table('module_access')
-            ->where('access_level', 'full')
-            ->pluck('access_id')
-            ->toArray();
-        
-        // 1. Create a role for super admin
-        $roleData = [
-            'role_id' => $roleId,
-            'role_name' => 'Super Administrator',
-            'description' => 'Super admin with full access to all modules and functionalities',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ];
-        
-        DB::table('roles')->insert($roleData);
-        
-        // 2. Create role-module access mappings for all full access modules
-        $roleModuleAccessData = [];
-        foreach ($fullAccessIds as $accessId) {
-            $roleModuleAccessData[] = [
-                'roles_module_access_id' => Str::uuid(),
+        if (!$email || !$password) {
+            throw new \RuntimeException('SUPER_ADMIN_EMAIL / SUPER_ADMIN_PASSWORD are not set.');
+        }
+
+
+        $roleName = 'Super Administrator';
+
+        // ----------------------------------
+        // 1. Get or create role
+        // ----------------------------------
+        $role = DB::table('roles')->where('role_name', $roleName)->first();
+
+        if (!$role) {
+            $roleId = Str::uuid();
+
+            DB::table('roles')->insert([
                 'role_id' => $roleId,
-                'access_id' => $accessId,
+                'role_name' => $roleName,
+                'description' => 'Super admin with full access to all modules and functionalities',
                 'created_at' => now(),
                 'updated_at' => now(),
-            ];
+            ]);
+        } else {
+            $roleId = $role->role_id;
         }
-        
-        DB::table('roles_module_access')->insert($roleModuleAccessData);
-        
-        // 3. Create the employee record
-        $employeeData = [
-            'employee_id' => $employeeId,
-            'first_name' => 'Super',
-            'last_name' => 'Admin',
-            'phone_number' => null,
-            'email' => 'ayaantar@gmail.com',
-            'employee_type' => 'Administrator',
-            'start_date' => now()->toDateString(),
-            'end_date' => null,
-            'external_id' => null,
-            'role_id' => $roleId,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ];
-        
-        DB::table('employees')->insert($employeeData);
-        
-        // 4. Create credentials for the employee
-        $credentialsData = [
-            'credentials_employees_id' => $credentialsId,
-            'employee_id' => $employeeId,
-            'password_hash' => Hash::make('123456789'),
-            'remember_token' => null,
-            'email_verified_at' => now(),
-            'is_active' => true,
-            'last_login_at' => null,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ];
-        
-        DB::table('credentials_employees')->insert($credentialsData);
-        
-        $this->command->info('Super admin created successfully!');
-        $this->command->info('Email: ayaantar@gmail.com');
-        $this->command->info('Password: 123456789');
-        $this->command->info('Role: Super Administrator with full access to all modules');
+
+        // ----------------------------------
+        // 2. Ensure full module access exists
+        // ----------------------------------
+        $fullAccessIds = DB::table('module_access')
+            ->where('access_level', 'full')
+            ->pluck('access_id');
+
+        foreach ($fullAccessIds as $accessId) {
+            $exists = DB::table('roles_module_access')
+                ->where('role_id', $roleId)
+                ->where('access_id', $accessId)
+                ->exists();
+
+            if (!$exists) {
+                DB::table('roles_module_access')->insert([
+                    'roles_module_access_id' => Str::uuid(),
+                    'role_id' => $roleId,
+                    'access_id' => $accessId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
+
+        // ----------------------------------
+        // 3. Get or create employee
+        // ----------------------------------
+        $employee = DB::table('employees')->where('email', $email)->first();
+
+        if (!$employee) {
+            $employeeId = Str::uuid();
+
+            DB::table('employees')->insert([
+                'employee_id' => $employeeId,
+                'first_name' => 'Super',
+                'last_name' => 'Admin',
+                'phone_number' => null,
+                'email' => $email,
+                'employee_type' => 'Administrator',
+                'start_date' => now()->toDateString(),
+                'end_date' => null,
+                'external_id' => null,
+                'role_id' => $roleId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } else {
+            $employeeId = $employee->employee_id;
+        }
+
+        // ----------------------------------
+        // 4. Get or create credentials
+        // ----------------------------------
+        $credentialsExists = DB::table('credentials_employees')
+            ->where('employee_id', $employeeId)
+            ->exists();
+
+        if (!$credentialsExists) {
+            DB::table('credentials_employees')->insert([
+                'credentials_employees_id' => Str::uuid(),
+                'employee_id' => $employeeId,
+                'password_hash' => Hash::make($password),
+                'remember_token' => null,
+                'email_verified_at' => now(),
+                'is_active' => true,
+                'last_login_at' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $this->command->info('Super admin seeder executed safely.');
+        $this->command->info("Email: {$email}");
+        $this->command->info('Role: Super Administrator');
     }
 }

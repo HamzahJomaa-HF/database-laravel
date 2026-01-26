@@ -89,82 +89,53 @@ class RoleController extends Controller
      */
     public function edit(Role $role)
     {
-        // Load the role's current permissions
-        $role->load('moduleAccesses');
+            // Get all module accesses
+        $moduleAccesses = ModuleAccess::all();
         
+
         // Get the access_ids of current permissions
         $currentPermissions = $role->moduleAccesses->pluck('access_id')->toArray();
         
-        return view('roles.edit', compact('role', 'currentPermissions'));
+        return view('roles.edit', compact('role', 'currentPermissions', 'moduleAccesses'));
     }
 
     /**
      * Update the specified role in storage.
      */
-   public function update(Request $request, Role $role)
+
+    public function update(Request $request, Role $role)
 {
-    \Log::info('Update Request Data:', $request->all());
-    \Log::info('Role ID from binding:', ['role_id' => $role->role_id]);
-    \Log::info('Checkbox data specifically:', ['module_access_ids' => $request->module_access_ids]);
-    
     $validator = Validator::make($request->all(), [
         'role_name' => 'required|string|max:255|unique:roles,role_name,' . $role->role_id . ',role_id',
         'description' => 'nullable|string|max:500',
-        'module_access_ids' => 'nullable|array',
+        'module_access_ids' => 'sometimes|array',
         'module_access_ids.*' => 'exists:module_access,access_id',
     ]);
 
-    \Log::info('Validation passed?', ['passed' => !$validator->fails()]);
-    
     if ($validator->fails()) {
-        \Log::info('Validation errors:', $validator->errors()->toArray());
-        return redirect()->back()
-            ->withErrors($validator)
-            ->withInput();
+        return back()->withErrors($validator)->withInput();
     }
 
-    \Log::info('Updating role with data:', [
-        'role_name' => $request->role_name,
-        'description' => $request->description,
-    ]);
-    
     $role->update([
         'role_name' => $request->role_name,
         'description' => $request->description,
     ]);
 
-    // Debug before deleting permissions
-    $currentPermissions = RoleModuleAccess::where('role_id', $role->role_id)->get();
-    \Log::info('Current permissions before update:', $currentPermissions->toArray());
+    $accessIds = $request->input('module_access_ids', []); // always [] if none checked
 
-    // Update module access permissions
-    // Delete existing role-module access relationships
-    RoleModuleAccess::where('role_id', $role->role_id)->delete();
-    
-    // Add new permissions if any
-    if ($request->has('module_access_ids')) {
-        \Log::info('Adding new permissions:', $request->module_access_ids);
-        foreach ($request->module_access_ids as $accessId) {
-            RoleModuleAccess::create([
-                'role_id' => $role->role_id,
-                'access_id' => $accessId,
-                'roles_module_access_id' => Str::uuid(),
-            ]);
-        }
-    } else {
-        \Log::info('No module_access_ids in request');
+    RoleModuleAccess::where('role_id', $role->role_id)->forceDelete();
+
+    foreach ($accessIds as $accessId) {
+        RoleModuleAccess::create([
+            'role_id' => $role->role_id,
+            'access_id' => $accessId,
+            'roles_module_access_id' => (string) Str::uuid(),
+        ]);
     }
 
-    // Verify update
-    $updatedRole = Role::find($role->role_id);
-    \Log::info('Role after update:', $updatedRole->toArray());
-    
-    $updatedPermissions = RoleModuleAccess::where('role_id', $role->role_id)->get();
-    \Log::info('Permissions after update:', $updatedPermissions->toArray());
-
-    return redirect()->route('roles.index')
-        ->with('success', 'Role updated successfully.');
+    return redirect()->route('roles.index')->with('success', 'Role updated successfully.');
 }
+
 
     /**
      * Remove the specified role from storage.

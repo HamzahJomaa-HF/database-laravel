@@ -28,8 +28,8 @@
             
             // Check specific module access with simpler logic
             $canAccessUsers = $employee->hasPermission('Users') || $hasFullAccess;
-            $canAccessEmployees = $employee->hasPermission('Users') || $hasFullAccess; // Employees use Users module
-            $canAccessRoles = $employee->hasPermission('Users') || $hasFullAccess;
+            $canAccessEmployees = $employee->hasPermission('Employees') || $hasFullAccess; // Employees use Users module
+            $canAccessRoles = $employee->hasPermission('Employees') || $hasFullAccess;
             $canAccessPrograms = $employee->hasPermission('Programs') || $hasFullAccess;
             $canAccessProjects = $employee->hasPermission('Projects') || $hasFullAccess;
             $canAccessActivities = $employee->hasPermission('Activities') || $hasFullAccess;
@@ -37,7 +37,6 @@
             $canAccessDashboard = $employee->hasPermission('Dashboard') || $hasFullAccess;
             $canAccessActionPlans = $employee->hasPermission('Reports') || $hasFullAccess;
             $canAccessModuleAccess = $hasFullAccess; // Only full access for module access
-            
         
         @endphp
         
@@ -85,7 +84,7 @@
                 <div class="collapse {{ request()->is('employees*') ? 'show' : '' }}" id="employeesDirectoryCollapse">
                     <ul class="nav flex-column sub-menu ms-4">
                         {{-- All Employees --}}
-                        @if($hasFullAccess || $employee->hasPermission('Users'))
+                        @if($hasFullAccess || $employee->hasPermission('Employees'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('employees.index') ? 'active' : '' }}" 
                                href="{{ route('employees.index') }}">
@@ -95,7 +94,7 @@
                         @endif
                         
                         {{-- Add New Employee --}}
-                        @if($hasFullAccess || $employee->hasPermission('Users'))
+                        @if($hasFullAccess || $employee->hasPermission('Employees'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('employees.create') ? 'active' : '' }}" 
                                href="{{ route('employees.create') }}">
@@ -104,45 +103,13 @@
                         </li>
                         @endif
                         
-                        {{-- Search Employees --}}
-                        @if($hasFullAccess || $employee->hasPermission('Users'))
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('employees.search') ? 'active' : '' }}" 
-                               href="{{ route('employees.search') }}">
-                                <i class="bi bi-search me-2"></i> Search Employees
-                            </a>
-                        </li>
-                        @endif
+                       
                         
-                        {{-- Trashed Employees --}}
-                        @if($hasFullAccess || $employee->hasPermission('Users'))
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('employees.trashed') ? 'active' : '' }}" 
-                               href="{{ route('employees.trashed') }}">
-                                <i class="bi bi-trash me-2"></i> Trashed Employees
-                            </a>
-                        </li>
-                        @endif
+                       
                         
-                        {{-- Import Employees --}}
-                        @if($hasFullAccess || $employee->hasPermission('Users'))
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('employees.import') ? 'active' : '' }}" 
-                               href="{{ route('employees.import') }}">
-                                <i class="bi bi-cloud-upload me-2"></i> Import Employees
-                            </a>
-                        </li>
-                        @endif
+                       
                         
-                        {{-- Export Employees --}}
-                        @if($hasFullAccess || $employee->hasPermission('Users'))
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('employees.export') ? 'active' : '' }}" 
-                               href="{{ route('employees.export') }}">
-                                <i class="bi bi-download me-2"></i> Export Employees
-                            </a>
-                        </li>
-                        @endif
+                       
                     </ul>
                 </div>
             </li>
@@ -163,7 +130,7 @@
                 <div class="collapse {{ request()->is('roles*') ? 'show' : '' }}" id="rolesDirectoryCollapse">
                     <ul class="nav flex-column sub-menu ms-4">
                         {{-- All Roles --}}
-                        @if($hasFullAccess || $employee->hasPermission('Users'))
+                        @if($hasFullAccess || $employee->hasPermission('Employees'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('roles.index') ? 'active' : '' }}" 
                                href="{{ route('roles.index') }}">
@@ -173,7 +140,7 @@
                         @endif
                         
                         {{-- Create Role --}}
-                        @if($hasFullAccess || $employee->hasPermission('Users'))
+                        @if($hasFullAccess || $employee->hasPermission('Employees'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('roles.create') ? 'active' : '' }}" 
                                href="{{ route('roles.create') }}">
@@ -182,15 +149,7 @@
                         </li>
                         @endif
                         
-                        {{-- Module Access --}}
-                        @if($hasFullAccess || $canAccessModuleAccess)
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->is('module-access*') ? 'active' : '' }}" 
-                               href="{{ route('module-access.index') }}">
-                                <i class="bi bi-lock me-2"></i> Module Access
-                            </a>
-                        </li>
-                        @endif
+                       
                     </ul>
                 </div>
             </li>
@@ -265,81 +224,7 @@
             @endif
         @endauth
 
-        {{-- Program Directory --}}
-        @auth('employee')
-            @if($hasFullAccess || $canAccessPrograms)
-            <li class="nav-item">
-                <a class="nav-link d-flex justify-content-between align-items-center" 
-                   data-bs-toggle="collapse" href="#programDirectoryCollapse" role="button">
-                    <span>
-                        <i class="bi bi-journal-text me-2"></i> Program Directory
-                    </span>
-                    <i class="bi bi-chevron-down collapse-icon"></i>
-                </a>
-                <div class="collapse {{ request()->is('programs*') ? 'show' : '' }}" id="programDirectoryCollapse">
-                    <ul class="nav flex-column sub-menu ms-4">
-                        {{-- Program Management --}}
-                        @if($hasFullAccess || $employee->hasPermission('Programs'))
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('programs.index') ? 'active' : '' }}" 
-                               href="{{ route('programs.index') }}">
-                                <i class="bi bi-list-ul me-2"></i> All Programs
-                            </a>
-                        </li>
-                        @endif
-                        
-                        {{-- Add New Program --}}
-                        @if($hasFullAccess || $employee->hasPermission('Programs'))
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('programs.create') ? 'active' : '' }}" 
-                               href="{{ route('programs.create') }}">
-                                <i class="bi bi-plus-circle me-2"></i> Add New Program
-                            </a>
-                        </li>
-                        @endif
-                    </ul>
-                </div>
-            </li>
-            @endif
-        @endauth
-
-        {{-- Project Directory --}}
-        @auth('employee')
-            @if($hasFullAccess || $canAccessProjects)
-            <li class="nav-item">
-                <a class="nav-link d-flex justify-content-between align-items-center" 
-                   data-bs-toggle="collapse" href="#projectDirectoryCollapse" role="button">
-                    <span>
-                        <i class="bi bi-folder me-2"></i> Project Directory
-                    </span>
-                    <i class="bi bi-chevron-down collapse-icon"></i>
-                </a>
-                <div class="collapse {{ request()->is('projects*') ? 'show' : '' }}" id="projectDirectoryCollapse">
-                    <ul class="nav flex-column sub-menu ms-4">
-                        {{-- Project Management --}}
-                        @if($hasFullAccess || $employee->hasPermission('Projects'))
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('projects.index') ? 'active' : '' }}" 
-                               href="{{ route('projects.index') }}">
-                                <i class="bi bi-list-ul me-2"></i> All Projects
-                            </a>
-                        </li>
-                        @endif
-                        
-                        {{-- Add New Project --}}
-                        @if($hasFullAccess || $employee->hasPermission('Projects'))
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('projects.create') ? 'active' : '' }}" 
-                               href="{{ route('projects.create') }}">
-                                <i class="bi bi-plus-circle me-2"></i> Add New Project
-                            </a>
-                        </li>
-                        @endif
-                    </ul>
-                </div>
-            </li>
-            @endif
-        @endauth
+        
 
         {{-- Activity Directory --}}
         @auth('employee')
@@ -516,49 +401,49 @@
 </div>
 
 <style>
-.nav-header {
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: rgba(255, 255, 255, 0.6);
-    padding: 0.5rem 1rem;
-    margin-top: 0.5rem;
-}
+    .nav-header {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: rgba(255, 255, 255, 0.6);
+        padding: 0.5rem 1rem;
+        margin-top: 0.5rem;
+    }
 
-.sub-header {
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.5);
-    padding: 0.5rem 0;
-    margin-top: 0.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
+    .sub-header {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.5);
+        padding: 0.5rem 0;
+        margin-top: 0.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
 
-.sub-menu {
-    border-left: 2px solid rgba(255, 255, 255, 0.1);
-    padding-left: 0.5rem;
-    margin: 0.25rem 0;
-}
+    .sub-menu {
+        border-left: 2px solid rgba(255, 255, 255, 0.1);
+        padding-left: 0.5rem;
+        margin: 0.25rem 0;
+    }
 
-.sub-menu .nav-link {
-    font-size: 0.875rem;
-    padding: 0.375rem 0.75rem;
-    border-radius: 0.375rem;
-    color: rgba(255, 255, 255, 0.8);
-}
+    .sub-menu .nav-link {
+        font-size: 0.875rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        color: rgba(255, 255, 255, 0.8);
+    }
 
-.sub-menu .nav-link:hover,
-.sub-menu .nav-link.active {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: white;
-}
+    .sub-menu .nav-link:hover,
+    .sub-menu .nav-link.active {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
 
-.collapse-icon {
-    transition: transform 0.2s ease-in-out;
-    font-size: 0.75rem;
-}
+    .collapse-icon {
+        transition: transform 0.2s ease-in-out;
+        font-size: 0.75rem;
+    }
 
 /* Better brand display */
 .navbar-brand .text-uppercase {
@@ -579,27 +464,27 @@
 </style>
 
 <script>
-// Add collapse icon rotation
-document.addEventListener('DOMContentLoaded', function() {
-    const collapseLinks = document.querySelectorAll('[data-bs-toggle="collapse"]');
-    
-    collapseLinks.forEach(link => {
-        link.addEventListener('click', function() {
-            const icon = this.querySelector('.collapse-icon');
-            if (icon) {
-                icon.style.transform = icon.style.transform === 'rotate(180deg)' ? 'rotate(0deg)' : 'rotate(180deg)';
+    // Add collapse icon rotation
+    document.addEventListener('DOMContentLoaded', function() {
+        const collapseLinks = document.querySelectorAll('[data-bs-toggle="collapse"]');
+
+        collapseLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                const icon = this.querySelector('.collapse-icon');
+                if (icon) {
+                    icon.style.transform = icon.style.transform === 'rotate(180deg)' ? 'rotate(0deg)' : 'rotate(180deg)';
+                }
+            });
+
+            // Set initial state for open collapses
+            const targetId = link.getAttribute('href');
+            const targetCollapse = document.querySelector(targetId);
+            if (targetCollapse && targetCollapse.classList.contains('show')) {
+                const icon = link.querySelector('.collapse-icon');
+                if (icon) {
+                    icon.style.transform = 'rotate(180deg)';
+                }
             }
         });
-        
-        // Set initial state for open collapses
-        const targetId = link.getAttribute('href');
-        const targetCollapse = document.querySelector(targetId);
-        if (targetCollapse && targetCollapse.classList.contains('show')) {
-            const icon = link.querySelector('.collapse-icon');
-            if (icon) {
-                icon.style.transform = 'rotate(180deg)';
-            }
-        }
     });
-});
 </script>

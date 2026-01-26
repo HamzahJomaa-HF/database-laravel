@@ -148,12 +148,31 @@
 ];
                                             @endphp
                                             @foreach($activityTypes as $key => $label)
-                                                <option value="{{ $key }}" {{ old('activity_type', $activity->activity_type) == $key ? 'selected' : '' }}>
+                                                <option value="{{ $label }}" {{ old('activity_type', $activity->activity_type) == $label ? 'selected' : '' }}>
                                                     {{ $label }}
                                                 </option>
                                             @endforeach
                                         </select>
                                         @error('activity_type')
+                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="maximum_capacity" class="form-label fw-semibold">
+                                            Maximum Capacity
+                                        </label>
+
+                                        <input
+                                            type="number"
+                                            name="maximum_capacity"
+                                            id="maximum_capacity"
+                                            class="form-control @error('maximum_capacity') is-invalid @enderror"
+                                            value="{{ old('maximum_capacity', $activity->maximum_capacity) }}"
+                                            placeholder="Enter maximum capacity"
+                                            min="0"
+                                        >
+
+                                        @error('maximum_capacity')
                                             <div class="invalid-feedback d-block">{{ $message }}</div>
                                         @enderror
                                     </div>
@@ -259,10 +278,9 @@
                     <div class="invalid-feedback d-block">{{ $message }}</div>
                 @enderror
             </div>
-
             {{-- Row 2 - Venue --}}
             <div class="col-md-12">
-                <label for="venue_select" class="form-label fw-semibold">Venue</label>
+                <label for="venue_select" class="form-label fw-semibold">Venue</label> test {{  $activity->venue }}
                 <select name="venue_select" id="venue_select" 
                        class="form-control form-select @error('venue') is-invalid @enderror">
                     <option value="">Select Venue</option>
@@ -378,8 +396,7 @@
                         name="action_plan_id">
                     <option value="">Select an Action Plan</option>
                     @foreach($actionPlans as $actionPlan)
-                        <option value="{{ $actionPlan->action_plan_id }}" 
-                                {{ $selectedActionPlanIdSingle == $actionPlan->action_plan_id ? 'selected' : '' }}>
+                        <option value="{{ $actionPlan->action_plan_id }}" {{ $actionPlan->action_plan_id == $selected_action_plan_id ? 'selected' : '' }}>
                             {{ $actionPlan->title }}
                             @if($actionPlan->start_date && $actionPlan->end_date)
                                 ({{ \Carbon\Carbon::parse($actionPlan->start_date)->format('Y') }} - {{ \Carbon\Carbon::parse($actionPlan->end_date)->format('Y') }})
@@ -417,12 +434,7 @@
                         class="form-control form-select @error('rp_component_id') is-invalid @enderror"
                         name="rp_component_id">
                     <option value="">Select a Reporting Component</option>
-                    @foreach($rpComponents as $component)
-                        <option value="{{ $component->rp_components_id }}" 
-                                {{ $selectedComponentIdSingle == $component->rp_components_id ? 'selected' : '' }}>
-                            {{ $component->code }} - {{ $component->name }}
-                        </option>
-                    @endforeach
+                    
                 </select>
                 @error('rp_component_id')
                     <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -457,131 +469,98 @@
         </div>
     </div>
 </div>
-                        {{-- ====================================== --}}
-                        {{-- SECTION 6: FOCAL POINTS --}}
-                        {{-- ====================================== --}}
-                        <div class="section-card mb-4">
-                            <div class="section-header">
-                                <h6 class="mb-0 fw-semibold">Focal Points</h6>
-                                <span class="text-muted small">Select one or more focal points</span>
-                            </div>
-                            <div class="section-body">
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="form-group mb-0">
-                                            <label for="focal_points_select" class="form-label fw-semibold mb-2">Select Focal Points</label>
-                                            <select id="focal_points_select" 
-                                                    multiple
-                                                    class="form-control @error('focal_points') is-invalid @enderror"
-                                                    name="focal_points[]">
-                                                @php
-                                                    $focalPoints = [
-                                                        ['id' => 1, 'name' => 'Mohamad Ismail'],
-                                                        ['id' => 2, 'name' => 'Mohammad Harriri'],
-                                                        ['id' => 3, 'name' => 'Lilia Chahine'],
-                                                        ['id' => 4, 'name' => 'Nadine Zaidan'],
-                                                        ['id' => 5, 'name' => 'Hatem Assii'],
-                                                        ['id' => 6, 'name' => 'Ahmad Chami'],
-                                                    ];
-                                                    
-                                                    // Get selected focal points from activity
-                                                    $selectedFocalPoints = json_decode($activity->focal_points ?? '[]', true) ?: [];
-                                                @endphp
-                                                @foreach($focalPoints as $point)
-                                                    <option value="{{ $point['id'] }}" 
-                                                            {{ in_array($point['id'], $selectedFocalPoints) ? 'selected' : '' }}>
-                                                        {{ $point['name'] }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                            @error('focal_points')
-                                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                                            @enderror
-                                            @error('focal_points.*')
-                                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- ========================================== --}}
-                        {{-- SECTION 7: OPERATIONAL SUPPORT REQUIRED --}}
-                        {{-- ========================================== --}}
-                        <div class="section-card mb-5">
-                            <div class="section-header">
-                                <h6 class="mb-0 fw-semibold">Operational Support Required</h6>
-                                <span class="text-muted small">Select required support types (multiple selection)</span>
-                            </div>
-                            <div class="section-body">
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="form-group">
-                                            <label class="form-label fw-semibold mb-2 d-block">Select Required Support</label>
-
-                                            @php
-                                                // Allowed keys (preferred: from config)
-                                                $allowedSupports = config('operational_support', [
-                                                    'logistics',
-                                                    'media',
-                                                    'public_relations',
-                                                    'none',
-                                                ]);
-
-                                                // If you cast operational_support as array in the model, this will already be an array.
-                                                // If it's still stored as JSON string, decode it.
-                                                $operationalSupport = $activity->operational_support;
-
-                                                if (is_string($operationalSupport)) {
-                                                    $operationalSupport = json_decode($operationalSupport, true);
-                                                }
-
-                                                $operationalSupport = is_array($operationalSupport) ? $operationalSupport : [];
-
-                                                // Labels for display
-                                                $labels = [
-                                                    'logistics' => 'Logistics',
-                                                    'media' => 'Media',
-                                                    'public_relations' => 'Public Relations',
-                                                    'field_support' => 'Facilitation & Field Support',
-                                                    'none' => 'None',
-                                                ];
-                                            @endphp
-
-                                            <div class="row">
-                                                @foreach($allowedSupports as $key)
-                                                    <div class="col-md-6 col-lg-3 mb-2">
-                                                        <div class="form-check">
-                                                            <input
-                                                                class="form-check-input @error('operational_support') is-invalid @enderror @error("operational_support.$key") is-invalid @enderror"
-                                                                type="checkbox"
-                                                                name="operational_support[{{ $key }}]"
-                                                                id="support_{{ $key }}"
-                                                                value="1"
-                                                                {{ !empty($operationalSupport[$key]) ? 'checked' : '' }}
-                                                            >
-                                                            <label class="form-check-label" for="support_{{ $key }}">
-                                                                {{ $labels[$key] ?? ucfirst(str_replace('_', ' ', $key)) }}
-                                                            </label>
-                                                        </div>
-                                                    </div>
-                                                @endforeach
-                                            </div>
-
-                                            @error('operational_support')
-                                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                                            @enderror
-                                            @error('operational_support.*')
-                                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
+  {{-- ====================================== --}}
+{{-- SECTION 7: FOCAL POINTS --}}
+{{-- ====================================== --}}
+<div class="section-card mb-4">
+    <div class="section-header">
+        <h6 class="mb-0 fw-semibold">Focal Points</h6>
+        <span class="text-muted small">Select one or more focal points</span>
+    </div>
+    <div class="section-body">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group mb-0">
+                    <label for="focal_points_select" class="form-label fw-semibold mb-2">Select Focal Points</label>
+                    
+                    <?php
+                    // Direct database query to get all employees (like in create blade)
+                    use Illuminate\Support\Facades\DB;
+                    
+                    // Get all active employees
+                    $allEmployees = DB::table('employees')
+                        ->whereNull('deleted_at')
+                        ->orderBy('first_name')
+                        ->get(['employee_id', 'first_name', 'last_name', 'email', 'employee_type']);
+                    
+                    // Get selected focal points for this activity
+                    // First try from activity_focal_points table (if you're using it)
+                    $selectedFocalPointsFromTable = DB::table('activity_focal_points')
+                        ->where('activity_id', $activity->activity_id)
+                        ->whereNull('deleted_at')
+                        ->pluck('rp_focalpoints_id')
+                        ->toArray();
+                    
+                    // Also check if there's JSON in focal_points column (for backward compatibility)
+                    $selectedFocalPointsFromJson = [];
+                    if (!empty($activity->focal_points)) {
+                        $decoded = json_decode($activity->focal_points, true);
+                        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                            $selectedFocalPointsFromJson = $decoded;
+                        }
+                    }
+                    
+                    // Combine both sources, prioritize table data
+                    $selectedFocalPoints = !empty($selectedFocalPointsFromTable) 
+                        ? $selectedFocalPointsFromTable 
+                        : $selectedFocalPointsFromJson;
+                    
+                    // If form was submitted with errors, use old input
+                    if (old('focal_points')) {
+                        $selectedFocalPoints = old('focal_points', []);
+                    }
+                    ?>
+                    
+                    <select id="focal_points_select" 
+                            multiple
+                            class="form-control @error('focal_points') is-invalid @enderror"
+                            name="focal_points[]">
+                        
+                        @if($allEmployees->count() > 0)
+                            @foreach($allEmployees as $employee)
+                                @php
+                                    $isSelected = in_array($employee->employee_id, $selectedFocalPoints);
+                                    $displayName = trim($employee->first_name . ' ' . $employee->last_name);
+                                    $email = $employee->email ?? '';
+                                    $type = $employee->employee_type ?? '';
+                                @endphp
+                                
+                                <option value="{{ $employee->employee_id }}" 
+                                        {{ $isSelected ? 'selected' : '' }}>
+                                    {{ $displayName }} - {{ $email }} {{ $type ? '(' . $type . ')' : '' }}
+                                </option>
+                            @endforeach
+                        @else
+                            <option value="">No employees found in database</option>
+                        @endif
+                    </select>
+                    
+                    @error('focal_points')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                    @error('focal_points.*')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                    
+                    <div class="form-text mt-2">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Select one or more employees as focal points for this activity
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
                         {{-- ======================== --}}
                         {{-- SECTION 8: ACTION BUTTONS --}}
                         {{-- ======================== --}}
@@ -635,7 +614,10 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
 <script>
+
     document.addEventListener('DOMContentLoaded', function() {
+        const selectedComponentId = @json($selected_component_id);
+        const selected_rp_activity_ids = @json($selected_rp_activity_ids);
         // ============================================
         // PROGRAM AND PROJECTS HANDLING
         // ============================================
@@ -801,238 +783,115 @@
         // ============================================
         // ACTION PLAN, COMPONENTS, AND ACTIVITIES HANDLING
         // ============================================
-        // Store selected component ID
-        const selectedComponentId = '{{ $selectedComponentIdSingle ?? "" }}';
-        
-        // Store selected activity IDs globally
-        const selectedRpActivityIds = {!! json_encode($selectedRpActivityIds ?? []) !!};
-        
-        // Initialize all selects and load pre-selected data
-        $(document).ready(function() {
-            // Initialize Action Plan Select2
-            const actionPlanSelect = $('#action_plan_id');
-            const selectedActionPlan = actionPlanSelect.val();
-            actionPlanSelect.select2({
-                placeholder: 'Select an action plan...',
-                allowClear: true,
-                width: '100%',
-                minimumResultsForSearch: 10
-            });
-            // Ensure selected value is preserved
-            if (selectedActionPlan) {
-                actionPlanSelect.val(selectedActionPlan).trigger('change');
-            }
-
-            // Initialize RP Components Select2 (options already in HTML from controller)
-            const componentSelect = $('#rp_component_id');
-            if (componentSelect.find('option').length > 1) {
-                const selectedComponent = componentSelect.val();
-                componentSelect.select2({
-                    placeholder: 'Select a reporting component...',
-                    allowClear: true,
-                    width: '100%',
-                    minimumResultsForSearch: 10
-                });
-                // Ensure selected value is preserved
-                if (selectedComponent) {
-                    componentSelect.val(selectedComponent).trigger('change');
-                }
-            }
-
-            // Initialize RP Activities Select2
-            $('#rp_activities_select').select2({
-                placeholder: 'Select reporting activities...',
-                allowClear: true,
-                width: '100%',
-                closeOnSelect: false,
-                multiple: true
-            });
-            
-            // Initialize the custom multiple select for focal points
-            $('#focal_points_select').select2({
-                placeholder: 'Select focal points...',
-                allowClear: true,
-                width: '100%',
-                closeOnSelect: false,
-                multiple: true
-            });
-            
-            // Load activities if component is already selected
-            const initialComponentId = componentSelect.val();
-            if (initialComponentId && selectedRpActivityIds.length > 0) {
-                // Wait a bit for Select2 to be fully initialized, then load activities
-                setTimeout(function() {
-                    loadRPActivitiesByComponent(initialComponentId);
-                }, 300);
-            }
+        // Initialize Action Plan Select2
+        $('#action_plan_id').select2({
+            placeholder: 'Select an action plan...',
+            allowClear: true,
+            width: '100%',
+            minimumResultsForSearch: 10
         });
+
+        // Initialize RP Components Select2
+        $('#rp_component_id').select2({
+            placeholder: 'Select a reporting component...',
+            allowClear: true,
+            width: '100%',
+            minimumResultsForSearch: 10
+        });
+
+        // Initialize RP Activities Select2
+        $('#rp_activities_select').select2({
+            placeholder: 'Select reporting activities...',
+            allowClear: true,
+            width: '100%',
+            closeOnSelect: false,
+            multiple: true
+        });
+        
+        // Initialize the custom multiple select for focal points
+        $('#focal_points_select').select2({
+            placeholder: 'Select focal points...',
+            allowClear: true,
+            width: '100%',
+            closeOnSelect: false,
+            multiple: true
+        });
+
+        // Store selected component ID
+        
 
         // Function to load components based on selected action plan
         function loadComponentsByActionPlan(actionPlanId) {
             const componentsSelect = $('#rp_component_id');
             const activitiesSelect = $('#rp_activities_select');
             
-            // Return a promise so we can chain activities loading
-            return new Promise(function(resolve, reject) {
-                if (!actionPlanId) {
-                    // If no action plan selected, show all components
-                    componentsSelect.empty();
-                    componentsSelect.append('<option value="">Loading all components...</option>');
-                    componentsSelect.trigger('change');
-                    
-                    // Disable while loading
-                    componentsSelect.prop('disabled', true);
-                    
-                    // Load all components
-                    $.ajax({
-                        url: '{{ route("activities.get-rp-components") }}',
-                        method: 'GET',
-                        dataType: 'json',
-                        success: function(response) {
-                            componentsSelect.empty();
-                            componentsSelect.prop('disabled', false);
-                            
-                            if (response.success && response.data && response.data.length > 0) {
-                                componentsSelect.append('<option value="">Select a Reporting Component</option>');
-                                
-                                let foundSelected = false;
-                                response.data.forEach(component => {
-                                    const option = $('<option>')
-                                        .val(component.rp_components_id)
-                                        .text(component.code + ' - ' + component.name);
-                                    
-                                    // Select if it was previously selected
-                                    if (selectedComponentId && component.rp_components_id == selectedComponentId) {
-                                        option.prop('selected', true);
-                                        foundSelected = true;
-                                    }
-                                    
-                                    componentsSelect.append(option);
-                                });
-                                
-                                // Reinitialize Select2 to reflect the selection
-                                componentsSelect.select2('destroy').select2({
-                                    placeholder: 'Select a reporting component...',
-                                    allowClear: true,
-                                    width: '100%',
-                                    minimumResultsForSearch: 10
-                                });
-                                
-                                // Ensure the selected value is set in Select2
-                                if (foundSelected && selectedComponentId) {
-                                    componentsSelect.val(selectedComponentId).trigger('change');
-                                }
-                            } else {
-                                componentsSelect.append('<option value="">No components available</option>');
-                            }
-                            
-                            // Clear activities when components are loaded/changed
-                            activitiesSelect.empty();
-                            activitiesSelect.append('<option value="" disabled>Select a reporting component first</option>');
-                            activitiesSelect.trigger('change');
-                            
-                            resolve();
-                        },
-                        error: function(xhr, status, error) {
-                            console.error('Error loading components:', error);
-                            componentsSelect.empty();
-                            componentsSelect.append('<option value="">Error loading components</option>');
-                            componentsSelect.prop('disabled', false);
-                            reject(error);
-                        }
-                    });
-                    
-                    return;
-                }
-                
-                // Show loading state
+            if (actionPlanId) {
+                // If no action plan selected, show all components
                 componentsSelect.empty();
-                componentsSelect.append('<option value="">Loading components...</option>');
+                componentsSelect.append('<option value="">Loading all components...</option>');
                 componentsSelect.trigger('change');
+                
+                // Disable while loading
                 componentsSelect.prop('disabled', true);
                 
-                // Load components via AJAX
+                // Load all components
                 $.ajax({
-                    url: '{{ route("activities.get-components-by-action-plan") }}',
+                    url: '{{ route("activities.get-rp-components") }}?action_plan_id=' + encodeURIComponent(actionPlanId),
                     method: 'GET',
-                    data: {
-                        action_plan_id: actionPlanId
-                    },
                     dataType: 'json',
                     success: function(response) {
                         componentsSelect.empty();
                         componentsSelect.prop('disabled', false);
-                        
-                        if (response.success && response.components && response.components.length > 0) {
+                        if (response.success && response.data && response.data.length > 0) {
                             componentsSelect.append('<option value="">Select a Reporting Component</option>');
                             
-                            let foundSelected = false;
-                            response.components.forEach(component => {
+                            response.data.forEach(component => {
                                 const option = $('<option>')
                                     .val(component.rp_components_id)
                                     .text(component.code + ' - ' + component.name);
-                                
-                                // Select if it was previously selected
-                                if (selectedComponentId && component.rp_components_id == selectedComponentId) {
-                                    option.prop('selected', true);
-                                    foundSelected = true;
-                                }
-                                
+                                  if (selectedComponentId == component.rp_components_id.toString()) {
+                                        option.prop('selected', true);
+                                    }
                                 componentsSelect.append(option);
                             });
                             
-                            // Reinitialize Select2 to reflect the selection
-                            componentsSelect.select2('destroy').select2({
+                            componentsSelect.select2({
                                 placeholder: 'Select a reporting component...',
                                 allowClear: true,
                                 width: '100%',
                                 minimumResultsForSearch: 10
                             });
-                            
-                            // Ensure the selected value is set in Select2
-                            if (foundSelected && selectedComponentId) {
-                                componentsSelect.val(selectedComponentId).trigger('change');
-                            }
                         } else {
-                            componentsSelect.append('<option value="">No components found for this action plan</option>');
+                            componentsSelect.append('<option value="">No components available</option>');
                         }
                         
-                        // Clear activities
+                        // Clear activities when components are loaded/changed
                         activitiesSelect.empty();
                         activitiesSelect.append('<option value="" disabled>Select a reporting component first</option>');
                         activitiesSelect.trigger('change');
-                        
-                        resolve();
                     },
                     error: function(xhr, status, error) {
                         console.error('Error loading components:', error);
                         componentsSelect.empty();
                         componentsSelect.append('<option value="">Error loading components</option>');
                         componentsSelect.prop('disabled', false);
-                        reject(error);
                     }
                 });
-            });
+                
+                return;
+            }
+            
+            // Show loading state
+            componentsSelect.empty();
+            componentsSelect.append('<option value="">Loading components...</option>');
+            componentsSelect.trigger('change');
+            componentsSelect.prop('disabled', true);
+           
         }
 
         // Function to load RP Activities based on component
         function loadRPActivitiesByComponent(componentId) {
             const activitiesSelect = $('#rp_activities_select');
-            
-            if (!componentId) {
-                activitiesSelect.empty();
-                activitiesSelect.append('<option value="" disabled>Select a reporting component first</option>');
-                activitiesSelect.trigger('change');
-                
-                activitiesSelect.select2({
-                    placeholder: 'Select a reporting component first',
-                    allowClear: true,
-                    width: '100%',
-                    closeOnSelect: false,
-                    multiple: true
-                });
-                return;
-            }
             
             // Clear and show loading
             activitiesSelect.empty();
@@ -1071,7 +930,9 @@
                                         const option = $('<option>')
                                             .val(activity.rp_activities_id)
                                             .text(activityText);
-                                        
+                                        if (selected_rp_activity_ids.includes(activity.rp_activities_id)) {
+                                            option.prop('selected', true);
+                                        }
                                         optgroup.append(option);
                                     });
                                     
@@ -1079,8 +940,7 @@
                                 }
                             });
                             
-                            // Reinitialize Select2
-                            activitiesSelect.select2('destroy').select2({
+                            activitiesSelect.select2({
                                 placeholder: 'Select reporting activities...',
                                 allowClear: true,
                                 width: '100%',
@@ -1088,17 +948,6 @@
                                 multiple: true
                             });
                             
-                            // Select previously chosen activities
-                            if (selectedRpActivityIds && selectedRpActivityIds.length > 0) {
-                                const stringIds = selectedRpActivityIds.map(id => String(id));
-                                // Set the values and trigger change
-                                activitiesSelect.val(stringIds).trigger('change');
-                                
-                                // Also ensure Select2 displays the selected items
-                                setTimeout(function() {
-                                    activitiesSelect.val(stringIds).trigger('change');
-                                }, 100);
-                            }
                         }
                     } else {
                         activitiesSelect.append('<option value="">No activities found for this component</option>');
@@ -1136,34 +985,28 @@
         // Event listener for component change
         $('#rp_component_id').on('change', function() {
             const componentId = $(this).val();
-            loadRPActivitiesByComponent(componentId);
+            if (componentId) {
+                loadRPActivitiesByComponent(componentId);
+            } else {
+                // Clear activities if no component selected
+                const activitiesSelect = $('#rp_activities_select');
+                activitiesSelect.empty();
+                activitiesSelect.append('<option value="" disabled>Select a reporting component first</option>');
+                activitiesSelect.trigger('change');
+            }
         });
 
-        // Initialize components Select2 if options exist in HTML
-        if ($('#rp_component_id option').length > 1) {
-            $('#rp_component_id').select2({
-                placeholder: 'Select a reporting component...',
-                allowClear: true,
-                width: '100%',
-                minimumResultsForSearch: 10
-            });
-        }
-        
-        // Load components and activities on page load if they're already selected
+        // Load components on page load if action plan is selected
         $(document).ready(function() {
             const initialActionPlanId = $('#action_plan_id').val();
-            const initialComponentId = $('#rp_component_id').val();
-            
-            // If component is already selected in HTML, load its activities
-            if (initialComponentId && selectedRpActivityIds.length > 0) {
-                // Wait a bit for Select2 to be fully initialized, then load activities
-                setTimeout(function() {
-                    loadRPActivitiesByComponent(initialComponentId);
-                }, 300);
+            if (initialActionPlanId) {
+                loadComponentsByActionPlan(initialActionPlanId);
             }
+
+            if (selectedComponentId) {
+                loadRPActivitiesByComponent(selectedComponentId);
+            }   
             
-            // Only reload components if action plan changes (not on initial load)
-            // The HTML already has the correct components loaded by the controller
         });
 
         // ============================================

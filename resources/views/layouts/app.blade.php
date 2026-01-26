@@ -254,24 +254,24 @@
 
                 <div class="ms-auto d-flex align-items-center">
                     <ul class="navbar-nav flex-row align-items-center">
-                        <li class="nav-item me-3 position-relative">
+                        <!-- <li class="nav-item me-3 position-relative">
                             <a class="nav-link text-muted position-relative" href="#">
                                 <i class="bi bi-bell fs-5"></i>
                                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
                                     3
                                 </span>
                             </a>
-                        </li>
-                        <li class="nav-item me-3">
+                        </li> -->
+                        <!-- <li class="nav-item me-3">
                             <a class="nav-link text-muted" href="#">
                                 <i class="bi bi-gear fs-5"></i>
                             </a>
-                        </li>
+                        </li> -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
                                 <div class="me-2 text-end d-none d-md-block">
-                                    <div class="fw-semibold text-dark" style="font-size: 0.9rem;">Adrian D.</div>
-                                    <div class="text-muted small">Administrator</div>
+                                    <div class="fw-semibold text-dark" style="font-size: 0.9rem;">{{ Auth::user()->first_name }} {{ Auth::user()->last_name }}</div>
+                                    <div class="text-muted small">{{ Auth::user()->employee_type }}</div>
                                 </div>
                                 <div class="position-relative">
                                     <img src="https://placehold.co/40x40/4361ee/FFFFFF?text=AD" class="rounded-circle border border-2 border-white shadow" alt="User Avatar">
@@ -284,7 +284,14 @@
                                 <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>My Profile</a></li>
                                 <li><a class="dropdown-item" href="#"><i class="bi bi-lock me-2"></i>Account Settings</a></li>
                                 <li><hr class="dropdown-divider my-2"></li>
-                                <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                                <li>
+                                    <form method="POST" action="{{ route('logout') }}" class="dropdown-item p-0">
+                                @csrf
+                                <button type="submit" class="btn btn-link text-decoration-none text-danger w-100 text-start p-2">
+                                    <i class="bi bi-box-arrow-right me-2"></i>Logout
+                                </button>
+                            </form>
+                                </li>
                             </ul>
                         </li>
                     </ul>

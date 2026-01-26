@@ -97,6 +97,10 @@
                                         "format": "uuid",
                                         "example": "b2c3d4e5-6789-0abc-def1-234567890bcd"
                                     },
+                                    "maximum_capacity": {
+                                        "type": "number",
+                                        "example": "34"
+                                    },
                                     "operational_support": {
                                         "properties": {
                                             "logistics": {
