@@ -58,6 +58,23 @@ class ModuleAccessSeeder extends Seeder
         'delete' => 'Can delete roles but cannot create or edit',
         'full'   => 'Administrator level access with all permissions',
     ],
+    // NEW: Portfolios Module (from your database tables)
+            'Portfolios' => [
+                'view'   => 'Can only view portfolio information, no modifications',
+                'create' => 'Can create new portfolios but cannot edit or delete',
+                'edit'   => 'Can edit existing portfolios but cannot create or delete',
+                'delete' => 'Can delete portfolios but cannot create or edit',
+                'full'   => 'Administrator level access with all permissions',
+            ],
+            
+            // NEW: COPs Module (from your database tables)
+            'COPs' => [
+                'view'   => 'Can only view Community of Practice (COP) information, no modifications',
+                'create' => 'Can create new COPs but cannot edit or delete',
+                'edit'   => 'Can edit existing COPs but cannot create or delete',
+                'delete' => 'Can delete COPs but cannot create or edit',
+                'full'   => 'Administrator level access with all permissions',
+            ],
     
             // Additional Modules
             'Dashboard' => [

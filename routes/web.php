@@ -33,25 +33,6 @@ use App\Http\Controllers\CopController;
 // PUBLIC ROUTES - Accessible WITHOUT authentication
 // ============================================================================
 
-Route::get('/portfolios', [PortfolioController::class, 'index'])->name('portfolios.index');
-Route::get('/portfolios/create', [PortfolioController::class, 'create'])->name('portfolios.create');
-Route::post('/portfolios', [PortfolioController::class, 'store'])->name('portfolios.store');
-Route::get('/portfolios/{id}/edit', [PortfolioController::class, 'edit'])->name('portfolios.edit');
-Route::put('/portfolios/{id}', [PortfolioController::class, 'update'])->name('portfolios.update');
-Route::delete('/portfolios/{id}', [PortfolioController::class, 'destroy'])->name('portfolios.destroy');
-
-
-
-//Cops Management Routes
-
-
-Route::get('/cops', [CopController::class, 'index'])->name('cops.index');
-Route::get('/cops/create', [CopController::class, 'create'])->name('cops.create');
-Route::post('/cops', [CopController::class, 'store'])->name('cops.store');
-
-Route::get('/cops/{id}/edit', [CopController::class, 'edit'])->name('cops.edit');
-Route::put('/cops/{id}', [CopController::class, 'update'])->name('cops.update');
-Route::delete('/cops/{id}', [CopController::class, 'destroy'])->name('cops.destroy');
 
 
 
@@ -209,6 +190,48 @@ Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
         Route::middleware(['hasPermission:Users.delete,Users.manage,Users.full'])
             ->delete('/{user_id}', [UserController::class, 'destroy'])->name('destroy');
     });
+      // ------------------------------------------------------------------------
+    // PORTFOLIOS MANAGEMENT
+    // ------------------------------------------------------------------------
+    Route::middleware(['hasPermission:Portfolios.view,Portfolios.manage,Portfolios.full'])
+        ->prefix('portfolios')->name('portfolios.')->group(function () {
+            Route::get('/', [PortfolioController::class, 'index'])->name('index');
+            Route::middleware(['hasPermission:Portfolios.create,Portfolios.manage,Portfolios.full'])
+                ->get('/create', [PortfolioController::class, 'create'])->name('create');
+            Route::middleware(['hasPermission:Portfolios.create,Portfolios.manage,Portfolios.full'])
+                ->post('/', [PortfolioController::class, 'store'])->name('store');
+            Route::middleware(['hasPermission:Portfolios.view,Portfolios.manage,Portfolios.full'])
+                ->get('/{portfolio}', [PortfolioController::class, 'show'])->name('show');
+            Route::middleware(['hasPermission:Portfolios.edit,Portfolios.manage,Portfolios.full'])
+                ->get('/{portfolio}/edit', [PortfolioController::class, 'edit'])->name('edit');
+            Route::middleware(['hasPermission:Portfolios.edit,Portfolios.manage,Portfolios.full'])
+                ->put('/{portfolio}', [PortfolioController::class, 'update'])->name('update');
+            Route::middleware(['hasPermission:Portfolios.delete,Portfolios.manage,Portfolios.full'])
+                ->delete('/{portfolio}', [PortfolioController::class, 'destroy'])->name('destroy');
+        });
+    
+    // ------------------------------------------------------------------------
+    // COPS MANAGEMENT
+    // ------------------------------------------------------------------------
+    Route::middleware(['hasPermission:COPs.view,COPs.manage,COPs.full'])
+        ->prefix('cops')->name('cops.')->group(function () {
+            Route::get('/', [CopController::class, 'index'])->name('index');
+            Route::middleware(['hasPermission:COPs.create,COPs.manage,COPs.full'])
+                ->get('/create', [CopController::class, 'create'])->name('create');
+            Route::middleware(['hasPermission:COPs.create,COPs.manage,COPs.full'])
+                ->post('/', [CopController::class, 'store'])->name('store');
+            Route::middleware(['hasPermission:COPs.view,COPs.manage,COPs.full'])
+                ->get('/{cop}', [CopController::class, 'show'])->name('show');
+            Route::middleware(['hasPermission:COPs.edit,COPs.manage,COPs.full'])
+                ->get('/{cop}/edit', [CopController::class, 'edit'])->name('edit');
+            Route::middleware(['hasPermission:COPs.edit,COPs.manage,COPs.full'])
+                ->put('/{cop}', [CopController::class, 'update'])->name('update');
+            Route::middleware(['hasPermission:COPs.delete,COPs.manage,COPs.full'])
+                ->delete('/{cop}', [CopController::class, 'destroy'])->name('destroy');
+        });
+
+
+
     // ------------------------------------------------------------------------
     // ACTIVITIES MODULE
     // ------------------------------------------------------------------------

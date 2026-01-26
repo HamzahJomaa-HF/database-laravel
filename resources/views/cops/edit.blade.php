@@ -256,25 +256,7 @@
                             </div>
                         </div>
 
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label" for="external_id">External ID</label>
-                                    <input type="text" 
-                                           name="external_id" 
-                                           id="external_id" 
-                                           class="form-control" 
-                                           placeholder="External identifier (optional)" 
-                                           value="{{ old('external_id', $cop->external_id) }}">
-                                    <div class="projects-info">
-                                        <i class="fas fa-info-circle"></i> Auto-generated format: COP_YYYY_MM_XXX
-                                    </div>
-                                    @error('external_id')
-                                        <div class="error-message">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-                        </div>
+                        
                     </div>
                 </div>
                 

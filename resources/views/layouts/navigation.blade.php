@@ -23,12 +23,9 @@
             }
             $hasFullAccess = $employee->hasFullAccess();
             
-            // Debug: Show what modules the employee has access to
-            $debugModules = $employee->role->moduleAccesses ?? collect();
-            
             // Check specific module access with simpler logic
             $canAccessUsers = $employee->hasPermission('Users') || $hasFullAccess;
-            $canAccessEmployees = $employee->hasPermission('Employees') || $hasFullAccess; // Employees use Users module
+            $canAccessEmployees = $employee->hasPermission('Employees') || $hasFullAccess;
             $canAccessRoles = $employee->hasPermission('Employees') || $hasFullAccess;
             $canAccessPrograms = $employee->hasPermission('Programs') || $hasFullAccess;
             $canAccessProjects = $employee->hasPermission('Projects') || $hasFullAccess;
@@ -36,11 +33,10 @@
             $canAccessReports = $employee->hasPermission('Reports') || $hasFullAccess;
             $canAccessDashboard = $employee->hasPermission('Dashboard') || $hasFullAccess;
             $canAccessActionPlans = $employee->hasPermission('Reports') || $hasFullAccess;
+            $canAccessPortfolios = $employee->hasPermission('Portfolios') || $hasFullAccess;
+            $canAccessCOPs = $employee->hasPermission('COPs') || $hasFullAccess;
             $canAccessModuleAccess = $hasFullAccess; // Only full access for module access
-        
         @endphp
-        
-       
         
         <div class="text-center mb-4 px-3">
             <div class="text-white small">
@@ -102,14 +98,6 @@
                             </a>
                         </li>
                         @endif
-                        
-                       
-                        
-                       
-                        
-                       
-                        
-                       
                     </ul>
                 </div>
             </li>
@@ -148,8 +136,6 @@
                             </a>
                         </li>
                         @endif
-                        
-                       
                     </ul>
                 </div>
             </li>
@@ -226,6 +212,81 @@
 
         
 
+        {{-- Portfolios Directory --}}
+        @auth('employee')
+            @if($hasFullAccess || $canAccessPortfolios)
+            <li class="nav-item">
+                <a class="nav-link d-flex justify-content-between align-items-center" 
+                   data-bs-toggle="collapse" href="#portfoliosDirectoryCollapse" role="button">
+                    <span>
+                        <i class="bi bi-briefcase me-2"></i> Portfolios
+                    </span>
+                    <i class="bi bi-chevron-down collapse-icon"></i>
+                </a>
+                <div class="collapse {{ request()->is('portfolios*') ? 'show' : '' }}" id="portfoliosDirectoryCollapse">
+                    <ul class="nav flex-column sub-menu ms-4">
+                        {{-- All Portfolios --}}
+                        @if($hasFullAccess || $employee->hasPermission('Portfolios'))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('portfolios.index') ? 'active' : '' }}" 
+                               href="{{ route('portfolios.index') }}">
+                                <i class="bi bi-list-ul me-2"></i> All Portfolios
+                            </a>
+                        </li>
+                        @endif
+                        
+                        {{-- Create Portfolio --}}
+                        @if($hasFullAccess || $employee->hasPermission('Portfolios'))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('portfolios.create') ? 'active' : '' }}" 
+                               href="{{ route('portfolios.create') }}">
+                                <i class="bi bi-plus-circle me-2"></i> Create Portfolio
+                            </a>
+                        </li>
+                        @endif
+                    </ul>
+                </div>
+            </li>
+            @endif
+        @endauth
+
+        {{-- COPs Directory --}}
+        @auth('employee')
+            @if($hasFullAccess || $canAccessCOPs)
+            <li class="nav-item">
+                <a class="nav-link d-flex justify-content-between align-items-center" 
+                   data-bs-toggle="collapse" href="#copsDirectoryCollapse" role="button">
+                    <span>
+                        <i class="bi bi-people-fill me-2"></i> Community of Practice</span>
+                    <i class="bi bi-chevron-down collapse-icon"></i>
+                </a>
+                <div class="collapse {{ request()->is('cops*') ? 'show' : '' }}" id="copsDirectoryCollapse">
+                    <ul class="nav flex-column sub-menu ms-4">
+                        {{-- All COPs --}}
+                        @if($hasFullAccess || $employee->hasPermission('COPs'))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('cops.index') ? 'active' : '' }}" 
+                               href="{{ route('cops.index') }}">
+                                <i class="bi bi-list-ul me-2"></i> All COPs
+                            </a>
+                        </li>
+                        @endif
+                        
+                        {{-- Create COP --}}
+                        @if($hasFullAccess || $employee->hasPermission('COPs'))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('cops.create') ? 'active' : '' }}" 
+                               href="{{ route('cops.create') }}">
+                                <i class="bi bi-plus-circle me-2"></i> Create COP
+                            </a>
+                        </li>
+                        @endif
+                    </ul>
+                </div>
+            </li>
+            @endif
+        @endauth
+
         {{-- Activity Directory --}}
         @auth('employee')
             @if($hasFullAccess || $canAccessActivities)
@@ -233,7 +294,7 @@
                 <a class="nav-link d-flex justify-content-between align-items-center" 
                    data-bs-toggle="collapse" href="#activityDirectoryCollapse" role="button">
                     <span>
-                        <i class="bi bi-calendar-event me-2"></i> Activity Directory
+                        <i class="bi bi-calendar-event me-2"></i> Activities
                     </span>
                     <i class="bi bi-chevron-down collapse-icon"></i>
                 </a>
@@ -401,6 +462,10 @@
 </div>
 
 <style>
+    .nav-item > .nav-link {
+    white-space: nowrap;
+    overflow: hidden;
+}
     .nav-header {
         font-size: 0.75rem;
         font-weight: 600;
@@ -445,22 +510,22 @@
         font-size: 0.75rem;
     }
 
-/* Better brand display */
-.navbar-brand .text-uppercase {
-    line-height: 1.1;
-}
+    /* Better brand display */
+    .navbar-brand .text-uppercase {
+        line-height: 1.1;
+    }
 
-/* Badge styling */
-.badge {
-    font-size: 0.6rem;
-    padding: 0.2rem 0.4rem;
-}
+    /* Badge styling */
+    .badge {
+        font-size: 0.6rem;
+        padding: 0.2rem 0.4rem;
+    }
 
-/* Debug info */
-.debug-info {
-    font-size: 0.7rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
+    /* Debug info */
+    .debug-info {
+        font-size: 0.7rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
 </style>
 
 <script>

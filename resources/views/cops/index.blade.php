@@ -517,7 +517,7 @@
                                        
                                         <div>
                                             <div class="fw-medium">{{ $cop->cop_name }}</div>
-                                            <div class="text-muted small">{{ $cop->cop_id }}</div>
+                                           
                                         </div>
                                     </div>
                                 </td>

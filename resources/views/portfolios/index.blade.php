@@ -531,7 +531,7 @@
                                         
                                         <div>
                                             <div class="fw-medium">{{ $portfolio->name }}</div>
-                                            <div class="text-muted small">{{ $portfolio->portfolio_id }}</div>
+                                            
                                         </div>
                                     </div>
                                 </td>
