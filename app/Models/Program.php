@@ -55,7 +55,7 @@ class Program extends Model
         $typePrefixes = [
             'Sub-Program' => 'SP',
             'Local Program' => 'LP',
-            'Local Program/Network' => 'LP',
+            'Local Program' => 'LP',
             'flagship' => 'FP',
             'Center' => 'CP',
             // Add more mappings as needed

@@ -93,31 +93,31 @@ class ProgramSeeder extends Seeder
                 'name' => 'School Network of Saida & Neighboring Towns',
                 'folder_name' => 'LPROG001',
                 'type' => 'Program',
-                'program_type' => 'Local Program/Network',
+                'program_type' => 'Local Program',
             ],
             [
                 'name' => 'Health Network of Saida & Neighboring Towns',
                 'folder_name' => 'LPROG002',
                 'type' => 'Program',
-                'program_type' => 'Local Program/Network',
+                'program_type' => 'Local Program',
             ],
             [
                 'name' => 'Municipal Support Program',
                 'folder_name' => 'LPROG003',
                 'type' => 'Program',
-                'program_type' => 'Local Program/Network',
+                'program_type' => 'Local Program',
             ],
             [
                 'name' => 'Sustainable Tourism Program',
                 'folder_name' => 'LPROG004',
                 'type' => 'Program',
-                'program_type' => 'Local Program/Network',
+                'program_type' => 'Local Program',
             ],
             [
                 'name' => 'Socio-economic Assistance Program',
                 'folder_name' => 'LPROG005',
                 'type' => 'Program',
-                'program_type' => 'Local Program/Network',
+                'program_type' => 'Local Program',
             ],
             
             // Flagship Programs

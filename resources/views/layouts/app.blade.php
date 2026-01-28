@@ -316,7 +316,6 @@
                         <span class="text-muted small">© {{ date('Y') }} Hariri Foundation Management System. All rights reserved.</span>
                     </div>
                     <div class="col-md-6 text-md-end">
-                        <span class="text-muted small">v1.0.0 • Built with <i class="bi bi-heart-fill text-danger"></i></span>
                     </div>
                 </div>
             </div>

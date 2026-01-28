@@ -34,6 +34,75 @@ use App\Http\Controllers\CopController;
 // ============================================================================
 
 
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application.
+|
+*/
+
+// Programs/Centers Management Routes
+Route::prefix('programs')->name('programs.')->group(function () {
+       Route::get('/create-flagshiplocal', [ProgramController::class, 'createFlagshipLocal'])->name('create.flagshiplocal');
+         Route::get('/create-subprogram', [ProgramController::class, 'createSubprogram'])->name('create.subprogram');
+    // Display all programs
+    Route::get('/', [ProgramController::class, 'index'])->name('index');
+    
+    
+    // Show create form
+    Route::get('/create-center', [ProgramController::class, 'createCenter'])->name('createCenter');
+    
+    // Store new program
+    Route::post('/', [ProgramController::class, 'store'])->name('store');
+    
+    // Show specific program
+    Route::get('/{program}', [ProgramController::class, 'show'])->name('show');
+    
+    // Show edit form
+    Route::get('/{program}/edit', [ProgramController::class, 'edit'])->name('edit');
+    
+    // Update program
+    Route::put('/{program}', [ProgramController::class, 'update'])->name('update');
+    
+    // Delete program (soft delete)
+    Route::delete('/{program}', [ProgramController::class, 'destroy'])->name('destroy');
+    
+    // Restore soft-deleted program
+    Route::post('/{program}/restore', [ProgramController::class, 'restore'])->name('restore');
+    
+    // Force delete program
+    Route::delete('/{program}/force', [ProgramController::class, 'forceDelete'])->name('force-delete');
+    
+    // Show trashed programs
+    Route::get('/trashed', [ProgramController::class, 'trashed'])->name('trashed');
+    
+    // Export programs
+    Route::get('/export', [ProgramController::class, 'export'])->name('export');
+    
+    // Import programs
+    Route::post('/import', [ProgramController::class, 'import'])->name('import');
+    
+    // Bulk actions
+    Route::post('/bulk-actions', [ProgramController::class, 'bulkActions'])->name('bulk-actions');
+});
+
+// If you want a specific route for centers only
+Route::prefix('centers')->name('centers.')->group(function () {
+    Route::get('/', [ProgramController::class, 'index'])->name('index')
+        ->defaults('type', 'Center');
+    
+    Route::get('/create', [ProgramController::class, 'create'])->name('create')
+        ->defaults('type', 'Center');
+});
+
+// If you want a specific route for sub-programs
+Route::prefix('sub-programs')->name('sub-programs.')->group(function () {
+    Route::get('/', [ProgramController::class, 'index'])->name('index')
+        ->defaults('program_type', 'Sub-Program');
+});
+
 
 
 

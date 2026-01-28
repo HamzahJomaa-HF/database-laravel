@@ -111,7 +111,7 @@ class ActivityController extends Controller
         // ============================================
         // PROGRAMS - Same as edit
         // ============================================
-        $programs = Program::whereIn('program_type', ['Center', 'Local Program/Network', 'Flagship'])
+        $programs = Program::whereIn('program_type', ['Center', 'Local Program', 'Flagship'])
             ->orderBy('name')
             ->get(['program_id', 'name', 'external_id']);
 
@@ -307,7 +307,7 @@ class ActivityController extends Controller
         // ============================================
         // PROGRAMS (existing code - good format)
         // ============================================
-        $programs = Program::whereIn('program_type', ['Center', 'Local Program/Network', 'Flagship'])
+        $programs = Program::whereIn('program_type', ['Center', 'Local Program', 'Flagship'])
             ->orderBy('name')
             ->get(['program_id', 'name', 'external_id']);
 

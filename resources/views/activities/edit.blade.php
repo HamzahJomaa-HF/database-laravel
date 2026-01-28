@@ -694,7 +694,7 @@
                             'Center',
                             'Center Program',
                             'Management',
-                            'Local Program/Network',
+                            'Local Program',
                             'Sub-Program'
                         ];
 
