@@ -43,16 +43,21 @@ use App\Http\Controllers\CopController;
 |
 */
 
+
+Route::get('/center/create', [ProgramController::class, 'createCenter'])->name('createCenter');
+
+Route::get('/program/create', [ProgramController::class, 'createFlagshipLocal'])->name('create.flagshiplocal');
+
+Route::get('/subprogram/create', [ProgramController::class, 'createSubprogram'])->name('create.subprogram');
+
+
 // Programs/Centers Management Routes
 Route::prefix('programs')->name('programs.')->group(function () {
-       Route::get('/create-flagshiplocal', [ProgramController::class, 'createFlagshipLocal'])->name('create.flagshiplocal');
-         Route::get('/create-subprogram', [ProgramController::class, 'createSubprogram'])->name('create.subprogram');
     // Display all programs
     Route::get('/', [ProgramController::class, 'index'])->name('index');
     
     
     // Show create form
-    Route::get('/create-center', [ProgramController::class, 'createCenter'])->name('createCenter');
     
     // Store new program
     Route::post('/', [ProgramController::class, 'store'])->name('store');
