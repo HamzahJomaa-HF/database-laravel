@@ -49,7 +49,10 @@ Route::get('/center/create', [ProgramController::class, 'createCenter'])->name('
 Route::get('/program/create', [ProgramController::class, 'createFlagshipLocal'])->name('create.flagshiplocal');
 
 Route::get('/subprogram/create', [ProgramController::class, 'createSubprogram'])->name('create.subprogram');
-
+// STORE DATA (POST) 
+Route::post('/center/create', [ProgramController::class, 'storeCenter'])->name('storeCenter');
+Route::post('/program/create', [ProgramController::class, 'storeFlagshipLocal'])->name('storeFlagshipLocal');
+Route::post('/subprogram/create', [ProgramController::class, 'storeSubprogram'])->name('storeSubprogram');
 
 // Programs/Centers Management Routes
 Route::prefix('programs')->name('programs.')->group(function () {

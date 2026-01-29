@@ -3,10 +3,6 @@
 @section('title', 'Programs Management - Add Center')
 
 @section('styles')
-    <!-- Select2 for enhanced dropdowns -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
-    <!-- Flatpickr for date picker -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
@@ -136,30 +132,6 @@
             color: var(--danger-color);
         }
         
-        .select2-container {
-            width: 100% !important;
-        }
-        
-        .select2-container--default .select2-selection--single,
-        .select2-container--default .select2-selection--multiple {
-            border: 1px solid var(--border-color);
-            border-radius: 0.375rem;
-            min-height: 42px;
-            padding: 0.375rem;
-        }
-        
-        .select2-container--default .select2-selection--single:focus,
-        .select2-container--default .select2-selection--multiple:focus {
-            border-color: var(--primary-color);
-            outline: none;
-        }
-        
-        .select2-container--default.select2-container--focus .select2-selection--single,
-        .select2-container--default.select2-container--focus .select2-selection--multiple {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-        
         .error-message {
             color: var(--danger-color);
             font-size: 0.75rem;
@@ -203,35 +175,6 @@
             margin: 0 auto;
         }
         
-        .date-range-container {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-        
-        .date-range-separator {
-            color: var(--secondary-color);
-            font-weight: 500;
-            margin-top: 1.75rem;
-        }
-        
-        .readonly-field {
-            background-color: #f9fafb;
-            color: #6b7280;
-            cursor: not-allowed;
-        }
-        
-        .center-badge {
-            display: inline-block;
-            background-color: #dbeafe;
-            color: #1e40af;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            margin-left: 0.5rem;
-        }
-        
         @media (max-width: 768px) {
             .buttons-wrapper {
                 flex-direction: column;
@@ -245,15 +188,6 @@
             .card-footer {
                 flex-direction: column;
                 gap: 0.5rem;
-            }
-            
-            .date-range-container {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-            
-            .date-range-separator {
-                margin-top: 0;
             }
         }
     </style>
@@ -271,10 +205,10 @@
         </div>
 
         <!-- Form -->
-        <form id="createProgramForm" action="{{ route('programs.store') }}" method="POST">
+        <form id="createProgramForm" action="{{ route('storeCenter') }}" method="POST">
             @csrf
             
-            <!-- Hidden fields for program type and category -->
+            <!-- Hidden fields for program type and category - NOT displayed -->
             <input type="hidden" name="type" value="Center">
             <input type="hidden" name="program_type" value="Center">
             
@@ -283,6 +217,7 @@
                     <!-- Program Information -->
                     <div class="form-section">
                         <h3 class="form-section-title">Center Information</h3>
+                        
                         
                         
                         <div class="row mb-4">
@@ -333,39 +268,9 @@
                                 </div>
                             </div>
                         </div>
-
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label" for="type_display">Program Type</label>
-                                    <div class="form-control readonly-field">
-                                        <i class="fas fa-building me-2"></i>Center
-                                       
-                                    </div>
-                                    <div class="program-info">
-                                        <i class="fas fa-info-circle"></i> Centers are automatically set as "Center" type
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label" for="program_type_display">Program Category</label>
-                                    <div class="form-control readonly-field">
-                                        <i class="fas fa-layer-group me-2"></i>Center
-                                        
-                                    </div>
-                                    <div class="program-info">
-                                        <i class="fas fa-info-circle"></i> Centers are automatically set as "Center" category
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                         
-                        
+                        <!-- Removed the display fields for type and program_type -->
                     </div>
-
-                   
                 </div>
                 
                 <!-- FOOTER WITH BUTTONS -->
@@ -374,7 +279,7 @@
                         <a href="{{ route('programs.index') }}" class="btn btn-outline-secondary">
                             <i class="fas fa-times"></i> Cancel
                         </a>
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary" onclick="showLoading()">
                             <i class="fas fa-plus"></i> Create Center
                         </button>
                     </div>
@@ -388,82 +293,8 @@
 @section('scripts')
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- Select2 -->
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <!-- Flatpickr -->
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     
     <script>
-        
-        
-        // Initialize date pickers
-        document.addEventListener('DOMContentLoaded', function() {
-            const startDatePicker = flatpickr("#start_date", {
-                dateFormat: "Y-m-d",
-                allowInput: true,
-                onChange: function(selectedDates, dateStr, instance) {
-                    updateDurationDisplay();
-                }
-            });
-            
-            const endDatePicker = flatpickr("#end_date", {
-                dateFormat: "Y-m-d",
-                allowInput: true,
-                onChange: function(selectedDates, dateStr, instance) {
-                    updateDurationDisplay();
-                }
-            });
-            
-            // Update duration display when dates change
-            function updateDurationDisplay() {
-                const startDate = document.getElementById('start_date').value;
-                const endDate = document.getElementById('end_date').value;
-                const durationText = document.getElementById('durationText');
-                
-                if (startDate && endDate) {
-                    const start = new Date(startDate);
-                    const end = new Date(endDate);
-                    const diffTime = Math.abs(end - start);
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    const diffMonths = Math.floor(diffDays / 30);
-                    const diffYears = Math.floor(diffMonths / 12);
-                    
-                    let durationString = '';
-                    
-                    if (diffYears > 0) {
-                        durationString += `${diffYears} year${diffYears > 1 ? 's' : ''}`;
-                        if (diffMonths % 12 > 0) {
-                            durationString += `, ${diffMonths % 12} month${(diffMonths % 12) > 1 ? 's' : ''}`;
-                        }
-                    } else if (diffMonths > 0) {
-                        durationString += `${diffMonths} month${diffMonths > 1 ? 's' : ''}`;
-                    } else {
-                        durationString += `${diffDays} day${diffDays > 1 ? 's' : ''}`;
-                    }
-                    
-                    durationText.textContent = `${formatDate(startDate)} to ${formatDate(endDate)} (${durationString})`;
-                } else if (startDate) {
-                    durationText.textContent = `Starts on ${formatDate(startDate)}`;
-                } else if (endDate) {
-                    durationText.textContent = `Ends on ${formatDate(endDate)}`;
-                } else {
-                    durationText.textContent = 'No dates selected';
-                }
-            }
-            
-            function formatDate(dateString) {
-                const date = new Date(dateString);
-                return date.toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'short', 
-                    day: 'numeric' 
-                });
-            }
-            
-            // Initial update
-            updateDurationDisplay();
-        });
-        
         // Auto-generate folder name from program name
         document.getElementById('name').addEventListener('blur', function() {
             const folderNameInput = document.getElementById('folder_name');
@@ -501,7 +332,25 @@
                 errorMessage = 'Center name is required';
             }
             
+            if (!isValid) {
+                e.preventDefault();
+                alert(errorMessage);
+                return false;
+            }
             
+            // Show loading spinner
+            showLoading();
+            
+            return true;
         });
+        
+        // Loading spinner functions
+        function showLoading() {
+            document.getElementById('globalLoading').style.display = 'flex';
+        }
+        
+        function hideLoading() {
+            document.getElementById('globalLoading').style.display = 'none';
+        }
     </script>
 @endsection

@@ -134,6 +134,7 @@
             color: var(--danger-color);
         }
         
+        /* Select2 Custom Styling */
         .select2-container {
             width: 100% !important;
         }
@@ -158,6 +159,17 @@
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
         
+        /* Custom Select2 dropdown colors */
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: var(--primary-color) !important;
+            color: white !important;
+        }
+        
+        .select2-container--default .select2-results__option[aria-selected="true"] {
+            background-color: #f3f4f6 !important;
+            color: #041329 !important;
+        }
+        
         .error-message {
             color: var(--danger-color);
             font-size: 0.75rem;
@@ -180,6 +192,7 @@
             font-size: 0.75rem;
             color: var(--secondary-color);
             margin-top: 0.5rem;
+            line-height: 1.4;
         }
         
         .form-section {
@@ -205,6 +218,12 @@
             background-color: #f9fafb;
             color: #6b7280;
             cursor: not-allowed;
+            padding: 0.625rem 0.875rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            min-height: 42px;
+            display: flex;
+            align-items: center;
         }
         
         .program-badge {
@@ -215,7 +234,6 @@
             border-radius: 9999px;
             font-size: 0.75rem;
             font-weight: 500;
-            margin-left: 0.5rem;
         }
         
         @media (max-width: 768px) {
@@ -242,33 +260,34 @@
         <!-- Page Header -->
         <div class="d-flex flex-row w-100 justify-content-between mb-4">
             <div>
-                <h1 class="page-title">Add New Program</h1>
-                <p class="page-subtitle">Create a new program with the details below</p>
+                <h1 class="page-title">Add New Subprogram</h1>
+                <p class="page-subtitle">Create a new subprogram under an existing program</p>
             </div>
         </div>
 
         <!-- Form -->
-        <form id="createProgramForm" action="{{ route('programs.store') }}" method="POST">
+       <form id="createProgramForm" action="{{ route('storeSubprogram') }}" method="POST">
             @csrf
             
-            <!-- Hidden field for program type - default to "Program" -->
+            <!-- Hidden fields -->
             <input type="hidden" name="type" value="Program">
+            <input type="hidden" name="program_type" id="program_type_hidden" value="Sub-Program">
             
             <div class="card">
                 <div class="card-body">
                     <!-- Program Information -->
                     <div class="form-section">
-                        <h3 class="form-section-title">Program Information</h3>
+                        <h3 class="form-section-title">Subprogram Information</h3>
                         
                         <div class="row mb-4">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label required" for="name">Program Name</label>
+                                    <label class="form-label required" for="name">Subprogram Name</label>
                                     <input type="text" 
                                            name="name" 
                                            id="name" 
                                            class="form-control" 
-                                           placeholder="Enter program name" 
+                                           placeholder="Enter subprogram name" 
                                            value="{{ old('name') }}"
                                            required>
                                     @error('name')
@@ -284,7 +303,7 @@
                                            name="folder_name" 
                                            id="folder_name" 
                                            class="form-control" 
-                                           placeholder="Enter folder name (e.g., PROG001)"
+                                           placeholder="Enter folder name (e.g., SP001)"
                                            value="{{ old('folder_name') }}">
                                     @error('folder_name')
                                         <div class="error-message">{{ $message }}</div>
@@ -300,7 +319,7 @@
                                     <textarea name="description" 
                                               id="description" 
                                               class="form-control form-textarea" 
-                                              placeholder="Enter program description"
+                                              placeholder="Enter subprogram description"
                                               rows="3">{{ old('description') }}</textarea>
                                     @error('description')
                                         <div class="error-message">{{ $message }}</div>
@@ -312,57 +331,36 @@
                         <div class="row mb-4">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label" for="type_display">Program Type</label>
-                                    <div class="form-control readonly-field">
-                                        <i class="fas fa-project-diagram me-2"></i>Program
-                                    </div>
+                                    <label class="form-label required" for="program_type_select">Program Type</label>
+                                    <select name="program_type_select" id="program_type_select" class="form-control select2" required>
+                                        <option value="">Select program type</option>
+                                        <option value="Center">Center</option>
+                                        <option value="Flagship">Flagship</option>
+                                        <option value="Local Program">Local Program</option>
+                                        <option value="Local Program/Network">Local Program/Network</option>
+                                        <option value="Management">Management</option>
+                                    </select>
+                                    @error('program_type_select')
+                                        <div class="error-message">{{ $message }}</div>
+                                    @enderror
                                     <div class="program-info">
-                                        <i class="fas fa-info-circle"></i> Programs are automatically set as "Program" type
+                                        <i class="fas fa-info-circle"></i> 
+                                        Select the type of parent program you want to choose from
                                     </div>
                                 </div>
                             </div>
                             
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label required" for="program_type">Program Category</label>
-                                    <select name="program_type" id="program_type" class="form-control select2" required>
-                                        <option value="">Select program category</option>
-                                        <option value="Center Program" {{ old('program_type') == 'Center Program' ? 'selected' : '' }}>Center Program</option>
-                                        <option value="Sub-Program" {{ old('program_type') == 'Sub-Program' ? 'selected' : '' }}>Sub-Program</option>
-                                    </select>
-                                    @error('program_type')
-                                        <div class="error-message">{{ $message }}</div>
-                                    @enderror
-                                    <div class="program-info">
-                                        <i class="fas fa-info-circle"></i> 
-                                        <strong>Center Program:</strong> Child programs of Centers<br>
-                                        <strong>Sub-Program:</strong> Child programs of other Programs
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label" for="parent_program_id">Parent Program</label>
-                                    <select name="parent_program_id" id="parent_program_id" class="form-control select2">
-                                        <option value="">Select parent program</option>
-                                        @foreach($parentPrograms as $parent)
-                                            <option value="{{ $parent->program_id }}" 
-                                                {{ old('parent_program_id') == $parent->program_id ? 'selected' : '' }}>
-                                                {{ $parent->name }} ({{ $parent->folder_name }})
-                                            </option>
-                                        @endforeach
+                                    <label class="form-label required" for="parent_program_id">Parent Program</label>
+                                    <select name="parent_program_id" id="parent_program_id" class="form-control select2" required>
+                                        <option value="">First select program type</option>
+                                        <!-- Options will be populated by JavaScript -->
                                     </select>
                                     <div class="program-info">
                                         <i class="fas fa-info-circle"></i> 
                                         <span id="parentProgramHelp">
-                                            Select parent program based on category:
-                                            <ul class="mt-1 mb-0 ps-3">
-                                                <li><strong>Center Program:</strong> Must have a Center as parent</li>
-                                                <li><strong>Sub-Program:</strong> Must have a Program as parent</li>
-                                            </ul>
+                                            Select a program type first to see available parent programs
                                         </span>
                                     </div>
                                     @error('parent_program_id')
@@ -381,7 +379,7 @@
                             <i class="fas fa-times"></i> Cancel
                         </a>
                         <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-plus"></i> Create Program
+                            <i class="fas fa-plus"></i> Create Subprogram
                         </button>
                     </div>
                 </div>
@@ -398,96 +396,130 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     
     <script>
-        // Initialize Select2
+        // Store all programs from Blade in a JavaScript array
+        const allParentPrograms = [
+            @foreach($parentPrograms as $parent)
+            {
+                id: "{{ $parent->program_id }}",
+                name: "{{ $parent->name }}",
+                folder_name: "{{ $parent->folder_name }}",
+                type: "{{ $parent->type }}",
+                program_type: "{{ $parent->program_type }}",
+                display_text: "{{ $parent->name }} @if($parent->folder_name)({{ $parent->folder_name }})@endif"
+            },
+            @endforeach
+        ];
+        
+        console.log('All parent programs loaded:', allParentPrograms);
+        
         $(document).ready(function() {
-            // Single select for program category
-            $('#program_type').select2({
-                placeholder: "Select program category",
+            // Initialize Select2
+            $('#program_type_select').select2({
+                placeholder: "Select program type",
                 allowClear: false
             });
             
-            // Single select for parent program
             $('#parent_program_id').select2({
                 placeholder: "Select parent program",
-                allowClear: true
+                allowClear: false,
+                width: '100%'
             });
             
-            // Filter parent programs based on selected program type
-            $('#program_type').on('change', function() {
-                const programType = $(this).val();
+            // Filter parent programs when program type is selected
+            $('#program_type_select').on('change', function() {
+                const selectedProgramType = $(this).val();
                 const parentSelect = $('#parent_program_id');
                 
-                // Clear current selection
-                parentSelect.val(null).trigger('change');
+                console.log('Selected program type:', selectedProgramType);
                 
-                // Update help text
-                updateParentProgramHelp(programType);
+                // Clear current options
+                parentSelect.empty();
+                
+                if (selectedProgramType) {
+                    // Filter programs based on selected program_type
+                    const filteredPrograms = allParentPrograms.filter(function(program) {
+                        return program.program_type === selectedProgramType;
+                    });
+                    
+                    console.log('Filtered programs for', selectedProgramType + ':', filteredPrograms);
+                    
+                    if (filteredPrograms.length > 0) {
+                        // Add "Select" option
+                        parentSelect.append('<option value="">Select parent program</option>');
+                        
+                        // Add filtered options
+                        filteredPrograms.forEach(function(program) {
+                            parentSelect.append(
+                                $('<option></option>')
+                                    .val(program.id)
+                                    .text(program.display_text)
+                            );
+                        });
+                        
+                        // Update help text
+                        $('#parentProgramHelp').html(`Select a ${selectedProgramType} program as parent`);
+                    } else {
+                        parentSelect.append('<option value="">No programs found for this type</option>');
+                        $('#parentProgramHelp').html(`No ${selectedProgramType} programs available to select as parent`);
+                    }
+                } else {
+                    parentSelect.append('<option value="">First select program type</option>');
+                    $('#parentProgramHelp').html('Select a program type first to see available parent programs');
+                }
+                
+                // Trigger change to refresh Select2
+                parentSelect.trigger('change');
             });
             
-            function updateParentProgramHelp(programType) {
-                let helpText = 'Select parent program based on category:';
+            // Auto-generate folder name
+            document.getElementById('name').addEventListener('blur', function() {
+                const folderNameInput = document.getElementById('folder_name');
+                const programName = this.value.trim();
                 
-                if (programType === 'Center Program') {
-                    helpText = '<strong>Center Program:</strong> Must have a Center as parent';
-                } else if (programType === 'Sub-Program') {
-                    helpText = '<strong>Sub-Program:</strong> Must have a Program as parent';
-                }
-                
-                $('#parentProgramHelp').html(helpText);
-            }
-            
-            // Initial update
-            updateParentProgramHelp($('#program_type').val());
-        });
-        
-        // Auto-generate folder name from program name (optional)
-        document.getElementById('name').addEventListener('blur', function() {
-            const folderNameInput = document.getElementById('folder_name');
-            const programName = this.value.trim();
-            
-            // Only auto-generate if folder name is empty
-            if (!folderNameInput.value && programName) {
-                // Create a simple abbreviation (first letters of words)
-                const words = programName.split(' ');
-                let abbreviation = '';
-                
-                for (let i = 0; i < Math.min(3, words.length); i++) {
-                    if (words[i].length > 0) {
-                        abbreviation += words[i].charAt(0).toUpperCase();
+                if (!folderNameInput.value && programName) {
+                    const words = programName.split(' ');
+                    let abbreviation = '';
+                    
+                    for (let i = 0; i < Math.min(3, words.length); i++) {
+                        if (words[i].length > 0) {
+                            abbreviation += words[i].charAt(0).toUpperCase();
+                        }
+                    }
+                    
+                    if (abbreviation) {
+                        folderNameInput.value = abbreviation + '001';
                     }
                 }
+            });
+            
+            // Form validation
+            document.getElementById('createProgramForm').addEventListener('submit', function(e) {
+                const name = document.getElementById('name').value.trim();
+                const programType = document.getElementById('program_type_select').value;
+                const parentProgram = document.getElementById('parent_program_id').value;
                 
-                // Add a number if needed (simplified)
-                if (abbreviation) {
-                    folderNameInput.value = abbreviation + '001';
+                let isValid = true;
+                let errorMessage = '';
+                
+                if (!name) {
+                    isValid = false;
+                    errorMessage = 'Subprogram name is required';
+                } else if (!programType) {
+                    isValid = false;
+                    errorMessage = 'Program type is required';
+                } else if (!parentProgram) {
+                    isValid = false;
+                    errorMessage = 'Parent program is required';
                 }
-            }
-        });
-        
-        // Simplified form validation
-        document.getElementById('createProgramForm').addEventListener('submit', function(e) {
-            const name = document.getElementById('name').value.trim();
-            const programType = document.getElementById('program_type').value;
-            
-            let isValid = true;
-            let errorMessage = '';
-            
-            // Basic validation
-            if (!name) {
-                isValid = false;
-                errorMessage = 'Program name is required';
-            } else if (!programType) {
-                isValid = false;
-                errorMessage = 'Program category is required';
-            }
-            
-            if (!isValid) {
-                e.preventDefault();
-                alert(errorMessage);
-                return false;
-            }
-            
-            return true;
+                
+                if (!isValid) {
+                    e.preventDefault();
+                    alert(errorMessage);
+                    return false;
+                }
+                
+                return true;
+            });
         });
     </script>
 @endsection

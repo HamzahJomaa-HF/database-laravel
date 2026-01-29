@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
+
 class ProgramController extends Controller
 {
     /**
@@ -72,7 +73,14 @@ class ProgramController extends Controller
         $programTypes = ['Center Program', 'Sub-Program', 'Local Program', 'Flagship', 'Center'];
 
         return view('programs.create.centers', compact('parentPrograms', 'programTypes'));
+         // Redirect to index instead of show
+        return redirect()->route('programs.index')
+            ->with('success', 'Center created successfully!');
+   
     }
+
+
+
       public function createFlagshipLocal()
     {
         // Get parent programs for dropdown (Centers only)
@@ -81,79 +89,147 @@ class ProgramController extends Controller
             ->get(['program_id', 'name', 'folder_name']);
         
         return view('programs.create.flagshiplocal', compact('parentPrograms'));
+         // Redirect to index instead of show
+        return redirect()->route('programs.index')
+            ->with('success', 'Center created successfully!');
+   
     }
+
+
+
        public function createSubprogram()
     {
-        // Get parent programs for dropdown (Programs only, not Centers)
-       $parentPrograms = Program::orderBy('name')
-        ->get(['program_id', 'name', 'folder_name', 'type', 'program_type']);
-        
+        // Get parent programs for dropdown (BOTH Programs AND Centers)
+    $parentPrograms = Program::where(function($query) {
+        // Get Programs with specific program types
+        $query->where('type', 'Program')
+              ->whereIn('program_type', ['Flagship', 'Local Program', 'Local Program/Network', 'Management']);
+    })
+    ->orWhere(function($query) {
+        // ALSO get Centers (type = 'Center', program_type = 'Center')
+        $query->where('type', 'Center')
+              ->where('program_type', 'Center');
+    })
+    ->orderBy('name')
+    ->get(['program_id', 'name', 'folder_name', 'type', 'program_type']);
         return view('programs.create.subprogram', compact('parentPrograms'));
+
+        // Redirect to index instead of show
+        return redirect()->route('programs.index')
+            ->with('success', 'Center created successfully!');
+   
     }
-    
-    /**
-     * Store a newly created program in storage.
-     */
-    public function store(Request $request)
+       public function storeCenter(Request $request)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'folder_name' => 'nullable|string|max:100|unique:programs,folder_name',
-            'type' => 'required|in:Center,Program',
-            'program_type' => 'required|in:Center,Flagship,Local Program,Center Program,Sub-Program',
             'description' => 'nullable|string',
-           
-            'parent_program_id' => [
-                'nullable',
-                Rule::exists('programs', 'program_id')->where(function ($query) use ($request) {
-                    // If creating a Center, parent must be null
-                    if ($request->type === 'Center') {
-                        $query->whereNull('parent_program_id');
-                    }
-                }),
-            ],
         ]);
-
-        // Additional validation for program type consistency
-        if ($validated['type'] === 'Center' && $validated['program_type'] !== 'Center') {
-            return back()->withErrors(['program_type' => 'Centers must have program_type = Center'])->withInput();
-        }
-
-        if ($validated['type'] === 'Program' && $validated['program_type'] === 'Center') {
-            return back()->withErrors(['program_type' => 'Programs cannot have program_type = Center'])->withInput();
-        }
-
-        // If program_type is "Center Program", parent must be a Center
-        if ($validated['program_type'] === 'Center Program' && $validated['parent_program_id']) {
-            $parent = Program::find($validated['parent_program_id']);
-            if (!$parent || $parent->type !== 'Center') {
-                return back()->withErrors(['parent_program_id' => 'Center Programs must have a Center as parent'])->withInput();
-            }
-        }
-
-        // If program_type is "Sub-Program", parent must be a Program
-        if ($validated['program_type'] === 'Sub-Program' && $validated['parent_program_id']) {
-            $parent = Program::find($validated['parent_program_id']);
-            if (!$parent || $parent->type !== 'Program') {
-                return back()->withErrors(['parent_program_id' => 'Sub-Programs must have a Program as parent'])->withInput();
-            }
-        }
-
+        
+        $validated['type'] = 'Center';
+        $validated['program_type'] = 'Center';
+        $validated['parent_program_id'] = null;
+        
         try {
             DB::beginTransaction();
-
             $program = Program::create($validated);
-
             DB::commit();
-
-            return redirect()->route('programs.show', $program->program_id)
+            
+            return redirect()->route('programs.index')
+                ->with('success', 'Center created successfully!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to create center: ' . $e->getMessage())->withInput();
+        }
+    }
+    
+    /**
+     * Store a newly created Flagship or Local Program.
+     */
+    public function storeFlagshipLocal(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'folder_name' => 'nullable|string|max:100|unique:programs,folder_name',
+            'program_type' => 'required|in:Flagship,Local Program',
+            'description' => 'nullable|string',
+        ]);
+        
+        $validated['type'] = 'Program';
+        
+        try {
+            DB::beginTransaction();
+            $program = Program::create($validated);
+            DB::commit();
+            
+            return redirect()->route('programs.index')
                 ->with('success', 'Program created successfully!');
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Failed to create program: ' . $e->getMessage())->withInput();
         }
     }
+    /**
+     * Store a newly created program in storage.
+     */
+    public function storeSubprogram(Request $request)
+{
+    $validated = $request->validate([
+        'name' => 'required|string|max:255',
+        'folder_name' => 'nullable|string|max:100|unique:programs,folder_name',
+        'program_type_select' => 'required|in:Center,Flagship,Local Program,Local Program/Network,Management',
+        'description' => 'nullable|string',
+        'parent_program_id' => 'required|exists:programs,program_id',
+    ]);
+    
+    // Set default values
+    $validated['type'] = 'Program';
+    
+    // Determine program_type based on selected parent type
+    if ($validated['program_type_select'] === 'Center') {
+        $validated['program_type'] = 'Center Program'; // Child of Center = Center Program
+    } else {
+        $validated['program_type'] = 'Sub-Program'; // Child of Flagship/Local Program = Sub-Program
+    }
+    
+    // Validate parent program matches selected program type
+    $parent = Program::find($validated['parent_program_id']);
+    if (!$parent || $parent->program_type !== $validated['program_type_select']) {
+        return back()->withErrors(['parent_program_id' => 'Selected parent does not match the program type'])->withInput();
+    }
+    
+    // Additional validation for program type consistency
+    if ($validated['program_type'] === 'Center Program') {
+        // Center Program must have a Center as parent
+        if ($parent->type !== 'Center' || $parent->program_type !== 'Center') {
+            return back()->withErrors(['parent_program_id' => 'Center Programs must have a Center as parent'])->withInput();
+        }
+    }
+    
+    if ($validated['program_type'] === 'Sub-Program') {
+        // Sub-Program must have a Program as parent (not a Center)
+        if ($parent->type !== 'Program') {
+            return back()->withErrors(['parent_program_id' => 'Sub-Programs must have a Program as parent'])->withInput();
+        }
+    }
+    
+    // Remove program_type_select as it's not a database field
+    unset($validated['program_type_select']);
+    
+     try {
+            DB::beginTransaction();
+            $program = Program::create($validated);
+            DB::commit();
+            
+            return redirect()->route('programs.index')
+                ->with('success', 'Program created successfully!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to create program: ' . $e->getMessage())->withInput();
+        }
 
+}
     /**
      * Display the specified program.
      */
@@ -236,19 +312,7 @@ class ProgramController extends Controller
             return back()->withErrors(['parent_program_id' => 'Cannot set parent as it would create a circular reference'])->withInput();
         }
 
-        try {
-            DB::beginTransaction();
-
-            $program->update($validated);
-
-            DB::commit();
-
-            return redirect()->route('programs.show', $program->program_id)
-                ->with('success', 'Program updated successfully!');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Failed to update program: ' . $e->getMessage())->withInput();
-        }
+       
     }
 
     /**
