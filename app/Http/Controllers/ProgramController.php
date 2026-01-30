@@ -230,38 +230,41 @@ class ProgramController extends Controller
         }
 
 }
-    /**
-     * Display the specified program.
-     */
-   
-    /**
-     * Show the form for editing the specified program.
-     */
-    public function edit($id)
+
+
+
+
+
+
+
+
+
+
+
+    public function editCenter($id)
     {
         $program = Program::findOrFail($id);
+        
+        // Ensure this is a Center
+        if ($program->type !== 'Center' || $program->program_type !== 'Center') {
+            abort(404, 'Not a valid Center');
+        }
 
-        // Get parent programs for dropdown
-        $parentPrograms = Program::where(function($query) use ($program) {
-            $query->where('type', 'Center')
-                  ->orWhereNull('parent_program_id');
-        })
-        ->where('program_id', '!=', $program->program_id) // Exclude self
-        ->where('type', '!=', 'Program') // Exclude already child programs
-        ->orderBy('name')
-        ->get(['program_id', 'name', 'type', 'program_type']);
-
-        $programTypes = ['Center Program', 'Sub-Program', 'Local Program', 'Flagship', 'Center'];
-
-        return view('programs.edit', compact('program', 'parentPrograms', 'programTypes'));
+        // For Centers, we don't need parent programs dropdown as Centers have no parent
+        return view('programs.edit.center', compact('program'));
     }
 
     /**
-     * Update the specified program in storage.
+     * Update a Center in storage.
      */
-    public function update(Request $request, $id)
+    public function updateCenter(Request $request, $id)
     {
         $program = Program::findOrFail($id);
+        
+        // Ensure this is a Center
+        if ($program->type !== 'Center' || $program->program_type !== 'Center') {
+            abort(404, 'Not a valid Center');
+        }
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -271,49 +274,252 @@ class ProgramController extends Controller
                 'max:100',
                 Rule::unique('programs', 'folder_name')->ignore($program->program_id, 'program_id')
             ],
-            'type' => 'required|in:Center,Program',
-            'program_type' => 'required|in:Center,Flagship,Local Program,Center Program,Sub-Program',
+            'description' => 'nullable|string',
+        ]);
+
+        // Center-specific fields (should not be changed for Centers)
+        $validated['type'] = 'Center';
+        $validated['program_type'] = 'Center';
+        $validated['parent_program_id'] = null;
+
+        try {
+            DB::beginTransaction();
+            $program->update($validated);
+            DB::commit();
+            
+            return redirect()->route('programs.index')
+                ->with('success', 'Center updated successfully!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to update center: ' . $e->getMessage())->withInput();
+        }
+    }
+
+    /**
+     * Show the form for editing a Flagship or Local Program.
+     */
+    public function editFlagshipLocal($id)
+    {
+        $program = Program::findOrFail($id);
+        
+        // Ensure this is a Program (not Center) with appropriate program_type
+        if ($program->type !== 'Program' || 
+            !in_array($program->program_type, ['Flagship', 'Local Program'])) {
+            abort(404, 'Not a valid Flagship or Local Program');
+        }
+
+        // Get parent programs for dropdown (Centers only for Flagship/Local Programs)
+        $parentPrograms = Program::where('type', 'Center')
+            ->where('program_id', '!=', $program->program_id) // Exclude self
+            ->orderBy('name')
+            ->get(['program_id', 'name', 'folder_name']);
+
+        return view('programs.edit.flagshiplocal', compact('program', 'parentPrograms'));
+    }
+
+    /**
+     * Update a Flagship or Local Program in storage.
+     */
+   public function updateFlagshipLocal(Request $request, $id)
+{
+    $program = Program::findOrFail($id);
+    
+    // Ensure this is a Program (not Center) with appropriate program_type
+    if ($program->type !== 'Program' || 
+        !in_array($program->program_type, ['Flagship', 'Local Program'])) {
+        abort(404, 'Not a valid Flagship or Local Program');
+    }
+
+    $validated = $request->validate([
+        'name' => 'required|string|max:255',
+        'folder_name' => [
+            'nullable',
+            'string',
+            'max:100',
+            Rule::unique('programs', 'folder_name')->ignore($program->program_id, 'program_id')
+        ],
+        'program_type' => 'required|in:Flagship,Local Program',
+        'description' => 'nullable|string',
+        'parent_program_id' => [
+            'nullable',
+            Rule::exists('programs', 'program_id')->where(function ($query) use ($program) {
+                $query->where('program_id', '!=', $program->program_id)
+                      ->where('type', 'Center'); // Parent must be a Center
+            }),
+        ],
+    ]);
+
+    // Program-specific field
+    $validated['type'] = 'Program';
+
+    // Additional validation - FIX: Check if key exists first
+    if (isset($validated['parent_program_id']) && $validated['parent_program_id'] && 
+        $this->isCircularReference($program, $validated['parent_program_id'])) {
+        return back()->withErrors(['parent_program_id' => 'Cannot set parent as it would create a circular reference'])->withInput();
+    }
+
+    try {
+        DB::beginTransaction();
+        $program->update($validated);
+        DB::commit();
+        
+        return redirect()->route('programs.index')
+            ->with('success', 'Program updated successfully!');
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return back()->with('error', 'Failed to update program: ' . $e->getMessage())->withInput();
+    }
+}
+
+
+    /**
+     * Show the form for editing a Sub-Program.
+     */
+public function editSubprogram($id)
+{
+    $program = Program::with('parentProgram')->findOrFail($id); // Use 'parentProgram'
+    
+    // Ensure this is a Sub-Program or Center Program
+    if ($program->type !== 'Program' || 
+        !in_array($program->program_type, ['Sub-Program', 'Center Program'])) {
+        abort(404, 'Not a valid Sub-Program or Center Program');
+    }
+
+    // Get parent programs for dropdown based on program type
+    if ($program->program_type === 'Center Program') {
+        // Center Programs can only have Centers as parents
+        $parentPrograms = Program::where('type', 'Center')
+            ->where('program_type', 'Center')
+            ->where('program_id', '!=', $program->program_id)
+            ->orderBy('name')
+            ->get(['program_id', 'name', 'folder_name', 'type', 'program_type']);
+    } else {
+        // Sub-Programs can have Programs as parents OR Centers
+        $parentPrograms = Program::where(function($query) use ($program) {
+            // Programs with specific program types
+            $query->where('type', 'Program')
+                  ->whereIn('program_type', ['Flagship', 'Local Program', 'Local Program/Network', 'Management'])
+                  ->where('program_id', '!=', $program->program_id);
+        })
+        ->orWhere(function($query) use ($program) {
+            // ALSO get Centers (type = 'Center', program_type = 'Center')
+            $query->where('type', 'Center')
+                  ->where('program_type', 'Center')
+                  ->where('program_id', '!=', $program->program_id);
+        })
+        ->orderBy('name')
+        ->get(['program_id', 'name', 'folder_name', 'type', 'program_type']);
+    }
+
+    return view('programs.edit.subprogram', compact('program', 'parentPrograms'));
+}
+    /**
+     * Update a Sub-Program in storage.
+     */
+    public function updateSubprogram(Request $request, $id)
+    {
+        $program = Program::findOrFail($id);
+        
+        // Ensure this is a Sub-Program or Center Program
+        if ($program->type !== 'Program' || 
+            !in_array($program->program_type, ['Sub-Program', 'Center Program'])) {
+            abort(404, 'Not a valid Sub-Program or Center Program');
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'folder_name' => [
+                'nullable',
+                'string',
+                'max:100',
+                Rule::unique('programs', 'folder_name')->ignore($program->program_id, 'program_id')
+            ],
+            'program_type_select' => 'required|in:Center,Flagship,Local Program,Local Program/Network,Management',
             'description' => 'nullable|string',
             'parent_program_id' => [
-                'nullable',
+                'required',
                 Rule::exists('programs', 'program_id')->where(function ($query) use ($program) {
-                    $query->where('program_id', '!=', $program->program_id); // Cannot be self
+                    $query->where('program_id', '!=', $program->program_id);
                 }),
             ],
         ]);
 
+        // Set default values
+        $validated['type'] = 'Program';
+        
+        // Determine program_type based on selected parent type
+        if ($validated['program_type_select'] === 'Center') {
+            $validated['program_type'] = 'Center Program'; // Child of Center = Center Program
+        } else {
+            $validated['program_type'] = 'Sub-Program'; // Child of Flagship/Local Program = Sub-Program
+        }
+        
+        // Validate parent program matches selected program type
+        $parent = Program::find($validated['parent_program_id']);
+        if (!$parent || $parent->program_type !== $validated['program_type_select']) {
+            return back()->withErrors(['parent_program_id' => 'Selected parent does not match the program type'])->withInput();
+        }
+        
         // Additional validation for program type consistency
-        if ($validated['type'] === 'Center' && $validated['program_type'] !== 'Center') {
-            return back()->withErrors(['program_type' => 'Centers must have program_type = Center'])->withInput();
-        }
-
-        if ($validated['type'] === 'Program' && $validated['program_type'] === 'Center') {
-            return back()->withErrors(['program_type' => 'Programs cannot have program_type = Center'])->withInput();
-        }
-
-        // If program_type is "Center Program", parent must be a Center
-        if ($validated['program_type'] === 'Center Program' && $validated['parent_program_id']) {
-            $parent = Program::find($validated['parent_program_id']);
-            if (!$parent || $parent->type !== 'Center') {
+        if ($validated['program_type'] === 'Center Program') {
+            // Center Program must have a Center as parent
+            if ($parent->type !== 'Center' || $parent->program_type !== 'Center') {
                 return back()->withErrors(['parent_program_id' => 'Center Programs must have a Center as parent'])->withInput();
             }
         }
-
-        // If program_type is "Sub-Program", parent must be a Program
-        if ($validated['program_type'] === 'Sub-Program' && $validated['parent_program_id']) {
-            $parent = Program::find($validated['parent_program_id']);
-            if (!$parent || $parent->type !== 'Program') {
+        
+        if ($validated['program_type'] === 'Sub-Program') {
+            // Sub-Program must have a Program as parent (not a Center)
+            if ($parent->type !== 'Program') {
                 return back()->withErrors(['parent_program_id' => 'Sub-Programs must have a Program as parent'])->withInput();
             }
         }
-
-        // Prevent circular reference
+        
+        // Remove program_type_select as it's not a database field
+        unset($validated['program_type_select']);
+        
+        // Check for circular reference
         if ($validated['parent_program_id'] && $this->isCircularReference($program, $validated['parent_program_id'])) {
             return back()->withErrors(['parent_program_id' => 'Cannot set parent as it would create a circular reference'])->withInput();
         }
 
-       
+        try {
+            DB::beginTransaction();
+            $program->update($validated);
+            DB::commit();
+            
+            return redirect()->route('programs.index')
+                ->with('success', 'Program updated successfully!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to update program: ' . $e->getMessage())->withInput();
+        }
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     /**
      * Remove the specified program from storage.
@@ -361,7 +567,28 @@ class ProgramController extends Controller
             return back()->with('error', 'Failed to delete program: ' . $e->getMessage());
         }
     }
-
+/**
+ * Check for circular reference in parent-child hierarchy.
+ */
+private function isCircularReference(Program $program, $parentId)
+{
+    $currentParentId = $parentId;
+    
+    while ($currentParentId) {
+        if ($currentParentId == $program->program_id) {
+            return true;
+        }
+        
+        $parent = Program::find($currentParentId);
+        if (!$parent || !$parent->parent_program_id) {
+            break;
+        }
+        
+        $currentParentId = $parent->parent_program_id;
+    }
+    
+    return false;
+}
     /**
      * Restore a soft-deleted program.
      */

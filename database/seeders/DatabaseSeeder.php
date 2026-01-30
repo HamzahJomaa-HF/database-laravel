@@ -31,7 +31,7 @@ class DatabaseSeeder extends Seeder
         $this->command->info("   " . str_repeat("-", 45));
         
         $this->call([
-            ProgramSeeder::class,        // 4. Programs (parent)
+          ProgramSeeder::class,        // 4. Programs (parent)
             ProjectSeeder::class,        // 5. Projects (depends on programs)
         ]);
         
@@ -94,7 +94,7 @@ class DatabaseSeeder extends Seeder
         $this->command->info("   ✅ Module Access: " . \App\Models\ModuleAccess::count() . " entries");
         $this->command->info("   ✅ Diplomas: " . \App\Models\Diploma::count() . " entries");
         $this->command->info("   ✅ Nationalities: " . \App\Models\Nationality::count() . " entries");
-        $this->command->info("   ✅ Programs: " . \App\Models\Program::count() . " entries");
+      $this->command->info("   ✅ Programs: " . \App\Models\Program::count() . " entries");
         $this->command->info("   ✅ Projects: " . \App\Models\Project::count() . " entries");
         $this->command->info("   ✅ Activities: " . \App\Models\Activity::count() . " entries");
         

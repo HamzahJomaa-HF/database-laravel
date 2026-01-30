@@ -44,56 +44,33 @@ use App\Http\Controllers\CopController;
 */
 
 
+// CREATE ROUTES
 Route::get('/center/create', [ProgramController::class, 'createCenter'])->name('createCenter');
-
 Route::get('/program/create', [ProgramController::class, 'createFlagshipLocal'])->name('create.flagshiplocal');
-
 Route::get('/subprogram/create', [ProgramController::class, 'createSubprogram'])->name('create.subprogram');
-// STORE DATA (POST) 
+
+// STORE ROUTES (POST)
 Route::post('/center/create', [ProgramController::class, 'storeCenter'])->name('storeCenter');
 Route::post('/program/create', [ProgramController::class, 'storeFlagshipLocal'])->name('storeFlagshipLocal');
 Route::post('/subprogram/create', [ProgramController::class, 'storeSubprogram'])->name('storeSubprogram');
 
-// Programs/Centers Management Routes
+// EDIT ROUTES 
+Route::get('/center/{id}/edit', [ProgramController::class, 'editCenter'])->name('editCenter');
+Route::put('/center/{id}/update', [ProgramController::class, 'updateCenter'])->name('updateCenter');
+
+Route::get('/program/{id}/edit', [ProgramController::class, 'editFlagshipLocal'])->name('edit.flagshiplocal');
+Route::put('/program/{id}/update', [ProgramController::class, 'updateFlagshipLocal'])->name('update.flagshiplocal');
+
+Route::get('/subprogram/{id}/edit', [ProgramController::class, 'editSubprogram'])->name('edit.subprogram');
+Route::put('/subprogram/{id}/update', [ProgramController::class, 'updateSubprogram'])->name('update.subprogram');
+
+// Programs/Centers Management Routes (prefix group) - KEEP THIS SEPARATE
 Route::prefix('programs')->name('programs.')->group(function () {
     // Display all programs
     Route::get('/', [ProgramController::class, 'index'])->name('index');
     
-    
-    // Show create form
-    
-    // Store new program
-    Route::post('/', [ProgramController::class, 'store'])->name('store');
-    
-    // Show specific program
-    Route::get('/{program}', [ProgramController::class, 'show'])->name('show');
-    
-    // Show edit form
-    Route::get('/{program}/edit', [ProgramController::class, 'edit'])->name('edit');
-    
-    // Update program
-    Route::put('/{program}', [ProgramController::class, 'update'])->name('update');
-    
-    // Delete program (soft delete)
-    Route::delete('/{program}', [ProgramController::class, 'destroy'])->name('destroy');
-    
-    // Restore soft-deleted program
-    Route::post('/{program}/restore', [ProgramController::class, 'restore'])->name('restore');
-    
-    // Force delete program
-    Route::delete('/{program}/force', [ProgramController::class, 'forceDelete'])->name('force-delete');
-    
-    // Show trashed programs
-    Route::get('/trashed', [ProgramController::class, 'trashed'])->name('trashed');
-    
-    // Export programs
-    Route::get('/export', [ProgramController::class, 'export'])->name('export');
-    
-    // Import programs
-    Route::post('/import', [ProgramController::class, 'import'])->name('import');
-    
-    // Bulk actions
-    Route::post('/bulk-actions', [ProgramController::class, 'bulkActions'])->name('bulk-actions');
+    // DELETE ROUTE
+    Route::delete('/{id}', [ProgramController::class, 'destroy'])->name('destroy');
 });
 
 // If you want a specific route for centers only
@@ -112,7 +89,29 @@ Route::prefix('sub-programs')->name('sub-programs.')->group(function () {
 });
 
 
-
+// PROJECTS ROUTES
+Route::prefix('projects')->name('projects.')->group(function () {
+    // Index and trash
+    Route::get('/', [ProjectController::class, 'index'])->name('index');
+    Route::get('/trash', [ProjectController::class, 'trash'])->name('trash');
+    
+    // Create and store
+    Route::get('/create', [ProjectController::class, 'create'])->name('create');
+    Route::post('/', [ProjectController::class, 'store'])->name('store');
+    
+    // Edit and update
+    Route::get('/{id}/edit', [ProjectController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [ProjectController::class, 'update'])->name('update');
+    
+    // Delete/restore routes
+    Route::delete('/{id}', [ProjectController::class, 'destroy'])->name('destroy');
+    Route::post('/{id}/soft-delete', [ProjectController::class, 'softDelete'])->name('softDelete');
+    Route::post('/{id}/restore', [ProjectController::class, 'restore'])->name('restore');
+    Route::delete('/{id}/force-delete', [ProjectController::class, 'forceDelete'])->name('forceDelete');
+    
+    // AJAX routes
+    Route::get('/program/{programId}', [ProjectController::class, 'getByProgram'])->name('getByProgram');
+});
 
 
 Route::get('/', function () {

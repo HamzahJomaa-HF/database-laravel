@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Programs Management')
+@section('title', 'Projects Management')
 
 @section('styles')
     <!-- Kendo UI CSS (for similar styling) -->
@@ -74,7 +74,7 @@
         }
         
         .table-container {
-            min-width: 800px;
+            min-width: 1000px;
         }
         
         .table {
@@ -392,26 +392,30 @@
             font-size: 0.75rem;
         }
         
-       span.program-type-badge {
-      display: inline-block;
-    padding: 0.25rem 0.75rem;
-    border-radius: 0.375rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-align: center;
-    white-space: nowrap;
-    background-color: #f3f4f6; /* Changed to match project program badge */
-    color: #4b5563; /* Changed to match project program badge */
-    border: 1px solid #e5e7eb !important; /* Added border like projects */
-}
-        .program-type-badge {
-    width: 140px !important; /* Exact same width for all badges */
-    display: inline-flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    height: 22px !important; /* Fixed height */
-    line-height: 1 !important;
-}
+        .project-type-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .project-group-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        
         .hierarchy-indent {
             padding-left: 2rem;
         }
@@ -425,6 +429,31 @@
             font-size: 0.875rem;
             color: #4b5563;
             font-weight: 500;
+        }
+        
+        .status-active {
+            color: #10b981;
+            font-weight: 500;
+        }
+        
+        .status-inactive {
+            color: #ef4444;
+            font-weight: 500;
+        }
+        
+        .date-info {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+        
+        .program-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background-color: #f3f4f6;
+            color: #4b5563;
         }
         
         @media (max-width: 768px) {
@@ -458,16 +487,10 @@
     <div class="main-div">
         <!-- Page Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="page-title">Programs Management</h4>
+            <h4 class="page-title">Projects Management</h4>
             <div class="action-buttons">
-                <a href="{{ route('createCenter') }}" class="btn-outline">
-                    <i class="fas fa-building"></i> Create Center
-                </a>
-                <a href="{{ route('create.flagshiplocal') }}" class="btn-outline">
-                    <i class="fas fa-flag"></i> Create Flagship/Local
-                </a>
-                <a href="{{ route('create.subprogram') }}" class="btn-outline">
-                    <i class="fas fa-project-diagram"></i> Create Sub-Program
+                <a href="{{ route('projects.create') }}" class="btn-primary">
+                    <i class="fas fa-plus"></i> Create Project
                 </a>
             </div>
         </div>
@@ -479,20 +502,30 @@
                     <div class="search-input-container">
                         <input type="text" 
                                class="search-input" 
-                               placeholder="Search by program name..." 
+                               placeholder="Search by project name, external ID, or folder name..." 
                                value="{{ request('search') }}"
                                id="searchInput">
-                        
-                    </div>
+                                    </div>
                     
                     <div class="filters-container">
-                        <select class="filter-select" id="programTypeFilter">
-                            <option value="">All Program Types</option>
-                            <option value="Center" {{ request('program_type') == 'Center' ? 'selected' : '' }}>Center</option>
-                            <option value="Flagship" {{ request('program_type') == 'Flagship' ? 'selected' : '' }}>Flagship</option>
-                            <option value="Local Program/Network" {{ request('program_type') == 'Local Program/Network' ? 'selected' : '' }}>Local Program/Network</option>
-                            <option value="Center Program" {{ request('program_type') == 'Center Program' ? 'selected' : '' }}>Center Program</option>
-                            <option value="Sub-Program" {{ request('program_type') == 'Sub-Program' ? 'selected' : '' }}>Sub-Program</option>
+                       
+                        
+                        <select class="filter-select" id="programFilter">
+                            <option value="">All Programs</option>
+                            @foreach($programs as $program)
+                                <option value="{{ $program->program_id }}" {{ request('program_id') == $program->program_id ? 'selected' : '' }}>
+                                    {{ $program->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        
+                        <select class="filter-select" id="parentProjectFilter">
+                            <option value="">All Parent Projects</option>
+                            @foreach($parentProjects as $parent)
+                                <option value="{{ $parent->project_id }}" {{ request('parent_project_id') == $parent->project_id ? 'selected' : '' }}>
+                                    {{ $parent->name }}
+                                </option>
+                            @endforeach
                         </select>
                         
                         <button class="btn-outline" onclick="resetFilters()">
@@ -503,37 +536,42 @@
             </div>
         </div>
 
-        <!-- Programs Count -->
+        <!-- Projects Count -->
         <div class="mb-3">
-            <span class="text-muted">Total Programs: {{ $programs->total() }}</span>
+            <span class="text-muted">Total Projects: {{ $projects->total() }}</span>
         </div>
 
         <!-- Table -->
         <div class="scrollable-grid">
             <div class="table-container">
-                @if($programs->count() > 0)
+                @if($projects->count() > 0)
                     <table class="table">
                         <thead>
                             <tr>
-                                <th>Program Name</th>
-                                <th>Program Category</th>
+                                <th>Project Name</th>
+                                <th>Program</th>
                                 <th>External ID</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($programs as $program)
+                            @foreach($projects as $project)
                             <tr>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        @if($program->parentProgram)
+                                        @if($project->parent)
                                             <i class="fas fa-level-up-alt hierarchy-icon"></i>
                                         @endif
                                         <div>
-                                            <div class="fw-medium">{{ $program->name }}</div>
-                                            @if($program->subPrograms->count() > 0)
+                                            <div class="fw-medium">{{ $project->name }}</div>
+                                            @if($project->folder_name)
                                                 <div class="small text-muted">
-                                                    <i class="fas fa-sitemap"></i> {{ $program->subPrograms->count() }} sub-program(s)
+                                                    <i class="fas fa-folder"></i> {{ $project->folder_name }}
+                                                </div>
+                                            @endif
+                                            @if($project->children->count() > 0)
+                                                <div class="small text-muted">
+                                                    <i class="fas fa-sitemap"></i> {{ $project->children->count() }} child project(s)
                                                 </div>
                                             @endif
                                         </div>
@@ -541,68 +579,51 @@
                                 </td>
                                 
                                 <td>
-                                    <span class="program-type-badge">{{ $program->program_type }}</span>
+                                    @if($project->program)
+                                        <span class="program-badge">{{ $project->program->name }}</span>
+                                    @else
+                                        <span class="text-muted">No program</span>
+                                    @endif
+                                </td>
+                              
+                                <td>
+                                    <span class="external-id">{{ $project->external_id ?? '-' }}</span>
                                 </td>
                                 
-                                <td>
-                                    <span class="external-id">{{ $program->external_id ?? '-' }}</span>
-                                </td>
+                                
                                 
                                 <td>
-    <div class="d-flex gap-2">
-        @if($program->type === 'Center' && $program->program_type === 'Center')
-    <a href="{{ route('editCenter', $program->program_id) }}" 
-       class="btn-outline-secondary btn-sm"
-       title="Edit">
-        <i class="fas fa-edit"></i>
-    </a>
-@elseif(in_array($program->program_type, ['Flagship', 'Local Program']))
-    <a href="{{ route('edit.flagshiplocal', $program->program_id) }}" 
-       class="btn-outline-secondary btn-sm"
-       title="Edit">
-        <i class="fas fa-edit"></i>
-    </a>
-@elseif(in_array($program->program_type, ['Sub-Program', 'Center Program']))
-    <a href="{{ route('edit.subprogram', $program->program_id) }}" 
-       class="btn-outline-secondary btn-sm"
-       title="Edit">
-        <i class="fas fa-edit"></i>
-    </a>
-@else
-    <a href="{{ route('editCenter', $program->program_id) }}" 
-       class="btn-outline-secondary btn-sm"
-       title="Edit">
-        <i class="fas fa-edit"></i>
-    </a>
-@endif
-        
-        <form action="{{ route('programs.destroy', $program->program_id) }}" 
-              method="POST" 
-              class="d-inline"
-              onsubmit="return confirm('Are you sure you want to delete this program? This action cannot be undone.');">
-            @csrf
-            @method('DELETE')
-            <button type="submit" class="btn-outline-danger btn-sm" title="Delete">
-                <i class="fas fa-trash"></i>
-            </button>
-        </form>
-    </div>
-</td>
+                                    <div class="d-flex gap-2">
+                                        <a href="{{ route('projects.edit', $project->project_id) }}" 
+                                           class="btn-outline-secondary btn-sm"
+                                           title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        
+                                        <form action="{{ route('projects.destroy', $project->project_id) }}" 
+                                              method="POST" 
+                                              class="d-inline"
+                                              onsubmit="return confirm('Are you sure you want to delete this project? This action cannot be undone.');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn-outline-danger btn-sm" title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
                             </tr>
                             @endforeach
                         </tbody>
                     </table>
                 @else
                     <div class="empty-state">
-                        <i class="fas fa-project-diagram empty-state-icon"></i>
-                        <h5 class="mb-2">No programs found</h5>
-                        <p class="text-muted">Create your first program to get started</p>
+                        <i class="fas fa-tasks empty-state-icon"></i>
+                        <h5 class="mb-2">No projects found</h5>
+                        <p class="text-muted">Create your first project to get started</p>
                         <div class="d-flex gap-2 justify-content-center mt-3">
-                            <a href="{{ route('createCenter') }}" class="btn-primary">
-                                <i class="fas fa-building"></i> Create Center
-                            </a>
-                            <a href="{{ route('create.flagshiplocal') }}" class="btn-outline">
-                                <i class="fas fa-flag"></i> Create Flagship/Local
+                            <a href="{{ route('projects.create') }}" class="btn-primary">
+                                <i class="fas fa-plus"></i> Create Project
                             </a>
                         </div>
                     </div>
@@ -611,28 +632,28 @@
         </div>
 
         <!-- Pagination -->
-        @if($programs->hasPages())
+        @if($projects->hasPages())
         <div class="pagination-container">
             <div class="pagination-numbers">
-                @if($programs->onFirstPage())
+                @if($projects->onFirstPage())
                     <button class="pagination-nav-button" disabled>
                         <i class="fas fa-chevron-left"></i>
                     </button>
                 @else
-                    <a href="{{ $programs->previousPageUrl() }}" class="pagination-nav-button">
+                    <a href="{{ $projects->previousPageUrl() }}" class="pagination-nav-button">
                         <i class="fas fa-chevron-left"></i>
                     </a>
                 @endif
                 
-                @foreach(range(1, min(5, $programs->lastPage())) as $page)
-                    <a href="{{ $programs->url($page) }}" 
-                       class="pagination-button {{ $programs->currentPage() == $page ? 'active' : '' }}">
+                @foreach(range(1, min(5, $projects->lastPage())) as $page)
+                    <a href="{{ $projects->url($page) }}" 
+                       class="pagination-button {{ $projects->currentPage() == $page ? 'active' : '' }}">
                         {{ $page }}
                     </a>
                 @endforeach
                 
-                @if($programs->hasMorePages())
-                    <a href="{{ $programs->nextPageUrl() }}" class="pagination-nav-button">
+                @if($projects->hasMorePages())
+                    <a href="{{ $projects->nextPageUrl() }}" class="pagination-nav-button">
                         <i class="fas fa-chevron-right"></i>
                     </a>
                 @else
@@ -643,15 +664,15 @@
             </div>
             
             <div class="pagination-info">
-                Showing {{ $programs->firstItem() }} to {{ $programs->lastItem() }} of {{ $programs->total() }} entries
+                Showing {{ $projects->firstItem() }} to {{ $projects->lastItem() }} of {{ $projects->total() }} entries
             </div>
             
             <div>
                 <select class="filter-select" onchange="changePerPage(this.value)">
-                    <option value="10" {{ $programs->perPage() == 10 ? 'selected' : '' }}>10</option>
-                    <option value="25" {{ $programs->perPage() == 25 ? 'selected' : '' }}>25</option>
-                    <option value="50" {{ $programs->perPage() == 50 ? 'selected' : '' }}>50</option>
-                    <option value="100" {{ $programs->perPage() == 100 ? 'selected' : '' }}>100</option>
+                    <option value="10" {{ $projects->perPage() == 10 ? 'selected' : '' }}>10</option>
+                    <option value="25" {{ $projects->perPage() == 25 ? 'selected' : '' }}>25</option>
+                    <option value="50" {{ $projects->perPage() == 50 ? 'selected' : '' }}>50</option>
+                    <option value="100" {{ $projects->perPage() == 100 ? 'selected' : '' }}>100</option>
                 </select>
             </div>
         </div>
@@ -664,7 +685,9 @@
     <script>
         // Search functionality
         const searchInput = document.getElementById('searchInput');
-        const programTypeFilter = document.getElementById('programTypeFilter');
+        // REMOVE THIS: const projectTypeFilter = document.getElementById('projectTypeFilter');
+        const programFilter = document.getElementById('programFilter');
+        const parentProjectFilter = document.getElementById('parentProjectFilter');
         
         let searchTimeout;
         
@@ -675,7 +698,9 @@
             }, 500);
         });
         
-        programTypeFilter.addEventListener('change', applyFilters);
+        // REMOVE THIS: projectTypeFilter.addEventListener('change', applyFilters);
+        programFilter.addEventListener('change', applyFilters);
+        parentProjectFilter.addEventListener('change', applyFilters);
         
         function applyFilters() {
             const params = new URLSearchParams();
@@ -684,8 +709,16 @@
                 params.set('search', searchInput.value);
             }
             
-            if (programTypeFilter.value) {
-                params.set('program_type', programTypeFilter.value);
+            // REMOVE THIS: if (projectTypeFilter.value) {
+            //     params.set('project_type', projectTypeFilter.value);
+            // }
+            
+            if (programFilter.value) {
+                params.set('program_id', programFilter.value);
+            }
+            
+            if (parentProjectFilter.value) {
+                params.set('parent_project_id', parentProjectFilter.value);
             }
             
             // Keep per_page if exists
@@ -694,17 +727,17 @@
                 params.set('per_page', currentPerPage);
             }
             
-            window.location.href = '{{ route("programs.index") }}?' + params.toString();
+            window.location.href = '{{ route("projects.index") }}?' + params.toString();
         }
         
         function resetFilters() {
-            window.location.href = '{{ route("programs.index") }}';
+            window.location.href = '{{ route("projects.index") }}';
         }
         
         function changePerPage(value) {
             const params = new URLSearchParams(window.location.search);
             params.set('per_page', value);
-            window.location.href = '{{ route("programs.index") }}?' + params.toString();
+            window.location.href = '{{ route("projects.index") }}?' + params.toString();
         }
         
         // Initialize page with current filters
