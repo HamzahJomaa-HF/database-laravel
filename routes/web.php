@@ -44,76 +44,6 @@ use App\Http\Controllers\CopController;
 */
 
 
-// CREATE ROUTES
-Route::get('/center/create', [ProgramController::class, 'createCenter'])->name('createCenter');
-Route::get('/program/create', [ProgramController::class, 'createFlagshipLocal'])->name('create.flagshiplocal');
-Route::get('/subprogram/create', [ProgramController::class, 'createSubprogram'])->name('create.subprogram');
-
-// STORE ROUTES (POST)
-Route::post('/center/create', [ProgramController::class, 'storeCenter'])->name('storeCenter');
-Route::post('/program/create', [ProgramController::class, 'storeFlagshipLocal'])->name('storeFlagshipLocal');
-Route::post('/subprogram/create', [ProgramController::class, 'storeSubprogram'])->name('storeSubprogram');
-
-// EDIT ROUTES 
-Route::get('/center/{id}/edit', [ProgramController::class, 'editCenter'])->name('editCenter');
-Route::put('/center/{id}/update', [ProgramController::class, 'updateCenter'])->name('updateCenter');
-
-Route::get('/program/{id}/edit', [ProgramController::class, 'editFlagshipLocal'])->name('edit.flagshiplocal');
-Route::put('/program/{id}/update', [ProgramController::class, 'updateFlagshipLocal'])->name('update.flagshiplocal');
-
-Route::get('/subprogram/{id}/edit', [ProgramController::class, 'editSubprogram'])->name('edit.subprogram');
-Route::put('/subprogram/{id}/update', [ProgramController::class, 'updateSubprogram'])->name('update.subprogram');
-
-// Programs/Centers Management Routes (prefix group) - KEEP THIS SEPARATE
-Route::prefix('programs')->name('programs.')->group(function () {
-    // Display all programs
-    Route::get('/', [ProgramController::class, 'index'])->name('index');
-    
-    // DELETE ROUTE
-    Route::delete('/{id}', [ProgramController::class, 'destroy'])->name('destroy');
-});
-
-// If you want a specific route for centers only
-Route::prefix('centers')->name('centers.')->group(function () {
-    Route::get('/', [ProgramController::class, 'index'])->name('index')
-        ->defaults('type', 'Center');
-    
-    Route::get('/create', [ProgramController::class, 'create'])->name('create')
-        ->defaults('type', 'Center');
-});
-
-// If you want a specific route for sub-programs
-Route::prefix('sub-programs')->name('sub-programs.')->group(function () {
-    Route::get('/', [ProgramController::class, 'index'])->name('index')
-        ->defaults('program_type', 'Sub-Program');
-});
-
-
-// PROJECTS ROUTES
-Route::prefix('projects')->name('projects.')->group(function () {
-    // Index and trash
-    Route::get('/', [ProjectController::class, 'index'])->name('index');
-    Route::get('/trash', [ProjectController::class, 'trash'])->name('trash');
-    
-    // Create and store
-    Route::get('/create', [ProjectController::class, 'create'])->name('create');
-    Route::post('/', [ProjectController::class, 'store'])->name('store');
-    
-    // Edit and update
-    Route::get('/{id}/edit', [ProjectController::class, 'edit'])->name('edit');
-    Route::put('/{id}', [ProjectController::class, 'update'])->name('update');
-    
-    // Delete/restore routes
-    Route::delete('/{id}', [ProjectController::class, 'destroy'])->name('destroy');
-    Route::post('/{id}/soft-delete', [ProjectController::class, 'softDelete'])->name('softDelete');
-    Route::post('/{id}/restore', [ProjectController::class, 'restore'])->name('restore');
-    Route::delete('/{id}/force-delete', [ProjectController::class, 'forceDelete'])->name('forceDelete');
-    
-    // AJAX routes
-    Route::get('/program/{programId}', [ProjectController::class, 'getByProgram'])->name('getByProgram');
-});
-
-
 Route::get('/', function () {
     return redirect()->route('login');
 })->name('home');
@@ -136,6 +66,95 @@ Route::middleware(['auth:employee'])->group(function () {
     // ------------------------------------------------------------------------
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
+
+
+
+
+
+
+
+ // ============================================================================
+    // PROGRAMS/CENTERS MANAGEMENT ROUTES - MOVED INSIDE AUTH
+    // ============================================================================
+    
+    // CREATE ROUTES
+    Route::get('/center/create', [ProgramController::class, 'createCenter'])->name('createCenter');
+    Route::get('/program/create', [ProgramController::class, 'createFlagshipLocal'])->name('create.flagshiplocal');
+    Route::get('/subprogram/create', [ProgramController::class, 'createSubprogram'])->name('create.subprogram');
+
+    // STORE ROUTES (POST)
+    Route::post('/center/create', [ProgramController::class, 'storeCenter'])->name('storeCenter');
+    Route::post('/program/create', [ProgramController::class, 'storeFlagshipLocal'])->name('storeFlagshipLocal');
+    Route::post('/subprogram/create', [ProgramController::class, 'storeSubprogram'])->name('storeSubprogram');
+
+    // EDIT ROUTES 
+    Route::get('/center/{id}/edit', [ProgramController::class, 'editCenter'])->name('editCenter');
+    Route::put('/center/{id}/update', [ProgramController::class, 'updateCenter'])->name('updateCenter');
+
+    Route::get('/program/{id}/edit', [ProgramController::class, 'editFlagshipLocal'])->name('edit.flagshiplocal');
+    Route::put('/program/{id}/update', [ProgramController::class, 'updateFlagshipLocal'])->name('update.flagshiplocal');
+
+    Route::get('/subprogram/{id}/edit', [ProgramController::class, 'editSubprogram'])->name('edit.subprogram');
+    Route::put('/subprogram/{id}/update', [ProgramController::class, 'updateSubprogram'])->name('update.subprogram');
+
+    // Programs/Centers Management Routes (prefix group) - NOW INSIDE AUTH
+    Route::prefix('programs')->name('programs.')->group(function () {
+        // Display all programs
+        Route::get('/', [ProgramController::class, 'index'])->name('index');
+        
+        // DELETE ROUTE
+        Route::delete('/{id}', [ProgramController::class, 'destroy'])->name('destroy');
+    });
+
+    // If you want a specific route for centers only
+    Route::prefix('centers')->name('centers.')->group(function () {
+        Route::get('/', [ProgramController::class, 'index'])->name('index')
+            ->defaults('type', 'Center');
+        
+        Route::get('/create', [ProgramController::class, 'create'])->name('create')
+            ->defaults('type', 'Center');
+    });
+
+    // If you want a specific route for sub-programs
+    Route::prefix('sub-programs')->name('sub-programs.')->group(function () {
+        Route::get('/', [ProgramController::class, 'index'])->name('index')
+            ->defaults('program_type', 'Sub-Program');
+    });
+
+    // ============================================================================
+    // PROJECTS ROUTES - MOVED INSIDE AUTH
+    // ============================================================================
+    Route::prefix('projects')->name('projects.')->group(function () {
+        // Index and trash
+        Route::get('/', [ProjectController::class, 'index'])->name('index');
+        Route::get('/trash', [ProjectController::class, 'trash'])->name('trash');
+        
+        // Create and store
+        Route::get('/create', [ProjectController::class, 'create'])->name('create');
+        Route::post('/', [ProjectController::class, 'store'])->name('store');
+        
+        // Edit and update
+        Route::get('/{id}/edit', [ProjectController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [ProjectController::class, 'update'])->name('update');
+        
+        // Delete/restore routes
+        Route::delete('/{id}', [ProjectController::class, 'destroy'])->name('destroy');
+        Route::post('/{id}/soft-delete', [ProjectController::class, 'softDelete'])->name('softDelete');
+        Route::post('/{id}/restore', [ProjectController::class, 'restore'])->name('restore');
+        Route::delete('/{id}/force-delete', [ProjectController::class, 'forceDelete'])->name('forceDelete');
+        
+        // AJAX routes
+        Route::get('/program/{programId}', [ProjectController::class, 'getByProgram'])->name('getByProgram');
+    });
+
+
+
+
+
+
+
+
+
     // ------------------------------------------------------------------------
 // EMPLOYEES MANAGEMENT
 // ------------------------------------------------------------------------
