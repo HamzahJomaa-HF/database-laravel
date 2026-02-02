@@ -45,8 +45,8 @@ use App\Http\Controllers\CopController;
 
 
 Route::get('/', function () {
-    return redirect()->route('login');
-})->name('home');
+    return view('welcome'); // or dashboard
+})->middleware('auth')->name('home');
 
 
 // ============================================================================
