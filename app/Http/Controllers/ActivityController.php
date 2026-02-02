@@ -141,13 +141,14 @@ class ActivityController extends Controller
      */
     public function store(Request $request)
 {
+   
     try {
         DB::beginTransaction();
 
         // Validate the request
         $validated = $request->validate([
             'activity_title_en' => 'required_without:activity_title_ar|string|max:255',
-            'activity_title_ar' => 'required_without:activity_title_en|string|max:255',
+            'activity_title_ar' => 'nullable|string|max:255|required_without:activity_title_en',
             'activity_type' => 'required|string|max:100',
             'projects' => 'nullable|array',
             'start_date' => 'required|date',

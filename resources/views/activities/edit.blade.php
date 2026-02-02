@@ -561,8 +561,89 @@
         </div>
     </div>
 </div>
+
+
+{{-- ========================================== --}}
+{{-- SECTION 8: OPERATIONAL SUPPORT REQUIRED --}}
+{{-- ========================================== --}}
+<div class="section-card mb-5">
+    <div class="section-header">
+        <h6 class="mb-0 fw-semibold">Operational Support Required</h6>
+        <span class="text-muted small">Select required support types (multiple selection)</span>
+    </div>
+    <div class="section-body">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group">
+                    <label class="form-label fw-semibold mb-2 d-block">Select Required Support</label>
+
+                    @php
+                        // Allowed keys
+                        $allowedSupports = config('operational_support', [
+                            'logistics',
+                            'media',
+                            'public_relations',
+                            'none',
+                        ]);
+
+                        // Get operational support from activity
+                        $operationalSupport = [];
+                        if (!empty($activity->operational_support)) {
+                            $operationalSupport = json_decode($activity->operational_support, true);
+                            if (!is_array($operationalSupport)) {
+                                $operationalSupport = [];
+                            }
+                        }
+
+                        // If form was submitted with errors, use old input
+                        if (old('operational_support')) {
+                            $operationalSupport = old('operational_support', []);
+                        }
+
+                        // Labels for display
+                        $labels = [
+                            'logistics' => 'Logistics',
+                            'media' => 'Media',
+                            'public_relations' => 'Public Relations',
+                            'field_support' => 'Facilitation & Field Support',
+                            'none' => 'None',
+                        ];
+                    @endphp
+
+                    <div class="row">
+                        @foreach($allowedSupports as $key)
+                            <div class="col-md-6 col-lg-3 mb-2">
+                                <div class="form-check">
+                                    <input
+                                        class="form-check-input @error('operational_support') is-invalid @enderror @error("operational_support.$key") is-invalid @enderror"
+                                        type="checkbox"
+                                        name="operational_support[{{ $key }}]"
+                                        id="support_{{ $key }}"
+                                        value="1"
+                                        {{ !empty($operationalSupport[$key]) ? 'checked' : '' }}
+                                    >
+                                    <label class="form-check-label" for="support_{{ $key }}">
+                                        {{ $labels[$key] ?? ucfirst(str_replace('_', ' ', $key)) }}
+                                    </label>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    @error('operational_support')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                    @error('operational_support.*')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
                         {{-- ======================== --}}
-                        {{-- SECTION 8: ACTION BUTTONS --}}
+                        {{-- SECTION 9: ACTION BUTTONS --}}
                         {{-- ======================== --}}
                         <div class="card bg-light border-0">
                             <div class="card-body py-3">
