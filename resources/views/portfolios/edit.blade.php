@@ -294,26 +294,7 @@
                             </div>
                         </div>
 
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label" for="type">Portfolio Type</label>
-                                    <select name="type" id="type" class="form-control select2">
-                                        <option value="">Select type (optional)</option>
-                                        <option value="Active Citizenship" {{ old('type', $portfolio->type) == 'Active Citizenship' ? 'selected' : '' }}>Active Citizenship</option>
-                                        <option value="Education & Digital Transformation" {{ old('type', $portfolio->type) == 'Education & Digital Transformation' ? 'selected' : '' }}>Education & Digital Transformation</option>
-                                        <option value="Public Health & Wellbeing" {{ old('type', $portfolio->type) == 'Public Health & Wellbeing' ? 'selected' : '' }}>Public Health & Wellbeing</option>
-                                        <option value="Sustainability & Climate Action" {{ old('type', $portfolio->type) == 'Sustainability & Climate Action' ? 'selected' : '' }}>Sustainability & Climate Action</option>
-                                        <option value="Socio-economic Development" {{ old('type', $portfolio->type) == 'Socio-economic Development' ? 'selected' : '' }}>Socio-economic Development</option>
-                                        <option value="Regional" {{ old('type', $portfolio->type) == 'Regional' ? 'selected' : '' }}>Regional</option>
-                                    </select>
-                                    @error('type')
-                                        <div class="error-message">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-                            
-                        </div>
+                  
                     </div>
 
                     <!-- COPs Association -->

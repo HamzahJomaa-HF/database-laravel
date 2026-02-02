@@ -120,32 +120,32 @@
                                             <option value="">Select Activity Type</option>
                                             @php
                                                 $activityTypes = [
-    'Conference / Forum' => 'Conference / Forum – مؤتمر/ منتدى',
-    'Coordination Meeting' => 'Coordination Meeting – اجتماع تنسيقي',
-    'Training Workshop' => 'Training Workshop – ورشة تدريبية',
-    'Course' => 'Course – دورة',
-    'Seminar' => 'Seminar – ندوة',
-    'Simulation' => 'Simulation – محاكاة',
-    'Consultative Workshop' => 'Consultative Workshop – ورشة تشاورية',
-    'Working Groups' => 'Working Groups – مجموعات عمل',
-    'Survey' => 'Survey – استمارة',
-    'Exhibition' => 'Exhibition – معرض',
-    'Concert / Festival' => 'Concert / Festival – حفل موسيقي/ مهرجان',
-    'Tournament' => 'Tournament – بطولة',
-    'Specialized Service' => 'Specialized Service – خدمة متخصصة',
-    'Capacity Building' => 'Capacity Building - بناء القدرات',
-    'Policies & Plans' => 'Policies & Plans - السياسات والخطط',
-    'Engagement Event' => 'Engagement Event - فعالية تفاعلية',
-    'Overview' => 'Overview - نظرة عامة',
-    'Field Activity' => 'Field Activity - نشاط ميداني',
-    'Research Activity' => 'Research Activity - نشاط بحثي',
-    'Physical Development' => 'Physical Development - تطوير مادي',
-    'Technical Development' => 'Technical Development - تطوير تقني',
-    'Media Production' => 'Media Production - إنتاج إعلامي',
-    'Public Campaign' => 'Public Campaign - حملة توعوية',
-    'Legal Activity' => 'Legal Activity - نشاط قانوني',
-    'Support & Assistance' => 'Support & Assistance - الدعم والمساندة'
-];
+                                                    'Conference / Forum' => 'Conference / Forum – مؤتمر/ منتدى',
+                                                    'Coordination Meeting' => 'Coordination Meeting – اجتماع تنسيقي',
+                                                    'Training Workshop' => 'Training Workshop – ورشة تدريبية',
+                                                    'Course' => 'Course – دورة',
+                                                    'Seminar' => 'Seminar – ندوة',
+                                                    'Simulation' => 'Simulation – محاكاة',
+                                                    'Consultative Workshop' => 'Consultative Workshop – ورشة تشاورية',
+                                                    'Working Groups' => 'Working Groups – مجموعات عمل',
+                                                    'Survey' => 'Survey – استمارة',
+                                                    'Exhibition' => 'Exhibition – معرض',
+                                                    'Concert / Festival' => 'Concert / Festival – حفل موسيقي/ مهرجان',
+                                                    'Tournament' => 'Tournament – بطولة',
+                                                    'Specialized Service' => 'Specialized Service – خدمة متخصصة',
+                                                    'Capacity Building' => 'Capacity Building - بناء القدرات',
+                                                    'Policies & Plans' => 'Policies & Plans - السياسات والخطط',
+                                                    'Engagement Event' => 'Engagement Event - فعالية تفاعلية',
+                                                    'Overview' => 'Overview - نظرة عامة',
+                                                    'Field Activity' => 'Field Activity - نشاط ميداني',
+                                                    'Research Activity' => 'Research Activity - نشاط بحثي',
+                                                    'Physical Development' => 'Physical Development - تطوير مادي',
+                                                    'Technical Development' => 'Technical Development - تطوير تقني',
+                                                    'Media Production' => 'Media Production - إنتاج إعلامي',
+                                                    'Public Campaign' => 'Public Campaign - حملة توعوية',
+                                                    'Legal Activity' => 'Legal Activity - نشاط قانوني',
+                                                    'Support & Assistance' => 'Support & Assistance - الدعم والمساندة'
+                                                ];
                                             @endphp
                                             @foreach($activityTypes as $key => $label)
                                                 <option value="{{ $label }}" {{ old('activity_type', $activity->activity_type) == $label ? 'selected' : '' }}>
@@ -537,7 +537,7 @@
                                 
                                 <option value="{{ $employee->employee_id }}" 
                                         {{ $isSelected ? 'selected' : '' }}>
-                                    {{ $displayName }} - {{ $email }} {{ $type ? '(' . $type . ')' : '' }}
+                                    {{ $displayName }} - {{ $email }} ({{ $type }})
                                 </option>
                             @endforeach
                         @else
@@ -658,7 +658,7 @@
                                         <button type="reset" class="btn btn-outline-secondary me-2" id="resetBtn">
                                             <i class="bi bi-arrow-clockwise me-1"></i> Reset Form
                                         </button>
-                                        <button type="submit" class="btn btn-success" id="submitBtn">
+                                        <button type="submit" class="btn btn-primary" id="submitBtn" style="background-color: #B71F3C; border-color: #B71F3C;">
                                             <i class="bi bi-check-circle me-1"></i> Update Activity
                                         </button>
                                     </div>
@@ -675,16 +675,85 @@
 
 @section('styles')
 <style>
-    /* ... your existing styles remain unchanged ... */
+    .section-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #fff;
+    }
+    
+    .section-header {
+        background: #f8f9fa;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .section-body {
+        padding: 1.5rem;
+    }
+    
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-text {
+        font-size: 0.875rem;
+    }
+    
+    .invalid-feedback {
+        display: block;
+        font-size: 0.875rem;
+    }
+    
+    /* Loading state for submit button */
+    .btn.loading {
+        position: relative;
+        color: transparent;
+    }
+    
+    .btn.loading::after {
+        content: '';
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        top: 50%;
+        left: 50%;
+        margin-top: -8px;
+        margin-left: -8px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Custom color overrides */
+    .btn-primary {
+        background-color: #B71F3C !important;
+        border-color: #B71F3C !important;
+    }
+
+    .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+        background-color: #8F172E !important;
+        border-color: #8F172E !important;
+    }
+
+    .btn-outline-primary {
+        color: #B71F3C !important;
+        border-color: #B71F3C !important;
+    }
+
+    .btn-outline-primary:hover, .btn-outline-primary:focus, .btn-outline-primary:active {
+        background-color: #B71F3C !important;
+        border-color: #B71F3C !important;
+        color: white !important;
+    }
 </style>
 @endsection
-@section('scripts')
-<!-- jQuery -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-<!-- Select2 -->
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
 @section('scripts')
 <!-- jQuery -->
@@ -695,10 +764,10 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
 <script>
-
     document.addEventListener('DOMContentLoaded', function() {
         const selectedComponentId = @json($selected_component_id);
         const selected_rp_activity_ids = @json($selected_rp_activity_ids);
+        
         // ============================================
         // PROGRAM AND PROJECTS HANDLING
         // ============================================
@@ -898,9 +967,6 @@
             multiple: true
         });
 
-        // Store selected component ID
-        
-
         // Function to load components based on selected action plan
         function loadComponentsByActionPlan(actionPlanId) {
             const componentsSelect = $('#rp_component_id');
@@ -930,9 +996,9 @@
                                 const option = $('<option>')
                                     .val(component.rp_components_id)
                                     .text(component.code + ' - ' + component.name);
-                                  if (selectedComponentId == component.rp_components_id.toString()) {
-                                        option.prop('selected', true);
-                                    }
+                                if (selectedComponentId == component.rp_components_id.toString()) {
+                                    option.prop('selected', true);
+                                }
                                 componentsSelect.append(option);
                             });
                             
