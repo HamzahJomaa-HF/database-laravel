@@ -25,8 +25,7 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
 
     public function collection(Collection $rows)
     {
-        Log::info('=== STARTING ACTIVITIES IMPORT WITH MAPPING ===');
-        Log::info('Total rows: ' . $rows->count());
+      
 
         // Pre-load hierarchy mapping
         $this->loadHierarchyMap();
@@ -93,7 +92,6 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
                     continue;
                 }
 
-                Log::info("Row {$rowNumber}: Processing reference '{$actionReference}'");
 
                 // Parse the full hierarchy from reference
                 $parsedHierarchy = $this->parseActionReference($actionReference, $rowNumber);
@@ -126,12 +124,10 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
                     }
                 }
 
-                Log::info("Row {$rowNumber}: Found action '{$action->action_code}' for reference '{$actionReference}'");
 
                 // Create unique activity code: action_code + activity_code
                 $uniqueActivityCode = $this->generateUniqueActivityCode($action->action_code, $activityCode, $action->rp_actions_id);
                 
-                Log::debug("Row {$rowNumber}: Original activity code '{$activityCode}' → Unique code '{$uniqueActivityCode}'");
 
                 // Create/Update Activity
                 $activity = $this->createOrUpdateActivity($action, $uniqueActivityCode, $activityName, $status, $rowNumber);
@@ -145,13 +141,11 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
                 // Process indicators
                 if ($indicatorsText) {
                     $indicatorsCount = $this->processIndicators($activityId, $indicatorsText);
-                    Log::info("Row {$rowNumber}: Linked {$indicatorsCount} indicators");
                 }
 
                 // Process focal points
                 if ($focalPointsText) {
                     $focalPointsCount = $this->processFocalPoints($activityId, $focalPointsText);
-                    Log::info("Row {$rowNumber}: Linked {$focalPointsCount} focal points");
                 }
 
             } catch (\Exception $e) {
@@ -165,7 +159,6 @@ class ActivitiesImport implements ToCollection, WithHeadingRow
             }
         }
 
-        Log::info('=== ACTIVITIES IMPORT COMPLETED ===', $this->results);
     }
 
     /**
@@ -181,14 +174,12 @@ private function applyProgramMapping(array $hierarchy, int $rowNumber): array
     // Check if program needs mapping (C0, D0, E0 to A8, A9, A10)
     if (isset($this->programMapping[$originalProgram])) {
         $mappedProgram = $this->programMapping[$originalProgram];
-        Log::info("Row {$rowNumber}: Mapped program '{$originalProgram}' → '{$mappedProgram}'");
         
         // Update the hierarchy with mapped program
         $hierarchy['program_code'] = $mappedProgram;
         $hierarchy['original_program'] = $originalProgram; 
     } else {
         // For programs like A4, no mapping needed
-        Log::info("Row {$rowNumber}: No mapping needed for program '{$originalProgram}'");
     }
     
     return $hierarchy;
@@ -290,7 +281,6 @@ private function parseActionReference(string $reference, int $rowNumber): ?array
         // Determine component based on program
         $component = 'AD.' . $programLetter;
         
-        Log::info("DEBUG Row {$rowNumber}: Pattern 3 - Reference '{$reference}' → C='{$component}', P='{$programCode}', U='{$unit}', A='{$action}'");
         
         return [
             'component_code' => $component,
@@ -359,7 +349,6 @@ private function parseActionReference(string $reference, int $rowNumber): ?array
      */
     private function loadHierarchyMap(): void
     {
-        Log::info("Loading hierarchy map from database...");
         
         // Load ALL components starting with AD
         $hierarchy = DB::table('rp_actions AS a')
@@ -397,7 +386,6 @@ private function parseActionReference(string $reference, int $rowNumber): ?array
             }
         }
         
-        Log::info("Loaded " . $hierarchy->count() . " actions from AD components into hierarchy map");
         
         // Log how many from each component
         $componentCounts = [];
@@ -406,7 +394,6 @@ private function parseActionReference(string $reference, int $rowNumber): ?array
         }
         
         foreach ($componentCounts as $component => $count) {
-            Log::info("  - Component {$component}: {$count} actions");
         }
     }
 
@@ -438,7 +425,6 @@ private function parseActionReference(string $reference, int $rowNumber): ?array
         $action = $hierarchy['action_code'];
         $unitOriginal = $hierarchy['unit_original'];
         
-        Log::info("DEBUG Row {$rowNumber}: Looking for C='{$component}', P='{$program}', U='{$unit}', A='{$action}'");
         
         // First, try exact match as before
         $exactMatch = $this->findExactAction($component, $program, $unit, $unitOriginal, $action, $rowNumber);
@@ -510,14 +496,12 @@ private function parseActionReference(string $reference, int $rowNumber): ?array
     // Remove duplicates
     $unitVariations = array_unique($unitVariations);
     
-    Log::info("DEBUG Row {$rowNumber}: Trying unit variations: " . implode(', ', $unitVariations));
     
     foreach ($componentVariations as $compVar) {
         foreach ($unitVariations as $unitVar) {
             // Try exact match in cache
             $key = "{$compVar}.{$program}.{$unitVar}.{$action}";
             if (isset($this->hierarchyMap[$key])) {
-                Log::info("DEBUG Row {$rowNumber}: FOUND in cache with key '{$key}'");
                 return $this->hierarchyMap[$key];
             }
             
@@ -545,7 +529,6 @@ private function parseActionReference(string $reference, int $rowNumber): ?array
                 ->first();
             
             if ($foundAction) {
-                Log::info("DEBUG Row {$rowNumber}: FOUND in database with C='{$foundAction->component_code}', P='{$foundAction->program_code}', U='{$foundAction->unit_code}', A='{$foundAction->action_code}'");
                 
                 // Cache it
                 $cacheKey = "{$foundAction->component_code}.{$foundAction->program_code}.{$foundAction->unit_code}.{$foundAction->action_code}";
@@ -577,7 +560,6 @@ private function parseActionReference(string $reference, int $rowNumber): ?array
             ];
             
             $variations = $componentMap[$programPrefix] ?? $componentMap['default'];
-            Log::info("Mapped 'AD' with program '{$program}' to component variations: " . implode(', ', $variations));
             
             // Also try case variations
             $caseVariations = [];
@@ -657,7 +639,6 @@ private function parseActionReference(string $reference, int $rowNumber): ?array
                     ]);
                 $this->results['updated']['activities']++;
                 $activityId = $existingActivity->rp_activities_id;
-                Log::info("Updated activity: {$activityId} for action {$action->action_code}");
             } else {
                 // Create new activity
                 $activityId = (string) Str::uuid();
@@ -678,7 +659,6 @@ private function parseActionReference(string $reference, int $rowNumber): ?array
                 ]);
                 $this->results['created']['activities']++;
                 $isNew = true;
-                Log::info("Created new activity: {$activityId} for action {$action->action_code}");
             }
             
             return (object) [

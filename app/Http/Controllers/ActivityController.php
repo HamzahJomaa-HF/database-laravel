@@ -288,13 +288,7 @@ class ActivityController extends Controller
         $activity = Activity::findOrFail($id);
         
         // DEBUG: Check what's actually in the database
-        Log::info('DEBUG ACTIVITY DATA:', [
-            'activity_id' => $activity->activity_id,
-            'rp_component_id' => $activity->rp_component_id,
-            'action_plan_id' => $activity->action_plan_id, // Add this
-            'rp_activities_raw' => $activity->rp_activities,
-            'rp_activities_decoded' => json_decode($activity->rp_activities, true),
-        ]);
+        
 
         $projects = ProjectActivity::where('project_activities.activity_id', $id)
             ->leftJoin('projects', 'projects.project_id', '=', 'project_activities.project_id')
@@ -644,10 +638,8 @@ class ActivityController extends Controller
 
         $componentId = $request->component_id;
 
-        Log::info('getRPActivities called', ['component_id' => $componentId]);
 
         try {
-            Log::info('Querying database for component', ['component_id' => $componentId]);
 
             // Simple query for testing
             $activities = RpActivity::whereNull('deleted_at')
@@ -663,10 +655,7 @@ class ActivityController extends Controller
                     ];
                 });
 
-            Log::info('Found activities', [
-                'component_id' => $componentId,
-                'count' => $activities->count()
-            ]);
+            
 
             return response()->json([
                 'success' => true,
@@ -697,7 +686,6 @@ class ActivityController extends Controller
     {
         try {
 
-            Log::info('getProjectsByProgram called', $request->all());
 
             // Validate request
             $request->validate([
@@ -751,10 +739,7 @@ class ActivityController extends Controller
 
         $componentId = $request->component_id;
 
-        Log::info('getRPActionsWithActivities called', [
-            'component_id' => $componentId,
-            'request_all' => $request->all()
-        ]);
+        
 
         try {
             // Debug: Check if component exists
@@ -762,10 +747,7 @@ class ActivityController extends Controller
                 ->whereNull('deleted_at')
                 ->exists();
                 
-            Log::info('Component exists check:', [
-                'component_id' => $componentId,
-                'exists' => $componentExists
-            ]);
+            
 
             // Get the component with its full hierarchy
             $component = RpComponent::with([

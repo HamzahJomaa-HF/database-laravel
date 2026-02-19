@@ -384,7 +384,6 @@ class UserController extends Controller
             });
             
             $count = count($userIds);
-            Log::info("Bulk deleted {$count} users");
             
             return redirect()->route('users.index')
                 ->with('success', "Successfully deleted {$count} user(s).");
@@ -861,7 +860,6 @@ class UserController extends Controller
                 throw new \Exception('Invalid CSV format. Please use the provided template.');
             }
 
-            Log::info('CSV Header found with ' . count($header) . ' columns');
             
             $rowNumber = 1;
             
@@ -872,7 +870,6 @@ class UserController extends Controller
                 try {
                     // Skip empty rows
                     if (empty(array_filter($data))) {
-                        Log::info("Skipping empty row {$rowNumber}");
                         continue;
                     }
 
@@ -924,13 +921,6 @@ class UserController extends Controller
                     ]);
                     
                     // Log cleaned data for debugging
-                    Log::info("Row {$rowNumber} cleaned data:", [
-                        'is_high_profile' => $cleanedData['is_high_profile'] ? 'TRUE' : 'FALSE',
-                        'first_name' => $cleanedData['first_name'],
-                        'last_name' => $cleanedData['last_name'],
-                        'scope' => $cleanedData['scope'],
-                        'default_cop_id' => $cleanedData['default_cop_id'],
-                    ]);
                     
                     // Validate required fields
                     $requiredFields = [
@@ -968,7 +958,6 @@ class UserController extends Controller
                     
                     if ($user) {
                         $results['successful']++;
-                        Log::info("Successfully created user ID: {$user->user_id}, Name: {$user->first_name} {$user->last_name}, CoP ID: {$user->default_cop_id}");
                     } else {
                         throw new \Exception('Failed to create user record');
                     }
@@ -983,7 +972,6 @@ class UserController extends Controller
             
             fclose($handle);
             
-            Log::info("Import completed: {$results['successful']} successful, {$results['failed']} failed");
             
         } catch (\Exception $e) {
             Log::error('Import failed: ' . $e->getMessage());

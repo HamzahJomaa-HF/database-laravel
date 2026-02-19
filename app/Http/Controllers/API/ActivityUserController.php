@@ -158,7 +158,6 @@ class ActivityUserController extends Controller
                 'start_date' => now()->format('Y-m-d'),
                 'end_date' => now()->addDays(30)->format('Y-m-d'),
             ]);
-            Log::info("Created new activity: " . $activity->activity_id);
         }
 
         $file = $request->file('file');
@@ -210,7 +209,6 @@ class ActivityUserController extends Controller
                     $data = array_combine($header, $row);
                     $data = array_map('trim', $data);
 
-                    Log::info("Processing line {$lineNumber}: " . json_encode($data));
 
                     // Use database transaction to ensure data consistency
                     DB::transaction(function () use ($data, $fileType, $lineNumber, &$createdCount, &$errors, $activity, $header, &$nextIdNumber) {
@@ -256,7 +254,6 @@ class ActivityUserController extends Controller
                         ]);
 
                         $createdCount++;
-                        Log::info("Successfully created ActivityUser for user: " . $user->user_id . " with type: " . $activityUserType . " and external_id: " . $externalId);
                     });
 
                 } catch (\Exception $e) {
@@ -386,9 +383,7 @@ class ActivityUserController extends Controller
             ];
 
             $user = User::create($userData);
-            Log::info("Created new user by phone: " . $user->user_id);
         } else {
-            Log::info("Found existing user by phone: " . $user->user_id);
         }
 
         return $user;
@@ -402,7 +397,6 @@ class ActivityUserController extends Controller
         if (!empty($data['identification_id'])) {
             $user = User::where('identification_id', $data['identification_id'])->first();
             if ($user) {
-                Log::info("Found existing user by identification_id: " . $user->user_id);
                 return $user;
             }
         }
@@ -410,7 +404,6 @@ class ActivityUserController extends Controller
         if (!empty($data['passport_number'])) {
             $user = User::where('passport_number', $data['passport_number'])->first();
             if ($user) {
-                Log::info("Found existing user by passport_number: " . $user->user_id);
                 return $user;
             }
         }
@@ -428,7 +421,6 @@ class ActivityUserController extends Controller
         ];
 
         $user = User::create($userData);
-        Log::info("Created new user by identification: " . $user->user_id);
         return $user;
     }
 
@@ -460,9 +452,7 @@ class ActivityUserController extends Controller
             ];
 
             $user = User::create($userData);
-            Log::info("Created new user by register: " . $user->user_id);
         } else {
-            Log::info("Found existing user by register: " . $user->user_id);
         }
 
         return $user;

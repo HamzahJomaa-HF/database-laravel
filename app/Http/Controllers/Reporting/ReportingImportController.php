@@ -42,7 +42,6 @@ class ReportingImportController extends Controller
             $file = $request->file('excel_file');
 
             // ========== ADD THIS SECTION: SAVE ACTION PLAN ==========
-            Log::info('Step 1: Saving Action Plan to database');
 
             $filename = time() . '_' . $file->getClientOriginalName();
             $path = $file->storeAs('action_plans', $filename, 'public');
@@ -66,21 +65,13 @@ class ReportingImportController extends Controller
                 ]),
             ]);
 
-            Log::info('Action Plan saved', [
-                'id' => $actionPlan->action_plan_id,
-                'title' => $actionPlan->title
-            ]);
+            
             // ========== END ADDITION ==========
 
-            Log::info('=== STARTING COMPLETE IMPORT ===', [
-                'filename' => $file->getClientOriginalName(),
-                'size' => $file->getSize(),
-                'action_plan_id' => $action_plan_id // ADD THIS
-            ]);
+            
 
             // REST OF YOUR EXISTING CODE STAYS THE SAME...
             // IMPORT HIERARCHY (SHEET 1)
-            Log::info('--- IMPORTING HIERARCHY (Sheet 1) ---');
 
             $hierarchyImport = new HierarchyImport($action_plan_id);
             $hierarchyWrapper = new class($hierarchyImport) implements \Maatwebsite\Excel\Concerns\WithMultipleSheets {
@@ -100,10 +91,8 @@ class ReportingImportController extends Controller
             Excel::import($hierarchyWrapper, $file, null, \Maatwebsite\Excel\Excel::XLSX);
             $hierarchyResults = $hierarchyImport->getResults();
 
-            Log::info('Hierarchy import completed', $hierarchyResults);
 
             // IMPORT ACTIVITIES (SHEET 2)
-            Log::info('--- IMPORTING ACTIVITIES (Sheet 2) ---');
 
             $activitiesImport = new ActivitiesImport();
             $activitiesWrapper = new class($activitiesImport) implements \Maatwebsite\Excel\Concerns\WithMultipleSheets {
@@ -123,7 +112,6 @@ class ReportingImportController extends Controller
             Excel::import($activitiesWrapper, $file, null, \Maatwebsite\Excel\Excel::XLSX);
             $activitiesResults = $activitiesImport->getResults();
 
-            Log::info('Activities import completed', $activitiesResults);
 
             // ========== ADD THIS: UPDATE ACTION PLAN WITH RESULTS ==========
             $actionPlan->update([
@@ -139,7 +127,6 @@ class ReportingImportController extends Controller
                     ]
                 )),
             ]);
-            Log::info('Action Plan updated with import results');
             // ========== END ADDITION ==========
 
             // Transform activities results
@@ -149,12 +136,7 @@ class ReportingImportController extends Controller
             $dbCounts = $this->getCompleteDatabaseCounts();
 
             // Log success
-            Log::info('=== IMPORT COMPLETED ===', [
-                'hierarchy_results' => $hierarchyResults,
-                'activities_results' => $transformedActivities,
-                'db_counts' => $dbCounts,
-                'action_plan_id' => $actionPlan->action_plan_id // ADD THIS
-            ]);
+            
 
             // ========== UPDATE RETURN DATA ==========
             return back()->with([
@@ -341,7 +323,6 @@ class ReportingImportController extends Controller
 
             foreach ($tables as $table) {
                 DB::table($table)->truncate();
-                Log::info("Cleared table: {$table}");
             }
 
             // Re-enable foreign key checks

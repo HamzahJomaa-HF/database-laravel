@@ -45,7 +45,6 @@ class EmployeeController extends Controller
     public function store(Request $request)
 {
     // Debug: Log the request data
-    \Log::info('Store Employee Request:', $request->all());
     
     $validator = Validator::make($request->all(), [
         'first_name' => 'required|string|max:255',
@@ -84,7 +83,6 @@ class EmployeeController extends Controller
     ]);
 
     // Debug: Log the employee creation
-    \Log::info('Employee created with ID: ' . $employee->employee_id);
     
     // Create credentials
     $employee->credentials()->create([
@@ -93,12 +91,7 @@ class EmployeeController extends Controller
     ]);
 
     // CRITICAL: Debug project_ids before processing
-    \Log::info('Project IDs from request:', [
-        'has_project_ids' => $request->has('project_ids'),
-        'project_ids' => $request->project_ids,
-        'project_ids_type' => gettype($request->project_ids),
-        'project_ids_count' => is_array($request->project_ids) ? count($request->project_ids) : 'Not an array',
-    ]);
+   
 
     // Create project associations - FIXED VERSION
     if ($request->filled('project_ids') && is_array($request->project_ids)) {
@@ -110,10 +103,7 @@ class EmployeeController extends Controller
                         'employee_id' => $employee->employee_id,
                         'project_id' => $projectId,
                     ]);
-                    \Log::info('Created project_employee record:', [
-                        'employee_id' => $employee->employee_id,
-                        'project_id' => $projectId
-                    ]);
+                   
                 } catch (\Exception $e) {
                     \Log::error('Failed to create project_employee:', [
                         'error' => $e->getMessage(),

@@ -28,7 +28,6 @@ class LoginController extends Controller
     public function login(Request $request)
     {
         try {
-            Log::info('Login attempt started', ['email' => $request->email]);
             
             // Validate credentials
             $credentials = $request->validate([
@@ -60,7 +59,6 @@ class LoginController extends Controller
                 // Update last login
                 $employee->credentials->update(['last_login_at' => now()]);
                 
-                Log::info('Login successful', ['employee_id' => $employee->employee_id]);
                 return redirect()->intended(route('dashboard'));
                 
             } else {

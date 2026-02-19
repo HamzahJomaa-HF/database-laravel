@@ -178,7 +178,7 @@
                                     </div>
                                     <div class="col-md-6">
                                         <label for="portfolios_select" class="form-label fw-semibold">
-                                            Activity Type <span class="text-danger">*</span>
+                                            Portfolios <span class="text-danger">*</span>
                                         </label>
                                         <select id="portfolios_select"
                                                 class="form-control @error('portfolio') is-invalid @enderror form-control form-select"

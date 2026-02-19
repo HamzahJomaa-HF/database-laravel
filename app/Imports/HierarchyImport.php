@@ -36,7 +36,6 @@ class HierarchyImport implements ToCollection, WithHeadingRow
 
     public function collection(Collection $rows)
     {
-        Log::info('=== STARTING HIERARCHY IMPORT ===');
 
         foreach ($rows as $index => $row) {
             $rowNumber = $index + 2;
@@ -50,7 +49,6 @@ class HierarchyImport implements ToCollection, WithHeadingRow
                     'unique id'
                 ], 'NO_UNIQUE_ID');
                 
-                Log::debug("Processing row {$rowNumber} - Unique ID: {$uniqueId}");
 
             
                 $componentCode = $this->getValue($row, [
@@ -147,7 +145,6 @@ class HierarchyImport implements ToCollection, WithHeadingRow
                     }
                 } else {
                     // No program data - create a default program
-                    Log::info("Row {$rowNumber}: No program data - creating default program");
                     $programId = $this->createFallbackProgram($componentId, $rowNumber);
                 }
 
@@ -166,7 +163,6 @@ class HierarchyImport implements ToCollection, WithHeadingRow
                     }
                 } else {
                     // No unit data - create a default unit
-                    Log::info("Row {$rowNumber}: No unit data - creating default unit");
                     $unitId = $this->createFallbackUnit($programId, $rowNumber);
                 }
 
@@ -191,7 +187,6 @@ class HierarchyImport implements ToCollection, WithHeadingRow
             }
         }
 
-        Log::info('=== HIERARCHY IMPORT COMPLETED ===', $this->results);
     }
 
     /**
@@ -223,7 +218,6 @@ private function handleComponent(string $code, string $name, ?string $action_pla
     if ($existing) {
         $this->componentMap[$mapKey] = $existing->rp_components_id;
         $this->results['details']['components']['existing']++;
-        Log::info("Found existing component for action_plan: {$cleanCode} (action_plan_id=" . ($action_plan_id ?? 'NULL') . ")");
         return $existing->rp_components_id;
     }
 
@@ -244,7 +238,6 @@ private function handleComponent(string $code, string $name, ?string $action_pla
 
     $this->componentMap[$mapKey] = $componentId;
     $this->results['details']['components']['new']++;
-    Log::info("Created new component: {$cleanCode} - {$name} (action_plan_id=" . ($action_plan_id ?? 'NULL') . ")");
 
     return $componentId;
 }
@@ -267,7 +260,6 @@ private function handleComponent(string $code, string $name, ?string $action_pla
         if (!$cleanCode) {
             // If cleaning fails, use original code or generate one
             $cleanCode = $code ?: "PROG_{$rowNumber}";
-            Log::info("Row {$rowNumber}: Using program code: {$cleanCode}");
         }
 
         $existing = DB::table('rp_programs')
@@ -278,7 +270,6 @@ private function handleComponent(string $code, string $name, ?string $action_pla
         if ($existing) {
             $this->programMap[$programKey] = $existing->rp_programs_id;
             $this->results['details']['programs']['existing']++;
-            Log::info("Found existing program: {$cleanCode}");
             return $existing->rp_programs_id;
         }
 
@@ -297,7 +288,6 @@ private function handleComponent(string $code, string $name, ?string $action_pla
         
         $this->programMap[$programKey] = $programId;
         $this->results['details']['programs']['new']++;
-        Log::info("Row {$rowNumber}: Created new program: {$cleanCode} - " . ($name ?: 'No name'));
         
         return $programId;
     }
@@ -329,7 +319,6 @@ private function handleComponent(string $code, string $name, ?string $action_pla
         if ($existing) {
             $this->unitMap[$unitKey] = $existing->rp_units_id;
             $this->results['details']['units']['existing']++;
-            Log::info("Found existing unit: {$cleanCode}");
             return $existing->rp_units_id;
         }
 
@@ -348,7 +337,6 @@ private function handleComponent(string $code, string $name, ?string $action_pla
         
         $this->unitMap[$unitKey] = $unitId;
         $this->results['details']['units']['new']++;
-        Log::info("Created new unit: {$cleanCode} - " . ($name ?: 'No name'));
         
         return $unitId;
     }
@@ -360,7 +348,6 @@ private function handleComponent(string $code, string $name, ?string $action_pla
         
         if (isset($this->actionMap[$actionKey])) {
             $this->results['details']['actions']['existing']++;
-            Log::info("Action already exists: {$code}");
             return;
         }
 
@@ -379,7 +366,6 @@ private function handleComponent(string $code, string $name, ?string $action_pla
         if ($existing) {
             $this->actionMap[$actionKey] = true;
             $this->results['details']['actions']['existing']++;
-            Log::info("Found existing action: {$cleanCode}");
             return;
         }
 
@@ -400,7 +386,6 @@ private function handleComponent(string $code, string $name, ?string $action_pla
         
         $this->actionMap[$actionKey] = true;
         $this->results['details']['actions']['new']++;
-        Log::info("Created new action: {$cleanCode} - " . ($name ?: 'No name'));
     }
 
     
@@ -522,13 +507,11 @@ private function handleComponent(string $code, string $name, ?string $action_pla
     $cleanCode = $this->cleanCode($code);
     
     if (!$cleanCode) {
-        Log::info("Row {$rowNumber}: Program code '{$originalCode}' resulted in empty after cleaning");
         return $originalCode; // Return original instead of null
     }
     
    
     if ($cleanCode !== $originalCode) {
-        Log::info("Row {$rowNumber}: Program code cleaned: '{$originalCode}' → '{$cleanCode}'");
     }
     
     return $cleanCode;

@@ -586,11 +586,7 @@ class ActionPlanController extends Controller
     {
         try {
             $actionPlan->delete();
-            Log::info('Soft deleted action plan', [
-                'action_plan_id' => $actionPlan->action_plan_id,
-                'title' => $actionPlan->title,
-                'deleted_at' => now()->toDateTimeString()
-            ]);
+            
             return true;
         } catch (\Exception $e) {
             Log::error('Failed to soft delete action plan: ' . $e->getMessage(), [
@@ -612,7 +608,6 @@ class ActionPlanController extends Controller
             // Delete associated Excel file if it exists
             if ($actionPlan->excel_path && Storage::exists($actionPlan->excel_path)) {
                 Storage::delete($actionPlan->excel_path);
-                Log::info('Deleted file during permanent deletion: ' . $actionPlan->excel_path);
             }
 
             // Force delete the action plan record
