@@ -1,20 +1,30 @@
-name: Deploy Laravel to Azure VM
+name: Deploy Laravel to Azure VM (No SSH, No Azure Storage)
 
 on:
   workflow_dispatch:
 
 env:
-  PHP_VERSION: '8.2'
-  APP_DIR: ${{ secrets.APP_DIR }} # e.g. /var/www/hariri-foundation
-  RELEASE_DIR: ${{ secrets.APP_DIR }}/releases/${{ github.sha }}
+  PHP_VERSION: "8.2"
 
 jobs:
-  deploy:
+  # 1) Basic checks (runs fast, fails early)
+  preflight:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Verify VM exists
+        run: |
+          az vm show -g "${{ secrets.AZURE_RG }}" -n "${{ secrets.AZURE_VM_NAME }}" --query "name" -o tsv
+
+  # 2) CI job (tests/build validation on GitHub runner)
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -23,115 +33,135 @@ jobs:
           extensions: mbstring, intl, gd, mysql, pdo_mysql, bcmath, zip
           coverage: none
 
-      # Optional: compile front-end locally so server doesn't need Node
+      - name: Install Composer deps (CI)
+        run: composer install --prefer-dist --no-interaction
+
+      - name: Run tests (if present)
+        run: |
+          if [ -f artisan ] && [ -d tests ]; then
+            php artisan test
+          else
+            echo "No Laravel tests found, skipping."
+          fi
+
       - name: Setup Node (optional)
         if: ${{ hashFiles('package.json') != '' }}
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install Node deps (optional)
+      - name: Build assets (optional CI check)
         if: ${{ hashFiles('package.json') != '' }}
-        run: npm install
-
-      - name: Build assets (optional)
-        if: ${{ hashFiles('package.json') != '' }}
-        run: npm run build --if-present
-
-      - name: Prepare artifact (exclude dev files)
         run: |
-          rm -rf deploy
-          mkdir -p deploy
-          rsync -a --delete \
-            --exclude ".git" \
-            --exclude "node_modules" \
-            --exclude ".github" \
-            --exclude "storage" \
-            --exclude "deploy" \
-            ./ ./deploy/
-          if [ -d "public/build" ]; then
-            mkdir -p deploy/public/build
-            rsync -a public/build/ deploy/public/build/
+          npm ci
+          npm run build --if-present
+
+  # 3) Deploy job (VM pulls from GitHub + release symlink)
+  deploy:
+    needs: [preflight, ci]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy on VM via Run Command (no SSH)
+        run: |
+          cat > deploy.sh <<'SCRIPT'
+          set -euo pipefail
+
+          APP_DIR="${APP_DIR}"
+          SHARED_DIR="$APP_DIR/shared"
+          REPO_DIR="$APP_DIR/repo"
+          RELEASE_DIR="$APP_DIR/releases/${GITHUB_SHA}"
+
+          # Ensure dirs
+          sudo mkdir -p "$APP_DIR/releases" "$SHARED_DIR/storage" "$SHARED_DIR/bootstrap/cache"
+
+          # Install minimal tools (git/rsync)
+          sudo apt-get update -y
+          sudo apt-get install -y git rsync unzip acl
+
+          # Persist .env to shared (recommended)
+          if [ -n "${LARAVEL_ENV:-}" ]; then
+            echo "$LARAVEL_ENV" | sudo tee "$SHARED_DIR/.env" >/dev/null
           fi
 
-      - name: Fix deploy folder permissions
-        run: |
-          sudo chown -R "$USER:$USER" deploy
-          sudo chmod -R u+rwX deploy
+          # Clone repo first time, otherwise fetch
+          if [ ! -d "$REPO_DIR/.git" ]; then
+            sudo rm -rf "$REPO_DIR"
+            sudo mkdir -p "$REPO_DIR"
+            sudo chown -R "$USER:$USER" "$REPO_DIR"
 
-      - name: Copy files to VM (release path)
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          port: ${{ secrets.VM_PORT }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          source: "deploy/*"
-          target: "${{ env.RELEASE_DIR }}"
-          strip_components: 1
-          timeout: "300s"
-
-      - name: Run remote deploy steps
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          port: ${{ secrets.VM_PORT }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          script: |
-            set -e
-
-            APP_DIR="${{ env.APP_DIR }}"
-            RELEASE_DIR="${{ env.RELEASE_DIR }}"
-            SHARED_DIR="$APP_DIR/shared"
-
-            # Ensure shared dirs exist
-            sudo -u www-data mkdir -p "$SHARED_DIR/storage" "$SHARED_DIR/bootstrap/cache"
-
-            # Link shared storage & cache into release
-            ln -sfn "$SHARED_DIR/storage" "$RELEASE_DIR/storage"
-            ln -sfn "$SHARED_DIR/bootstrap/cache" "$RELEASE_DIR/bootstrap/cache"
-
-            # .env handling
-            if [ -n "${{ secrets.LARAVEL_ENV }}" ]; then
-              echo "${{ secrets.LARAVEL_ENV }}" | sudo -u www-data tee "$SHARED_DIR/.env" >/dev/null
+            if [ -n "${GITHUB_PAT:-}" ]; then
+              git clone "https://${GITHUB_PAT}@github.com/${GITHUB_REPOSITORY}.git" "$REPO_DIR"
+            else
+              git clone "https://github.com/${GITHUB_REPOSITORY}.git" "$REPO_DIR"
             fi
-            ln -sfn "$SHARED_DIR/.env" "$RELEASE_DIR/.env"
+          fi
 
-            # Composer install (optimized, no dev)
-            cd "$RELEASE_DIR"
-            composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+          cd "$REPO_DIR"
+          git fetch --all --prune
+          git checkout -f "${GITHUB_SHA}"
 
-            # Generate APP_KEY if missing
-            if ! grep -q "^APP_KEY=base64:" "$RELEASE_DIR/.env"; then
-              php artisan key:generate --force
-              # move the generated key back to shared .env to persist
-              cp "$RELEASE_DIR/.env" "$SHARED_DIR/.env"
-            fi
+          # Create a new immutable release dir
+          sudo rm -rf "$RELEASE_DIR"
+          sudo mkdir -p "$RELEASE_DIR"
 
-            # Laravel caches
-            php artisan storage:link || true
-            php artisan config:cache
-            php artisan route:cache || true
-            php artisan view:cache || true
+          sudo rsync -a --delete \
+            --exclude ".git" \
+            --exclude "storage" \
+            "$REPO_DIR/" "$RELEASE_DIR/"
 
-            # DB migrate (safe in prod)
-            php artisan migrate --force
+          # Link shared storage/cache and .env
+          sudo ln -sfn "$SHARED_DIR/storage" "$RELEASE_DIR/storage"
+          sudo ln -sfn "$SHARED_DIR/bootstrap/cache" "$RELEASE_DIR/bootstrap/cache"
+          sudo ln -sfn "$SHARED_DIR/.env" "$RELEASE_DIR/.env"
 
-            # Atomic release: symlink current -> this release
-            ln -sfn "$RELEASE_DIR" "$APP_DIR/current"
+          # Permissions
+          sudo chown -R www-data:www-data "$APP_DIR"
 
-            # Permissions
-            sudo chown -R www-data:www-data "$APP_DIR"
-            sudo setfacl -R -m u:www-data:rwx "$APP_DIR" || true
+          # Laravel deploy steps
+          cd "$RELEASE_DIR"
 
-            # Reload services
-            sudo systemctl reload php8.2-fpm || true
-            sudo systemctl reload nginx || true
+          # Composer install (prod)
+          composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
 
-            # (Optional) restart queue workers if using Supervisor
-            if command -v supervisorctl >/dev/null 2>&1; then
-              sudo supervisorctl restart laravel-worker:* || true
-            fi
+          # Generate APP_KEY if missing
+          if ! grep -q "^APP_KEY=base64:" "$RELEASE_DIR/.env"; then
+            sudo -u www-data php artisan key:generate --force
+            sudo cp "$RELEASE_DIR/.env" "$SHARED_DIR/.env"
+          fi
+
+          sudo -u www-data php artisan storage:link || true
+          sudo -u www-data php artisan config:cache
+          sudo -u www-data php artisan route:cache || true
+          sudo -u www-data php artisan view:cache || true
+
+          sudo -u www-data php artisan migrate --force
+
+          # Atomic switch
+          sudo ln -sfn "$RELEASE_DIR" "$APP_DIR/current"
+
+          # Reload services
+          sudo systemctl reload php8.2-fpm || true
+          sudo systemctl reload nginx || true
+
+          # Optional: queue workers
+          if command -v supervisorctl >/dev/null 2>&1; then
+            sudo supervisorctl restart laravel-worker:* || true
+          fi
+          SCRIPT
+
+          az vm run-command invoke \
+            -g "${{ secrets.AZURE_RG }}" \
+            -n "${{ secrets.AZURE_VM_NAME }}" \
+            --command-id RunShellScript \
+            --scripts @deploy.sh \
+            --parameters \
+              APP_DIR="${{ secrets.APP_DIR }}" \
+              LARAVEL_ENV="${{ secrets.LARAVEL_ENV }}" \
+              GITHUB_PAT="${{ secrets.PAT }}" \
+              GITHUB_SHA="${{ github.sha }}" \
+              GITHUB_REPOSITORY="${{ github.repository }}"
