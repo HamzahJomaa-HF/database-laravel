@@ -52,13 +52,20 @@ jobs:
 
       - name: Run tests
         run: php artisan test
+        
 
-
+  
   # 3) Deploy job (VM pulls from GitHub + release symlink)
   deploy:
     needs: [preflight, ci]
     runs-on: ubuntu-latest
     steps:
+      - name: Build ENV base64
+        id: envb64
+        run: |
+          printf "%s" "${{ secrets.LARAVEL_ENV }}" | base64 -w 0 > env.b64
+          echo "ENV_B64=$(cat env.b64)" >> $GITHUB_ENV
+          
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -67,7 +74,7 @@ jobs:
       - name: Deploy on VM via Run Command (no SSH)
         run: |
           cat > deploy.sh <<'SCRIPT'
-          set -euo pipefail
+          set -euo
 
           APP_DIR="${APP_DIR}"
           SHARED_DIR="$APP_DIR/shared"
@@ -80,10 +87,11 @@ jobs:
           # Install minimal tools (git/rsync)
           sudo apt-get update -y
           sudo apt-get install -y git rsync unzip acl
+          sudo apt-get install -y coreutils
 
-          # Persist .env to shared (recommended)
-          if [ -n "${LARAVEL_ENV:-}" ]; then
-            echo "$LARAVEL_ENV" | sudo tee "$SHARED_DIR/.env" >/dev/null
+          # write shared .env from base64
+          if [ -n "${ENV_B64:-}" ]; then
+            echo "$ENV_B64" | base64 -d | sudo tee "$SHARED_DIR/.env" >/dev/null
           fi
 
           # Clone repo first time, otherwise fetch
