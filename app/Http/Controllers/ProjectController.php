@@ -82,6 +82,7 @@ class ProjectController extends Controller
 
     // Get programs for dropdown
     $programs = Program::orderBy('program_type')
+        ->whereNotNull('parent_program_id')
         ->orderBy('name')
         ->get(['program_id', 'name', 'program_type', 'type', 'folder_name']);
 
@@ -175,6 +176,7 @@ public function edit($id)
     
     // Get programs for dropdown - SAME AS CREATE METHOD
     $programs = Program::orderBy('program_type')
+        ->whereNotNull('parent_program_id')
         ->orderBy('name')
         ->get(['program_id', 'name', 'program_type', 'type', 'folder_name']);
     

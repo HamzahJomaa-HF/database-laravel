@@ -143,6 +143,44 @@
                                             <div class="invalid-feedback d-block">{{ $message }}</div>
                                         @enderror
                                     </div>
+<div class="col-md-6">
+                                        <label for="maximum_capacity" class="form-label fw-semibold">
+                                            Maximum Capacity
+                                        </label>
+
+                                        <input
+                                            type="number"
+                                            name="maximum_capacity"
+                                            id="maximum_capacity"
+                                            class="form-control @error('maximum_capacity') is-invalid @enderror"
+                                            placeholder="Enter maximum capacity"
+                                            min="0"
+                                        >
+
+                                        @error('maximum_capacity')
+                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label for="portfolios_select" class="form-label fw-semibold">
+                                            Activity Type <span class="text-danger">*</span>
+                                        </label>
+                                        <select id="portfolios_select"
+                                                class="form-control @error('portfolio') is-invalid @enderror form-control form-select"
+                                                name="portfolios[]" multiple>
+                                            @foreach($portfolios as $portfolio)
+                                                <option value="{{ $portfolio->portfolio_id }}"
+                                                        data-portfolio-id="{{ $portfolio->portfolio_id }}">
+                                                        {{ $portfolio->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        @error('portfolio')
+                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
+                                        
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -681,6 +719,15 @@
             minimumResultsForSearch: 10
         });
 
+
+        $('#portfolios_select').select2({
+            placeholder: 'Select a portfolio...',
+            allowClear: true,
+            width: '100%',
+            minimumResultsForSearch: 10
+        });
+
+        
         // Initialize projects select
         $('#projects_select').select2({
             placeholder: 'Select projects...',

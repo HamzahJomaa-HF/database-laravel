@@ -176,6 +176,25 @@
                                             <div class="invalid-feedback d-block">{{ $message }}</div>
                                         @enderror
                                     </div>
+                                    <div class="col-md-6">
+                                        <label for="portfolios_select" class="form-label fw-semibold">
+                                            Activity Type <span class="text-danger">*</span>
+                                        </label>
+                                        <select id="portfolios_select"
+                                                class="form-control @error('portfolio') is-invalid @enderror form-control form-select"
+                                                name="portfolios[]" multiple>
+                                            @foreach($portfolios as $portfolio)
+                                                <option value="{{ $portfolio->portfolio_id }}" {{ in_array($portfolio->portfolio_id, old('portfolios', $selected_portfolios ?? [])) ? 'selected' : '' }}
+                                                        data-portfolio-id="{{ $portfolio->portfolio_id }}">
+                                                        {{ $portfolio->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        @error('portfolio')
+                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
+                                        
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -778,6 +797,15 @@
             width: '100%',
             minimumResultsForSearch: 10
         });
+
+
+                $('#portfolios_select').select2({
+            placeholder: 'Select a portfolio...',
+            allowClear: true,
+            width: '100%',
+            minimumResultsForSearch: 10
+        });
+
 
         // Initialize projects select
         $('#projects_select').select2({

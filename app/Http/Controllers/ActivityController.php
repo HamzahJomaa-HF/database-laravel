@@ -16,6 +16,9 @@ use App\Models\Program;
 use App\Models\Project;
 use App\Models\ProjectActivity;
 use App\Models\RpActivityMapping;
+use App\Models\Portfolio;
+use App\Models\PortfolioActivity;
+
 use Illuminate\Support\Str;
 
 class ActivityController extends Controller
@@ -94,6 +97,8 @@ class ActivityController extends Controller
         // ============================================
         $actionPlans = ActionPlan::orderBy('title')->get(['action_plan_id', 'title', 'start_date', 'end_date']);
         
+        $portfolios = Portfolio::orderBy('created_at', 'desc')->get(['portfolio_id', 'name', 'description', 'type', 'external_id']);
+
         // For create, no selected action plan
         $selectedActionPlanIdSingle = null;
 
@@ -132,7 +137,8 @@ class ActivityController extends Controller
             'programs',
             'selected_program',
             'selected_project_ids',
-            'projects'
+            'projects',
+            'portfolios'
         ));
     }
 
@@ -159,6 +165,9 @@ class ActivityController extends Controller
             'rp_activities' => 'nullable|array',
             'focal_points' => 'nullable|array',
             'operational_support' => 'nullable|array',
+        'portfolios.*' => 'exists:portfolios,portfolio_id', 
+                    'maximum_capacity' => 'nullable|integer|min:0',
+
         ]);
 
         // Extract arrays from request BEFORE removing them
@@ -166,6 +175,7 @@ class ActivityController extends Controller
         $projects = $request->input('projects', []);
         $focalPoints = $request->input('focal_points', []);
         $operationalSupport = $request->input('operational_support', []);
+        $portfolios = $request->input('portfolios', []);
 
         // Convert arrays to JSON (only for columns that exist in activities table)
         if (isset($validated['operational_support'])) {
@@ -173,7 +183,7 @@ class ActivityController extends Controller
         }
 
         // Remove arrays that don't exist in activities table
-        unset($validated['rp_activities'], $validated['projects'], $validated['focal_points']);
+        unset($validated['rp_activities'], $validated['projects'], $validated['focal_points'], $validated['portfolios']);
 
         // Generate a unique activity_id if not provided
         if (empty($validated['activity_id'])) {
@@ -194,6 +204,21 @@ class ActivityController extends Controller
                     'project_activity_id' => (string) Str::uuid(),
                     'activity_id' => $activity->activity_id,
                     'project_id' => $projectId,
+                ]);
+            }
+        }
+
+
+        if (!empty($portfolios)) {
+                // (Optional) remove old links for this activity (if editing/refreshing)
+            PortfolioActivity::where('activity_id', $activity->activity_id)->delete();
+            $portfolios = array_unique(array_filter($portfolios)); // remove null/empty and duplicates
+            
+            // Insert new rows
+            foreach ($portfolios as $portfolioId) {
+                PortfolioActivity::create([
+                    'activity_id' => $activity->activity_id,
+                    'portfolio_id' => $portfolioId,
                 ]);
             }
         }
@@ -284,6 +309,9 @@ class ActivityController extends Controller
                 'pp.name as parent_program_name',
             ])->get();
 
+        $selected_portfolios = PortfolioActivity::where('activity_id', $id)
+            ->get()->pluck('portfolio_id')->toArray();
+
 
         $rp_activities = RpActivityMapping::where('rp_activity_mappings.activity_id', $id)
             ->leftJoin('rp_activities', 'rp_activities.rp_activities_id', '=', 'rp_activity_mappings.rp_activities_id')
@@ -315,7 +343,8 @@ class ActivityController extends Controller
         // GOOD FORMAT: Using pluck() -> unique() -> toArray()
         $selected_program = $projects->pluck('parent_program_id')->unique()->toArray();
         $selected_project_ids = $projects->pluck('project_id')->unique()->toArray();
-        
+                $portfolios = Portfolio::orderBy('created_at', 'desc')->get(['portfolio_id', 'name', 'description', 'type', 'external_id']);
+
         $actionPlans = ActionPlan::orderBy('title')->get(['action_plan_id', 'title', 'start_date', 'end_date']);
 
 
@@ -374,7 +403,9 @@ class ActivityController extends Controller
             'projects',
             'selected_action_plan_id',
             'selected_component_id',
-            'selected_rp_activity_ids'
+            'selected_rp_activity_ids',
+            'portfolios',
+            'selected_portfolios'
         ));
     }
     
@@ -400,7 +431,8 @@ class ActivityController extends Controller
             'focal_points' => 'nullable|array',
             'operational_support' => 'nullable|array',
             'maximum_capacity' => 'nullable|integer|min:0',
-            
+                    'portfolios.*' => 'exists:portfolios,portfolio_id', 
+                    'maximum_capacity' => 'nullable|integer|min:0',
         ]);
         
         // Extract the specific arrays from the request
@@ -414,9 +446,10 @@ class ActivityController extends Controller
         $rpActivities = $request->input('rp_activities', []);
         $focalPoints = $request->input('focal_points', []);
         $projects = $request->input('projects', []);
+        $portfolios = $request->input('portfolios', []);
 
         // Remove from validated array if they were included
-        unset($validated['rp_activities'], $validated['focal_points'], $validated['projects']);
+        unset($validated['rp_activities'], $validated['focal_points'], $validated['projects'], $validated['portfolios']);
 
         // Handle operational_support
         if (isset($validated['operational_support'])) {
@@ -467,6 +500,27 @@ class ActivityController extends Controller
             ProjectActivity::where('activity_id', $id)
                 ->whereIn('project_id', $toDelete)
                 ->delete();
+        }
+        
+
+        if (!empty($portfolios)) {
+
+            // Remove existing relations
+            PortfolioActivity::where('activity_id', $id)->forceDelete();
+
+            // Clean array (remove nulls and duplicates)
+            $portfolios = array_unique(array_filter($portfolios));
+
+            // Insert new rows
+            foreach ($portfolios as $portfolioId) {
+                PortfolioActivity::create([
+                    'activity_id' => $id,
+                    'portfolio_id' => $portfolioId,
+                ]);
+            }
+        }else{
+            // If no portfolios selected, remove existing relations
+            PortfolioActivity::where('activity_id', $id)->forceDelete();
         }
 
         // Handle RP Activities mapping in separate table (NEW CODE - similar to projects)

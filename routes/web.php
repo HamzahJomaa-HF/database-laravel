@@ -121,32 +121,6 @@ Route::middleware(['auth:employee'])->group(function () {
             ->defaults('program_type', 'Sub-Program');
     });
 
-    // ============================================================================
-    // PROJECTS ROUTES - MOVED INSIDE AUTH
-    // ============================================================================
-    Route::prefix('projects')->name('projects.')->group(function () {
-        // Index and trash
-        Route::get('/', [ProjectController::class, 'index'])->name('index');
-        Route::get('/trash', [ProjectController::class, 'trash'])->name('trash');
-        
-        // Create and store
-        Route::get('/create', [ProjectController::class, 'create'])->name('create');
-        Route::post('/', [ProjectController::class, 'store'])->name('store');
-        
-        // Edit and update
-        Route::get('/{id}/edit', [ProjectController::class, 'edit'])->name('edit');
-        Route::put('/{id}', [ProjectController::class, 'update'])->name('update');
-        
-        // Delete/restore routes
-        Route::delete('/{id}', [ProjectController::class, 'destroy'])->name('destroy');
-        Route::post('/{id}/soft-delete', [ProjectController::class, 'softDelete'])->name('softDelete');
-        Route::post('/{id}/restore', [ProjectController::class, 'restore'])->name('restore');
-        Route::delete('/{id}/force-delete', [ProjectController::class, 'forceDelete'])->name('forceDelete');
-        
-        // AJAX routes
-        Route::get('/program/{programId}', [ProjectController::class, 'getByProgram'])->name('getByProgram');
-    });
-
 
 
 
