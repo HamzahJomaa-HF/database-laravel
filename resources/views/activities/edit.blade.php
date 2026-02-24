@@ -606,13 +606,23 @@
                         ]);
 
                         // Get operational support from activity
-                        $operationalSupport = [];
-                        if (!empty($activity->operational_support)) {
-                            $operationalSupport = json_decode($activity->operational_support, true);
-                            if (!is_array($operationalSupport)) {
-                                $operationalSupport = [];
-                            }
-                        }
+$operationalSupport = [];
+
+if (!empty($activity->operational_support)) {
+
+    if (is_array($activity->operational_support)) {
+        // Already an array
+        $operationalSupport = $activity->operational_support;
+
+    } elseif (is_string($activity->operational_support)) {
+        // JSON string — decode it
+        $decoded = json_decode($activity->operational_support, true);
+
+        if (is_array($decoded)) {
+            $operationalSupport = $decoded;
+        }
+    }
+}
 
                         // If form was submitted with errors, use old input
                         if (old('operational_support')) {
