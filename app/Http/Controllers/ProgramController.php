@@ -103,7 +103,7 @@ class ProgramController extends Controller
     $parentPrograms = Program::where(function($query) {
         // Get Programs with specific program types
         $query->where('type', 'Program')
-              ->whereIn('program_type', ['Flagship', 'Local Program', 'Local Program/Network', 'Management']);
+              ->whereIn('program_type', ['Flagship', 'Local Program', 'Local Program', 'Management']);
     })
     ->orWhere(function($query) {
         // ALSO get Centers (type = 'Center', program_type = 'Center')
@@ -178,7 +178,7 @@ class ProgramController extends Controller
     $validated = $request->validate([
         'name' => 'required|string|max:255',
         'folder_name' => 'nullable|string|max:100|unique:programs,folder_name',
-        'program_type_select' => 'required|in:Center,Flagship,Local Program,Local Program/Network,Management',
+        'program_type_select' => 'required|in:Center,Flagship,Local Program,Local Program,Management',
         'description' => 'nullable|string',
         'parent_program_id' => 'required|exists:programs,program_id',
     ]);
@@ -398,7 +398,7 @@ public function editSubprogram($id)
         $parentPrograms = Program::where(function($query) use ($program) {
             // Programs with specific program types
             $query->where('type', 'Program')
-                  ->whereIn('program_type', ['Flagship', 'Local Program', 'Local Program/Network', 'Management'])
+                  ->whereIn('program_type', ['Flagship', 'Local Program', 'Local Program', 'Management'])
                   ->where('program_id', '!=', $program->program_id);
         })
         ->orWhere(function($query) use ($program) {
@@ -434,7 +434,7 @@ public function editSubprogram($id)
                 'max:100',
                 Rule::unique('programs', 'folder_name')->ignore($program->program_id, 'program_id')
             ],
-            'program_type_select' => 'required|in:Center,Flagship,Local Program,Local Program/Network,Management',
+            'program_type_select' => 'required|in:Center,Flagship,Local Program,Local Program,Management',
             'description' => 'nullable|string',
             'parent_program_id' => [
                 'required',

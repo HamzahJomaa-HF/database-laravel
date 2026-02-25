@@ -490,7 +490,7 @@
                             <option value="">All Program Types</option>
                             <option value="Center" {{ request('program_type') == 'Center' ? 'selected' : '' }}>Center</option>
                             <option value="Flagship" {{ request('program_type') == 'Flagship' ? 'selected' : '' }}>Flagship</option>
-                            <option value="Local Program/Network" {{ request('program_type') == 'Local Program/Network' ? 'selected' : '' }}>Local Program/Network</option>
+                            <option value="Local Program" {{ request('program_type') == 'Local Program' ? 'selected' : '' }}>Local Program</option>
                             <option value="Center Program" {{ request('program_type') == 'Center Program' ? 'selected' : '' }}>Center Program</option>
                             <option value="Sub-Program" {{ request('program_type') == 'Sub-Program' ? 'selected' : '' }}>Sub-Program</option>
                         </select>

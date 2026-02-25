@@ -337,7 +337,7 @@
                                         <option value="Center">Center</option>
                                         <option value="Flagship">Flagship</option>
                                         <option value="Local Program">Local Program</option>
-                                        <option value="Local Program/Network">Local Program/Network</option>
+                                        <option value="Local Program">Local Program</option>
                                         <option value="Management">Management</option>
                                     </select>
                                     @error('program_type_select')

@@ -338,7 +338,7 @@
                                         <option value="Center" {{ old('program_type_select', ($program->program_type === 'Center Program' ? 'Center' : '')) == 'Center' ? 'selected' : '' }}>Center</option>
                                         <option value="Flagship" {{ old('program_type_select', ($program->parent && $program->parentProgram->program_type == 'Flagship' ? 'Flagship' : '')) == 'Flagship' ? 'selected' : '' }}>Flagship</option>
                                         <option value="Local Program" {{ old('program_type_select', ($program->parent && $program->parentProgram->program_type == 'Local Program' ? 'Local Program' : '')) == 'Local Program' ? 'selected' : '' }}>Local Program</option>
-                                        <option value="Local Program/Network" {{ old('program_type_select', ($program->parent && $program->parentProgram->program_type == 'Local Program/Network' ? 'Local Program/Network' : '')) == 'Local Program/Network' ? 'selected' : '' }}>Local Program/Network</option>
+                                        <option value="Local Program" {{ old('program_type_select', ($program->parent && $program->parentProgram->program_type == 'Local Program' ? 'Local Program' : '')) == 'Local Program' ? 'selected' : '' }}>Local Program</option>
                                         <option value="Management" {{ old('program_type_select', ($program->parent && $program->parentProgram->program_type == 'Management' ? 'Management' : '')) == 'Management' ? 'selected' : '' }}>Management</option>
                                     </select>
                                     @error('program_type_select')
