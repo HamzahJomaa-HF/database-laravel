@@ -195,7 +195,36 @@
                                 </div>
                             </div>
                         </div>
-
+{{-- ============================ --}}
+                        {{-- SECTION: USER TYPE --}}
+                        {{-- ============================ --}}
+                        <div class="section-card mb-4">
+                            <div class="section-header">
+                                <h6 class="mb-0 fw-semibold">User Type</h6>
+                                <span class="text-muted small">Select the type of user</span>
+                            </div>
+                            <div class="section-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label for="type" class="form-label fw-semibold">
+                                            User Type <span class="text-danger">*</span>
+                                        </label>
+                                        <select name="type" id="type" class="form-control form-select @error('type') is-invalid @enderror" required>
+                                            <option value="">Select User Type</option>
+                                            <option value="Stakeholder" {{ old('type', $user->type) == 'Stakeholder' ? 'selected' : '' }}>Stakeholder</option>
+                                            <option value="Beneficiary" {{ old('type', $user->type) == 'Beneficiary' ? 'selected' : '' }}>Beneficiary</option>
+                                        </select>
+                                        @error('type')
+                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
+                                        <div class="form-text text-muted small">
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            Stakeholders are typically partners, donors, or institutions. Beneficiaries are recipients of services.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         {{-- ================================ --}}
                         {{-- SECTION 2: CONTACT INFORMATION --}}
                         {{-- ================================ --}}

@@ -70,7 +70,6 @@ class UserController extends Controller
             $query->where('position_1', 'ilike', "%{$request->position_1}%");
         }
 
-        // CHANGED: mobile_phone to phone_number
         if ($request->filled('phone_number')) {
             $query->where('phone_number', 'like', "%{$request->phone_number}%");
         }
@@ -92,8 +91,6 @@ class UserController extends Controller
             $query->where('type', $request->type);
         }
 
-        // REMOVED: Old phone_number filter since we now use it as the main phone field
-
         if ($request->filled('dob_from')) {
             $query->whereDate('dob', '>=', $request->dob_from);
         }
@@ -111,7 +108,7 @@ class UserController extends Controller
         // Check if any search/filter was applied
         $hasSearch = $request->anyFilled([
             'name', 'gender', 'scope', 'default_cop_id', 'sector', 'is_high_profile',
-            'organization_1', 'organization_type_1', 'position_1', 'phone_number', 'email', // CHANGED: mobile_phone to phone_number
+            'organization_1', 'organization_type_1', 'position_1', 'phone_number', 'email',
             'marital_status', 'employment_status', 'type', 'dob_from', 'dob_to'
         ]);
 
@@ -152,7 +149,6 @@ class UserController extends Controller
             ],
             'status_1' => 'required|string|max:255',
             'address' => 'required|string',
-            // CHANGED: mobile_phone to phone_number
             'phone_number' => 'required|string|max:20',
             
             // Optional fields from new structure
@@ -177,7 +173,7 @@ class UserController extends Controller
             'mother_name' => 'nullable|string|max:255',
             'marital_status' => 'nullable|string|max:50',
             'employment_status' => 'nullable|string|max:50',
-            'type' => 'nullable|string|max:50|in:Stakeholder,Employee,Admin,Customer,Partner,Beneficiary',
+            'type' => 'nullable|string|max:50|in:Stakeholder,Beneficiary',
             'identification_id' => 'nullable|string|max:50|unique:users,identification_id',
             'passport_number' => 'nullable|string|max:50|unique:users,passport_number',
             'register_number' => 'nullable|string|max:50',
@@ -197,7 +193,7 @@ class UserController extends Controller
             // New required fields
             'prefix', 'is_high_profile', 'scope', 'default_cop_id',
             'first_name', 'last_name', 'gender', 'position_1', 'organization_1',
-            'organization_type_1', 'status_1', 'address', 'phone_number', // CHANGED: mobile_phone to phone_number
+            'organization_type_1', 'status_1', 'address', 'phone_number',
             
             // New optional fields
             'sector', 'middle_name', 'dob', 'office_phone', 'extension_number',
@@ -209,10 +205,7 @@ class UserController extends Controller
             'register_number', 'register_place'
         ]);
 
-        // Set default type if not provided
-        if (empty($userData['type'])) {
-            $userData['type'] = 'Stakeholder';
-        }
+        // REMOVED: Default type setting - type will be null if not provided
         
         // Create user
         $user = User::create($userData);
@@ -270,7 +263,6 @@ class UserController extends Controller
             ],
             'status_1' => 'required|string|max:255',
             'address' => 'required|string',
-            // CHANGED: mobile_phone to phone_number
             'phone_number' => 'required|string|max:20',
             
             // Optional fields from new structure
@@ -300,7 +292,7 @@ class UserController extends Controller
             'mother_name' => 'nullable|string|max:255',
             'marital_status' => 'nullable|string|max:50',
             'employment_status' => 'nullable|string|max:50',
-            'type' => 'nullable|string|max:50|in:Stakeholder,Employee,Admin,Customer,Partner,Beneficiary',
+            'type' => 'nullable|string|max:50|in:Stakeholder,Beneficiary',
             'identification_id' => [
                 'nullable',
                 'string',
@@ -330,7 +322,7 @@ class UserController extends Controller
             // New required fields
             'prefix', 'is_high_profile', 'scope', 'default_cop_id',
             'first_name', 'last_name', 'gender', 'position_1', 'organization_1',
-            'organization_type_1', 'status_1', 'address', 'phone_number', // CHANGED: mobile_phone to phone_number
+            'organization_type_1', 'status_1', 'address', 'phone_number',
             
             // New optional fields
             'sector', 'middle_name', 'dob', 'office_phone', 'extension_number',
@@ -600,7 +592,6 @@ class UserController extends Controller
                 $query->where('position_1', 'ilike', "%{$request->position_1}%");
             }
 
-            // CHANGED: mobile_phone to phone_number
             if ($request->filled('phone_number')) {
                 $query->where('phone_number', 'like', "%{$request->phone_number}%");
             }
@@ -653,7 +644,7 @@ class UserController extends Controller
                     'Organization Type 1',
                     'Status 1',
                     'Address',
-                    'Phone Number', // CHANGED: Mobile Phone to Phone Number
+                    'Phone Number',
                     'Is High Profile',
                     'Scope',
                     
@@ -703,7 +694,7 @@ class UserController extends Controller
                         $user->organization_type_1 ?? '',
                         $user->status_1 ?? '',
                         $user->address ?? '',
-                        $user->phone_number ?? '', // CHANGED: mobile_phone to phone_number
+                        $user->phone_number ?? '',
                         $user->is_high_profile ? 'Yes' : 'No',
                         $user->scope ?? '',
                         
@@ -755,7 +746,7 @@ class UserController extends Controller
     /**
      * Show import form
      */
-  public function importForm()
+    public function importForm()
     {
         $cops = Cop::orderBy('cop_name')->get();
         return view('users.import', compact('cops'));
@@ -767,7 +758,7 @@ class UserController extends Controller
     public function downloadTemplate()
     {
         $filename = 'users-import-template-' . now()->format('Y-m-d') . '.csv';
-        
+    
         $headers = [
             'Content-Type' => 'text/csv; charset=utf-8',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
@@ -777,13 +768,11 @@ class UserController extends Controller
             $file = fopen('php://output', 'w');
             fwrite($file, "\xEF\xBB\xBF"); // BOM for UTF-8
             
-            // Template headers - 16 columns including default_cop_id
+            // Template headers - all 35 columns from your Excel
             fputcsv($file, [
-                // Required fields (16 columns total)
                 'prefix',
                 'is_high_profile',
                 'scope',
-                'default_cop_id',
                 'first_name',
                 'last_name',
                 'gender',
@@ -792,31 +781,64 @@ class UserController extends Controller
                 'organization_type_1',
                 'status_1',
                 'address',
-                'phone_number', // CHANGED: mobile_phone to phone_number
-                'register_place',
+                'phone_number',
                 'sector',
-                'email'
+                'middle_name',
+                'mother_name',
+                'dob',
+                'office_phone',
+                'extension_number',
+                'home_phone',
+                'email',
+                'position_2',
+                'organization_2',
+                'organization_type_2',
+                'status_2',
+                'identification_id',
+                'register_number',
+                'marital_status',
+                'employment_status',
+                'passport_number',
+                'register_place',
+                'type',
+                'default_cop_id',
+                // Note: created_at, updated_at, deleted_at will be auto-generated
             ], ',');
             
-            // Example data row - 16 columns
+            // Example data row
             fputcsv($file, [
-                // Required fields
-                'Dr.',
-                'true',
-                'National',
-                '1', // Valid cop_id from your database
-                'John',
-                'Doe',
-                'Male',
-                'Senior Doctor',
-                'Beirut Medical Center',
-                'Public Sector',
-                'Active',
-                'Beirut, Lebanon',
-                '+961 70 123 456', // This will now map to phone_number
-                'Beirut',
-                'Healthcare',
-                'john.doe@example.com'
+                'Dr.',                          // prefix
+                'true',                          // is_high_profile
+                'National',                      // scope
+                'John',                          // first_name
+                'Doe',                           // last_name
+                'Male',                          // gender
+                'Senior Doctor',                  // position_1
+                'Beirut Medical Center',          // organization_1
+                'Public Sector',                  // organization_type_1
+                'Active',                         // status_1
+                'Beirut, Lebanon',                // address
+                '+961 70 123 456',                 // phone_number
+                'Healthcare',                     // sector
+                'Michael',                        // middle_name
+                'Jane Doe',                       // mother_name
+                '1980-01-15',                     // dob
+                '+961 1 123456',                   // office_phone
+                '101',                            // extension_number
+                '+961 3 789012',                   // home_phone
+                'john.doe@example.com',            // email
+                'Consultant',                      // position_2
+                'Ministry of Health',              // organization_2
+                'Public Sector',                   // organization_type_2
+                'Part-time',                       // status_2
+                'ID123456',                        // identification_id
+                'REG789012',                       // register_number
+                'Married',                         // marital_status
+                'Employed',                        // employment_status
+                'PASS123456',                      // passport_number
+                'Beirut',                          // register_place
+                'Stakeholder',                     // type (example)
+                '123e4567-e89b-12d3-a456-426614174000', // default_cop_id (UUID example)
             ], ',');
             
             fclose($file);
@@ -826,12 +848,12 @@ class UserController extends Controller
     }
 
     /**
-     * Process imported users - UPDATED for 16-column CSV including default_cop_id
+     * Process imported users - UPDATED for 35-column CSV
      */
     public function import(Request $request)
     {
         $request->validate([
-            'import_file' => 'required|file|mimes:csv,txt'
+            'import_file' => 'required|file|mimes:csv,txt|max:10240' // 10MB max
         ]);
 
         $results = [
@@ -854,14 +876,13 @@ class UserController extends Controller
                 throw new \Exception('Cannot open file');
             }
 
-            // Read and validate header row
+            // Skip header row
             $header = fgetcsv($handle);
-            if (!$header || count($header) < 14) { // At least 14 required columns
-                throw new \Exception('Invalid CSV format. Please use the provided template.');
-            }
-
             
-            $rowNumber = 1;
+            // Expected number of columns (35)
+            $expectedColumns = 35;
+            
+            $rowNumber = 1; // Start counting after header
             
             while (($data = fgetcsv($handle)) !== FALSE) {
                 $results['total']++;
@@ -873,71 +894,72 @@ class UserController extends Controller
                         continue;
                     }
 
-                    // Ensure we have enough columns
-                    if (count($data) < 14) {
-                        throw new \Exception('Row has insufficient columns. Expected at least 14, got ' . count($data));
+                    // Check if we have enough columns
+                    if (count($data) < $expectedColumns) {
+                        throw new \Exception("Row has insufficient columns. Expected {$expectedColumns}, got " . count($data));
                     }
 
-                    // Map CSV columns to database fields (16 columns expected)
+                    // Map all 35 CSV columns to database fields
                     $cleanedData = $this->cleanImportData([
-                        // Required fields
+                        // Basic Information (1-12)
                         'prefix' => $data[0] ?? null,
                         'is_high_profile' => $data[1] ?? false,
                         'scope' => $data[2] ?? null,
-                        'default_cop_id' => $data[3] ?? null,
-                        'first_name' => $data[4] ?? null,
-                        'last_name' => $data[5] ?? null,
-                        'gender' => $data[6] ?? null,
-                        'position_1' => $data[7] ?? null,
-                        'organization_1' => $data[8] ?? null,
-                        'organization_type_1' => $data[9] ?? null,
-                        'status_1' => $data[10] ?? null,
-                        'address' => $data[11] ?? null,
-                        // CHANGED: mobile_phone to phone_number
-                        'phone_number' => $data[12] ?? null,
+                        'first_name' => $data[3] ?? null,
+                        'last_name' => $data[4] ?? null,
+                        'gender' => $data[5] ?? null,
+                        'position_1' => $data[6] ?? null,
+                        'organization_1' => $data[7] ?? null,
+                        'organization_type_1' => $data[8] ?? null,
+                        'status_1' => $data[9] ?? null,
+                        'address' => $data[10] ?? null,
+                        'phone_number' => $data[11] ?? null,
                         
-                        // Optional fields (columns 13-15)
-                        'register_place' => $data[13] ?? null,
-                        'sector' => $data[14] ?? null,
-                        'email' => $data[15] ?? null,
+                        // Personal Details (13-20)
+                        'sector' => $data[12] ?? null,
+                        'middle_name' => $data[13] ?? null,
+                        'mother_name' => $data[14] ?? null,
+                        'dob' => $data[15] ?? null,
+                        'office_phone' => $data[16] ?? null,
+                        'extension_number' => $data[17] ?? null,
+                        'home_phone' => $data[18] ?? null,
+                        'email' => $data[19] ?? null,
                         
-                        // Set defaults for other optional fields
-                        'middle_name' => null,
-                        'dob' => null,
-                        'office_phone' => null,
-                        'extension_number' => null,
-                        'home_phone' => null,
-                        'position_2' => null,
-                        'organization_2' => null,
-                        'organization_type_2' => null,
-                        'status_2' => null,
-                        'mother_name' => null,
-                        'marital_status' => null,
-                        'employment_status' => null,
-                        'type' => 'Stakeholder',
-                        'identification_id' => null,
-                        'passport_number' => null,
-                        'register_number' => null,
+                        // Secondary Position (20-24)
+                        'position_2' => $data[20] ?? null,
+                        'organization_2' => $data[21] ?? null,
+                        'organization_type_2' => $data[22] ?? null,
+                        'status_2' => $data[23] ?? null,
+                        
+                        // Identification (24-31)
+                        'identification_id' => $data[24] ?? null,
+                        'register_number' => $data[25] ?? null,
+                        'marital_status' => $data[26] ?? null,
+                        'employment_status' => $data[27] ?? null,
+                        'passport_number' => $data[28] ?? null,
+                        'register_place' => $data[29] ?? null,
+                        'type' => $data[30] ?? null, // No default, will be null if not provided
+                        'default_cop_id' => $data[31] ?? null,
+                        
+                        // Note: created_at, updated_at, deleted_at (columns 32-34) are auto-generated
                     ]);
-                    
-                    // Log cleaned data for debugging
-                    
                     
                     // Validate required fields
                     $requiredFields = [
-                        'is_high_profile', 'scope', 'first_name', 'last_name', 'gender',
-                        'position_1', 'organization_1', 'organization_type_1', 'status_1',
-                        'address', 'phone_number' // CHANGED: mobile_phone to phone_number
+                        'first_name', 'last_name', 'gender', 'position_1', 
+                        'organization_1', 'organization_type_1', 'status_1',
+                        'address', 'phone_number', 'scope', 'is_high_profile'
                     ];
                     
+                    // Check required fields
                     $missingFields = [];
                     foreach ($requiredFields as $field) {
                         if ($field === 'is_high_profile') {
-                            // Boolean field, just check if it's set
+                            // Boolean field - check if it's set (can be false)
                             if (!isset($cleanedData[$field])) {
                                 $missingFields[] = $field;
                             }
-                        } elseif (empty($cleanedData[$field])) {
+                        } elseif (empty($cleanedData[$field]) && $cleanedData[$field] !== '0') {
                             $missingFields[] = $field;
                         }
                     }
@@ -946,12 +968,82 @@ class UserController extends Controller
                         throw new \Exception("Missing required fields: " . implode(', ', $missingFields));
                     }
 
-                    // Validate default_cop_id if provided
+                    // Validate is_high_profile - ensure it's boolean
+                    $cleanedData['is_high_profile'] = filter_var($cleanedData['is_high_profile'], FILTER_VALIDATE_BOOLEAN);
+                    
+                    // Validate scope
+                    $allowedScopes = ['International', 'Regional', 'National', 'Local'];
+                    if (!in_array($cleanedData['scope'], $allowedScopes)) {
+                        throw new \Exception("Invalid scope '{$cleanedData['scope']}'. Must be one of: " . implode(', ', $allowedScopes));
+                    }
+                    
+                    // Validate gender
+                    $allowedGenders = ['Male', 'Female', 'Other'];
+                    if (!in_array($cleanedData['gender'], $allowedGenders)) {
+                        throw new \Exception("Invalid gender '{$cleanedData['gender']}'. Must be one of: " . implode(', ', $allowedGenders));
+                    }
+                    
+                    // Validate organization_type_1
+                    $allowedOrgTypes = ['Public Sector', 'Private Sector', 'Academia', 'UN', 'INGOs', 'Civil Society', 'NGOs', 'Activist'];
+                    if (!in_array($cleanedData['organization_type_1'], $allowedOrgTypes)) {
+                        throw new \Exception("Invalid organization type '{$cleanedData['organization_type_1']}'. Must be one of: " . implode(', ', $allowedOrgTypes));
+                    }
+                    
+                    // Validate organization_type_2 if provided
+                    if (!empty($cleanedData['organization_type_2'])) {
+                        if (!in_array($cleanedData['organization_type_2'], $allowedOrgTypes)) {
+                            throw new \Exception("Invalid organization type 2 '{$cleanedData['organization_type_2']}'. Must be one of: " . implode(', ', $allowedOrgTypes));
+                        }
+                    }
+                    
+                    // Validate type if provided (only Stakeholder or Beneficiary allowed)
+                    if (!empty($cleanedData['type'])) {
+                        $allowedTypes = ['Stakeholder', 'Beneficiary'];
+                        if (!in_array($cleanedData['type'], $allowedTypes)) {
+                            throw new \Exception("Invalid type '{$cleanedData['type']}'. Must be one of: " . implode(', ', $allowedTypes));
+                        }
+                    }
+
+                    // Validate default_cop_id if provided (now UUID)
                     if (!empty($cleanedData['default_cop_id'])) {
                         $copExists = Cop::where('cop_id', $cleanedData['default_cop_id'])->exists();
                         if (!$copExists) {
-                            throw new \Exception("Invalid default_cop_id: " . $cleanedData['default_cop_id']);
+                            throw new \Exception("Invalid default_cop_id: " . $cleanedData['default_cop_id'] . " does not exist");
                         }
+                    }
+
+                    // Validate email if provided (must be unique)
+                    if (!empty($cleanedData['email'])) {
+                        $existingUser = User::where('email', $cleanedData['email'])->first();
+                        if ($existingUser) {
+                            throw new \Exception("Email '{$cleanedData['email']}' already exists for user ID: {$existingUser->user_id}");
+                        }
+                    }
+
+                    // Validate passport_number if provided (must be unique)
+                    if (!empty($cleanedData['passport_number'])) {
+                        $existingUser = User::where('passport_number', $cleanedData['passport_number'])->first();
+                        if ($existingUser) {
+                            throw new \Exception("Passport number '{$cleanedData['passport_number']}' already exists for user ID: {$existingUser->user_id}");
+                        }
+                    }
+
+                    // Validate identification_id if provided (must be unique)
+                    if (!empty($cleanedData['identification_id'])) {
+                        $existingUser = User::where('identification_id', $cleanedData['identification_id'])->first();
+                        if ($existingUser) {
+                            throw new \Exception("Identification ID '{$cleanedData['identification_id']}' already exists for user ID: {$existingUser->user_id}");
+                        }
+                    }
+
+                    // Check for duplicate by name/phone combination (optional but recommended)
+                    $existingUser = User::where('first_name', $cleanedData['first_name'])
+                        ->where('last_name', $cleanedData['last_name'])
+                        ->where('phone_number', $cleanedData['phone_number'])
+                        ->first();
+                        
+                    if ($existingUser) {
+                        throw new \Exception("User already exists with same name and phone (ID: {$existingUser->user_id})");
                     }
 
                     // Create the user
@@ -959,6 +1051,7 @@ class UserController extends Controller
                     
                     if ($user) {
                         $results['successful']++;
+                        Log::info("Successfully imported user: {$user->first_name} {$user->last_name} (ID: {$user->user_id})");
                     } else {
                         throw new \Exception('Failed to create user record');
                     }
@@ -968,11 +1061,13 @@ class UserController extends Controller
                     $errorMessage = "Row {$rowNumber}: " . $e->getMessage();
                     $results['errors'][] = $errorMessage;
                     Log::error($errorMessage);
+                    
+                    // Continue with next row instead of stopping
+                    continue;
                 }
             }
             
             fclose($handle);
-            
             
         } catch (\Exception $e) {
             Log::error('Import failed: ' . $e->getMessage());
@@ -1028,10 +1123,12 @@ class UserController extends Controller
                 $cleanValue = (bool) $cleanValue;
             }
             
-            // Handle default_cop_id - ensure it's an integer if not null
+            // Handle default_cop_id - FIXED: UUID should not be cast to integer
             if ($key === 'default_cop_id' && $cleanValue !== null) {
-                $cleanValue = (int) $cleanValue;
-                if ($cleanValue <= 0) {
+                // Keep as string/uuid, don't cast to int
+                $cleanValue = trim($cleanValue);
+                // If it's empty after trim, set to null
+                if ($cleanValue === '') {
                     $cleanValue = null;
                 }
             }
@@ -1104,7 +1201,7 @@ class UserController extends Controller
                 }
             }
             
-            // Handle gender formatting
+            // Handle gender formatting (keeping as original - Male/Female only)
             if ($key === 'gender' && $cleanValue) {
                 $original = $cleanValue;
                 $cleanValue = trim($cleanValue);
@@ -1116,8 +1213,6 @@ class UserController extends Controller
                     'male' => 'Male',
                     'f' => 'Female',
                     'female' => 'Female',
-            
-            
                 ];
                 
                 $lowerValue = strtolower($cleanValue);
@@ -1142,17 +1237,17 @@ class UserController extends Controller
                 }
             }
             
-            // Handle type formatting
+            // Handle type formatting (only Stakeholder/Beneficiary allowed, otherwise set to null)
             if ($key === 'type' && $cleanValue) {
                 $cleanValue = ucfirst(strtolower(trim($cleanValue)));
                 $allowedTypes = ['Stakeholder', 'Beneficiary'];
                 if (!in_array($cleanValue, $allowedTypes)) {
-                    $cleanValue = 'Stakeholder';
+                    Log::warning("Invalid type value '{$cleanValue}', setting to null");
+                    $cleanValue = null;
                 }
             }
             
             // Handle phone number formatting
-            // CHANGED: Updated array to include phone_number instead of mobile_phone
             if (in_array($key, ['phone_number', 'office_phone', 'home_phone']) && $cleanValue) {
                 $original = $cleanValue;
                 // Remove all non-numeric characters except +
