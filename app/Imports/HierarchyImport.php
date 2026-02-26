@@ -37,155 +37,181 @@ class HierarchyImport implements ToCollection, WithHeadingRow
     public function collection(Collection $rows)
     {
 
-        foreach ($rows as $index => $row) {
-            $rowNumber = $index + 2;
-            $this->results['processed']++;
+foreach ($rows as $index => $row) {
+    $rowNumber = $index + 2;
 
-            try {
-                // Get the UNIQUE ID for debugging
-                $uniqueId = $this->getValue($row, [
-                    'unique id',
-                    'unique_id',
-                    'unique id'
-                ], 'NO_UNIQUE_ID');
-                
+    // Counters
+    $this->results['processed'] = ($this->results['processed'] ?? 0) + 1;
+    $this->results['skipped']   = ($this->results['skipped'] ?? 0);
+    $this->results['inserted']  = ($this->results['inserted'] ?? 0);
+    $this->results['errors']    = ($this->results['errors'] ?? []);
 
-            
-                $componentCode = $this->getValue($row, [
-                    'component code',
-                    'component_code'
-                ]);
-                
-                $componentName = $this->getValue($row, [
-                    'component'
-                ]);
-                
-                $programCode = $this->getValue($row, [
-                    'program code', 
-                    'program_code'
-                ]);
-                
-                $programName = $this->getValue($row, [
-                    'program'
-                ]);
-                
-                $unitCode = $this->getValue($row, [
-                    'unit code', 
-                    'unit_code'
-                ]);
-                
-                $unitName = $this->getValue($row, [
-                    'unit'
-                ]);
-                
-                $actionCode = $this->getValue($row, [
-                    'action code', 
-                    'action_code'
-                ]);
-                
-                $actionName = $this->getValue($row, [
-                    'action'
-                ]);
-                
-                $actionObjective = $this->getValue($row, [
-                    'action objective',
-                    'action_objective'
-                ]);
-                
-                $actionTargets = $this->getValue($row, [
-                    'action targets & beneficiaries',
-                    'action_targets_beneficiaries'
-                ]);
+    try {
+        // Optional: UNIQUE ID for debugging
+        $uniqueId = $this->getValue($row, ['unique id', 'unique_id'], 'NO_UNIQUE_ID');
 
-                Log::debug("Row {$rowNumber} parsed values:", [
-                    'component_code' => $componentCode,
-                    'component' => $componentName,
+        // Read values
+        $componentCode = $this->getValue($row, ['component code', 'component_code']);
+        $componentName = $this->getValue($row, ['component']);
+
+        $programCode   = $this->getValue($row, ['program code', 'program_code']);
+        $programName   = $this->getValue($row, ['program']);
+
+        $unitCode      = $this->getValue($row, ['unit code', 'unit_code']);
+        $unitName      = $this->getValue($row, ['unit']);
+
+        $actionCode    = $this->getValue($row, ['action code', 'action_code']);
+        $actionName    = $this->getValue($row, ['action']);
+
+        $actionObjective = $this->getValue($row, ['action objective', 'action_objective']);
+        $actionTargets   = $this->getValue($row, ['action targets & beneficiaries', 'action_targets_beneficiaries']);
+
+        Log::debug("Row {$rowNumber} parsed values:", [
+            'unique_id'       => $uniqueId,
+            'component_code'  => $componentCode,
+            'component'       => $componentName,
+            'program_code'    => $programCode,
+            'program'         => $programName,
+            'unit_code'       => $unitCode,
+            'unit'            => $unitName,
+            'action_code'     => $actionCode,
+            'action'          => $actionName,
+        ]);
+
+        // 1) Skip completely empty rows (disregard)
+        $allEmpty = !$componentCode && !$componentName
+            && !$programCode && !$programName
+            && !$unitCode && !$unitName
+            && !$actionCode && !$actionName
+            && !$actionObjective && !$actionTargets;
+
+        if ($allEmpty) {
+            Log::info("Row {$rowNumber}: Empty row skipped", ['unique_id' => $uniqueId]);
+            $this->results['skipped']++;
+            continue;
+        }
+
+        // 2) Required fields (NO fallback)
+        // Adjust these rules if your DB requires program/unit too.
+        if (!$componentCode || !$componentName) {
+            Log::warning("Row {$rowNumber}: Missing component code/name - skipped", [
+                'unique_id' => $uniqueId,
+                'component_code' => $componentCode,
+                'component' => $componentName,
+            ]);
+            $this->results['skipped']++;
+            continue;
+        }
+
+        if (!$actionCode) {
+            Log::warning("Row {$rowNumber}: Missing action code - skipped", [
+                'unique_id' => $uniqueId,
+                'action_code' => $actionCode,
+                'action' => $actionName,
+            ]);
+            $this->results['skipped']++;
+            continue;
+        }
+
+        // ========== COMPONENT ==========
+        $componentId = $this->handleComponent($componentCode, $componentName, $this->actionplanId);
+        if (!$componentId) {
+            Log::warning("Row {$rowNumber}: Component create/find failed - skipped", [
+                'unique_id' => $uniqueId,
+                'component_code' => $componentCode,
+                'component' => $componentName,
+            ]);
+            $this->results['skipped']++;
+            continue;
+        }
+
+        // ========== PROGRAM ==========
+        $programId = null;
+        $hasProgramData = ($programCode || $programName);
+
+        if ($hasProgramData) {
+            // If program is present, require both code+name (NO fallback)
+            if (!$programCode || !$programName) {
+                Log::warning("Row {$rowNumber}: Partial program data (need code+name) - skipped", [
+                    'unique_id' => $uniqueId,
                     'program_code' => $programCode,
                     'program' => $programName,
-                    'unit_code' => $unitCode,
-                    'unit' => $unitName,
-                    'action_code' => $actionCode,
-                    'action' => $actionName
                 ]);
+                $this->results['skipped']++;
+                continue;
+            }
 
-                
-                if (!$componentCode || !$componentName) {
-                    Log::warning("Row {$rowNumber}: Missing component data - inserting with defaults");
-                    // Use defaults instead of skipping
-                    $componentCode = $componentCode ?: "UNKNOWN_{$rowNumber}";
-                    $componentName = $componentName ?: "Unknown Component";
-                }
-
-                // Action code is required - create default if missing
-                if (!$actionCode) {
-                    Log::warning("Row {$rowNumber}: No action code - generating one");
-                    $actionCode = "ACTION_{$rowNumber}";
-                }
-
-                // ========== COMPONENT ==========
-                $componentId = $this->handleComponent($componentCode, $componentName, $this->actionplanId);
-                if (!$componentId) {
-                    Log::error("Row {$rowNumber}: Failed to create component - using fallback");
-                    // Create a fallback component
-                    // $componentId = $this->createFallbackComponent($rowNumber);
-                }
-
-                // ========== PROGRAM ==========
-                $programId = null;
-                if ($programCode || $programName) {
-                    // Use program code if exists, otherwise generate from program name or row number
-                    $programCodeToUse = $programCode ?: ($programName ? substr(md5($programName), 0, 8) : "PROG_{$rowNumber}");
-                    $programNameToUse = $programName ?: "Program {$programCodeToUse}";
-                    
-                    $programId = $this->handleProgram($componentId, $programCodeToUse, $programNameToUse, $rowNumber);
-                    
-                    if (!$programId) {
-                        Log::warning("Row {$rowNumber}: Program creation failed - creating fallback program");
-                        $programId = $this->createFallbackProgram($componentId, $rowNumber);
-                    }
-                } else {
-                    // No program data - create a default program
-                    $programId = $this->createFallbackProgram($componentId, $rowNumber);
-                }
-
-                // ========== UNIT ==========
-                $unitId = null;
-                if ($unitCode || $unitName) {
-                    // Use unit code if exists, otherwise generate
-                    $unitCodeToUse = $unitCode ?: ($unitName ? substr(md5($unitName), 0, 8) : "UNIT_{$rowNumber}");
-                    $unitNameToUse = $unitName ?: "Unit {$unitCodeToUse}";
-                    
-                    $unitId = $this->handleUnit($programId, $unitCodeToUse, $unitNameToUse);
-                    
-                    if (!$unitId) {
-                        Log::warning("Row {$rowNumber}: Unit creation failed - creating fallback unit");
-                        $unitId = $this->createFallbackUnit($programId, $rowNumber);
-                    }
-                } else {
-                    // No unit data - create a default unit
-                    $unitId = $this->createFallbackUnit($programId, $rowNumber);
-                }
-
-                // ========== ACTION ==========
-                if ($unitId) {
-                    // Use action name if exists, otherwise use action code
-                    $actionNameToUse = $actionName ?: "Action {$actionCode}";
-                    
-                    $this->handleAction($unitId, $actionCode, $actionNameToUse, $actionObjective, $actionTargets);
-                } else {
-                    // This should never happen with fallbacks, but just in case
-                    Log::error("Row {$rowNumber}: No unit ID for action '{$actionCode}' - creating standalone action");
-                    $this->createStandaloneAction($componentId, $actionCode, $actionName, $actionObjective, $actionTargets, $rowNumber);
-                }
-
-            } catch (\Exception $e) {
-                $this->results['errors'][] = "Row {$rowNumber}: " . $e->getMessage();
-                Log::error("HIERARCHY IMPORT ERROR Row {$rowNumber}", [
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
+            $programId = $this->handleProgram($componentId, $programCode, $programName, $rowNumber);
+            if (!$programId) {
+                Log::warning("Row {$rowNumber}: Program create/find failed - skipped", [
+                    'unique_id' => $uniqueId,
+                    'program_code' => $programCode,
+                    'program' => $programName,
                 ]);
+                $this->results['skipped']++;
+                continue;
             }
         }
+
+        // ========== UNIT ==========
+        $unitId = null;
+        $hasUnitData = ($unitCode || $unitName);
+
+        if ($hasUnitData) {
+            // If unit is present, require both code+name (NO fallback)
+            if (!$unitCode || !$unitName) {
+                Log::warning("Row {$rowNumber}: Partial unit data (need code+name) - skipped", [
+                    'unique_id' => $uniqueId,
+                    'unit_code' => $unitCode,
+                    'unit' => $unitName,
+                ]);
+                $this->results['skipped']++;
+                continue;
+            }
+
+            // If your schema requires a program for units, enforce it:
+            if (!$programId) {
+                Log::warning("Row {$rowNumber}: Unit provided but no program present - skipped", [
+                    'unique_id' => $uniqueId,
+                    'unit_code' => $unitCode,
+                    'unit' => $unitName,
+                ]);
+                $this->results['skipped']++;
+                continue;
+            }
+
+            $unitId = $this->handleUnit($programId, $unitCode, $unitName);
+            if (!$unitId) {
+                Log::warning("Row {$rowNumber}: Unit create/find failed - skipped", [
+                    'unique_id' => $uniqueId,
+                    'unit_code' => $unitCode,
+                    'unit' => $unitName,
+                ]);
+                $this->results['skipped']++;
+                continue;
+            }
+        }
+
+        // ========== ACTION ==========
+        // If your actions MUST belong to a unit, enforce it here:
+        // if (!$unitId) { ... skip ... }
+        $this->handleAction(
+            $unitId,
+            $actionCode,
+            $actionName,
+            $actionObjective,
+            $actionTargets
+        );
+
+        $this->results['inserted']++;
+    } catch (\Exception $e) {
+        $this->results['errors'][] = "Row {$rowNumber}: " . $e->getMessage();
+        Log::error("HIERARCHY IMPORT ERROR Row {$rowNumber}", [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+    }
+}
 
     }
 
