@@ -49,6 +49,29 @@ Route::get('/', function () {
 })->middleware('auth')->name('home');
 
 
+// routes/web.php (Shorter Version)
+
+use App\Http\Controllers\ActivityUserController;
+
+Route::get('/activity-users', [ActivityUserController::class, 'index'])->name('activity-users.index');
+Route::get('/activity-users/create', [ActivityUserController::class, 'create'])->name('activity-users.create');
+Route::post('/activity-users', [ActivityUserController::class, 'store'])->name('activity-users.store');
+Route::get('/activity-users/{id}/edit', [ActivityUserController::class, 'edit'])->name('activity-users.edit');
+Route::put('/activity-users/{id}', [ActivityUserController::class, 'update'])->name('activity-users.update');
+Route::delete('/activity-users/{id}', [ActivityUserController::class, 'destroy'])->name('activity-users.destroy');
+
+// ONE ADDITIONAL ROUTE for post-activity statistics (as requested)
+Route::get('/activities/{activityId}/statistics', [ActivityUserController::class, 'activityStatistics'])->name('activity-users.statistics');
+Route::get('/activities/{activityId}/statistics', [ActivityUserController::class, 'activityStatistics'])->name('activity-users.statistics');
+
+// Optional: If you want a dedicated bulk create page (the "Bulk Assign" button)
+Route::get('/activity-users/bulk/create', [ActivityUserController::class, 'bulkCreate'])->name('activity-users.bulk.form');
+Route::post('/activity-users/bulk', [ActivityUserController::class, 'bulkStore'])->name('activity-users.bulk.store');
+Route::post('/activity-users/export', [ActivityUserController::class, 'export'])->name('activity-users.export');
+Route::post('/activity-users/trash', [ActivityUserController::class, 'trash'])->name('activity-users.trash');
+Route::post('/activity-users/update-attendance', [ActivityUserController::class, 'updateAttendance'])->name('activity-users.update-attendance');
+
+
 // ============================================================================
 // AUTHENTICATION ROUTES
 // ============================================================================
