@@ -18,7 +18,7 @@ use App\Models\ProjectActivity;
 use App\Models\RpActivityMapping;
 use App\Models\Portfolio;
 use App\Models\PortfolioActivity;
-
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class ActivityController extends Controller
@@ -558,6 +558,93 @@ class ActivityController extends Controller
         return redirect()->route('activities.index')
             ->with('success', 'Activity deleted successfully.');
     }
+    public function bulkDestroy(Request $request)
+{
+    try {
+        DB::beginTransaction();
+
+        // Validate the request
+        $request->validate([
+            'activity_ids' => 'required|array',
+            'activity_ids.*' => 'required|string|exists:activities,activity_id'
+        ]);
+
+        $activityIds = $request->activity_ids;
+        $count = count($activityIds);
+
+        // Get the activities to check if they exist
+        $activities = Activity::whereIn('activity_id', $activityIds)->get();
+        
+        if ($activities->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No activities found to delete.'
+            ], 404);
+        }
+
+        // Perform soft delete
+        $deletedCount = Activity::whereIn('activity_id', $activityIds)->delete();
+
+        // Log the bulk deletion
+        Log::info('Bulk activities deleted', [
+            'activity_ids' => $activityIds,
+            'deleted_count' => $deletedCount,
+            'user_id' => Auth::id()
+        ]);
+
+        DB::commit();
+
+        // Check if it's an AJAX request
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "{$deletedCount} activities deleted successfully.",
+                'deleted_count' => $deletedCount
+            ]);
+        }
+
+        // Regular form request - redirect back
+        return redirect()->back()
+            ->with('success', "{$deletedCount} activities deleted successfully.");
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        DB::rollBack();
+        Log::warning('Bulk delete validation failed', [
+            'errors' => $e->errors(),
+            'request' => $request->all()
+        ]);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        }
+
+        return redirect()->back()
+            ->withErrors($e->errors())
+            ->withInput();
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Error in bulk delete activities', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+            'activity_ids' => $request->activity_ids
+        ]);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error deleting activities: ' . $e->getMessage()
+            ], 500);
+        }
+
+        return redirect()->back()
+            ->with('error', 'Error deleting activities: ' . $e->getMessage());
+    }
+}
 
     // Add these new AJAX methods to your controller:
 

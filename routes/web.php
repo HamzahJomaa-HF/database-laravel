@@ -52,6 +52,18 @@ Route::get('/', function () {
 // routes/web.php (Shorter Version)
 
 use App\Http\Controllers\ActivityUserController;
+// User search routes
+Route::get('/activity-users/search-users', [ActivityUserController::class, 'searchUsers'])->name('activity-users.search-users');
+Route::get('/activity-users/get-user/{id}', [ActivityUserController::class, 'getUser'])->name('activity-users.get-user');
+
+// Activity search routes
+Route::post('/activity-users/search-activities', [ActivityUserController::class, 'searchActivities'])->name('activity-users.search-activities');
+Route::get('/activity-users/get-activity/{id}', [ActivityUserController::class, 'getActivity'])->name('activity-users.get-activity');
+
+// Toggle routes
+Route::post('/activity-users/{id}/toggle-attendance', [ActivityUserController::class, 'toggleAttendance'])->name('activity-users.toggle-attendance');
+Route::post('/activity-users/{id}/toggle-invited', [ActivityUserController::class, 'toggleInvited'])->name('activity-users.toggle-invited');
+Route::post('/activity-users/{id}/toggle-lead', [ActivityUserController::class, 'toggleLead'])->name('activity-users.toggle-lead');
 
 Route::get('/activity-users', [ActivityUserController::class, 'index'])->name('activity-users.index');
 Route::get('/activity-users/create', [ActivityUserController::class, 'create'])->name('activity-users.create');
@@ -339,11 +351,11 @@ Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
                 ->get('/{activity}/edit', [ActivityController::class, 'edit'])->name('edit');
             Route::middleware(['hasPermission:activities.edit,activities.manage,activities.full'])
                 ->put('/{activity}', [ActivityController::class, 'update'])->name('update');
+           Route::middleware(['hasPermission:activities.manage,activities.full'])
+                ->delete('/bulk-destroy', [ActivityController::class, 'bulkDestroy'])->name('bulk.destroy');
             Route::middleware(['hasPermission:activities.delete,activities.manage,activities.full'])
                 ->delete('/{activity}', [ActivityController::class, 'destroy'])->name('destroy');
-            Route::middleware(['hasPermission:activities.manage,activities.full'])
-                ->delete('/bulk-destroy', [ActivityController::class, 'bulkDestroy'])->name('bulk.destroy');
-            
+
             Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
                 ->prefix('{parentActivity}/children')->name('children.')->group(function () {
                     Route::get('/', [ActivityController::class, 'indexChildren'])->name('index');

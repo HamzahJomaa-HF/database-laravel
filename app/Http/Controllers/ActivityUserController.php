@@ -7,7 +7,8 @@ use App\Models\User;
 use App\Models\Cop;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class ActivityUserController extends Controller
 {
@@ -20,69 +21,91 @@ class ActivityUserController extends Controller
             ->orderBy('created_at', 'desc');
 
         // Filter by activity if provided
-        if ($request->has('activity_id') && $request->activity_id) {
+        if ($request->filled('activity_id')) {
             $query->where('activity_id', $request->activity_id);
         }
 
         // Filter by user if provided
-        if ($request->has('user_id') && $request->user_id) {
+        if ($request->filled('user_id')) {
             $query->where('user_id', $request->user_id);
         }
 
         // Filter by cop if provided
-        if ($request->has('cop_id') && $request->cop_id) {
+        if ($request->filled('cop_id')) {
             $query->where('cop_id', $request->cop_id);
         }
 
         // Filter by type
-        if ($request->has('type') && $request->type) {
+        if ($request->filled('type')) {
             $query->where('type', $request->type);
         }
 
         // Filter by lead status
         if ($request->has('is_lead') && $request->is_lead !== '') {
-            $query->where('is_lead', $request->is_lead);
+            $query->where('is_lead', $request->boolean('is_lead'));
         }
 
         // Filter by invited status
         if ($request->has('invited') && $request->invited !== '') {
-            $query->where('invited', $request->invited);
+            $query->where('invited', $request->boolean('invited'));
         }
 
         // Filter by attended status
         if ($request->has('attended') && $request->attended !== '') {
-            $query->where('attended', $request->attended);
+            $query->where('attended', $request->boolean('attended'));
         }
 
-        // Search by external_id or user/activity names
-        if ($request->has('search') && $request->search) {
+        // Search by user or activity names
+        if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('external_id', 'like', "%{$search}%")
-                  ->orWhereHas('user', function ($userQuery) use ($search) {
-                      $userQuery->where('first_name', 'like', "%{$search}%")
-                                ->orWhere('last_name', 'like', "%{$search}%")
-                                ->orWhere('email', 'like', "%{$search}%");
-                  })
-                  ->orWhereHas('activity', function ($activityQuery) use ($search) {
-                      $activityQuery->where('activity_title_en', 'like', "%{$search}%")
-                                    ->orWhere('activity_title_ar', 'like', "%{$search}%");
-                  });
+                $q->whereHas('user', function ($userQuery) use ($search) {
+                    $userQuery->where('first_name', 'ilike', "%{$search}%")
+                              ->orWhere('middle_name', 'ilike', "%{$search}%")
+                              ->orWhere('last_name', 'ilike', "%{$search}%")
+                              ->orWhere('email', 'ilike', "%{$search}%")
+                              ->orWhere('phone_number', 'ilike', "%{$search}%")
+                              ->orWhere('identification_id', 'ilike', "%{$search}%")
+                              ->orWhere('passport_number', 'ilike', "%{$search}%")
+                              ->orWhere('register_number', 'ilike', "%{$search}%");
+                })
+                ->orWhereHas('activity', function ($activityQuery) use ($search) {
+                    $activityQuery->where('activity_title_en', 'ilike', "%{$search}%")
+                                  ->orWhere('activity_title_ar', 'ilike', "%{$search}%");
+                });
             });
         }
 
-        $activityUsers = $query->paginate(20);
+        // Handle pagination
+        $perPage = $request->get('per_page', 20);
+        $activityUsers = $query->paginate($perPage);
 
         // Get data for filter dropdowns
         $activities = Activity::orderBy('activity_title_en')
             ->get(['activity_id', 'activity_title_en', 'activity_title_ar']);
+        
         $users = User::orderBy('first_name')
-            ->get(['user_id', 'first_name', 'last_name', 'email']);
+            ->get(['user_id', 'first_name', 'middle_name', 'last_name', 'email']);
+        
         $cops = Cop::orderBy('cop_name')
             ->get(['cop_id', 'cop_name']);
 
         // Get distinct types for filter dropdown
-        $types = ActivityUser::distinct()->pluck('type')->filter()->values();
+        $types = ActivityUser::distinct()->whereNotNull('type')->pluck('type')->filter()->values();
+
+        // Check if request expects JSON response
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'data' => $activityUsers,
+                'filters' => [
+                    'activities' => $activities,
+                    'users' => $users,
+                    'cops' => $cops,
+                    'types' => $types
+                ]
+            ]);
+        }
 
         return view('activity-users.index', compact('activityUsers', 'activities', 'users', 'cops', 'types'));
     }
@@ -92,14 +115,11 @@ class ActivityUserController extends Controller
      */
     public function create()
     {
-        $activities = Activity::orderBy('activity_title_en')
-            ->get(['activity_id', 'activity_title_en', 'activity_title_ar', 'start_date', 'end_date']);
-        $users = User::orderBy('first_name')
-            ->get(['user_id', 'first_name', 'last_name', 'email']);
-        $cops = Cop::orderBy('cop_name')
-            ->get(['cop_id', 'cop_name']);
+        $cops = Cop::orderBy('cop_name')->get(['cop_id', 'cop_name']);
+        $activities = Activity::orderBy('activity_title_en')->get(['activity_id', 'activity_title_en', 'activity_title_ar']);
+        $users = User::orderBy('first_name')->limit(100)->get(['user_id', 'first_name', 'middle_name', 'last_name', 'email']);
 
-        return view('activity-users.create', compact('activities', 'users', 'cops'));
+        return view('activity-users.create', compact('cops', 'activities', 'users'));
     }
 
     /**
@@ -119,9 +139,14 @@ class ActivityUserController extends Controller
         ]);
 
         // Set default values for checkboxes if not present
-        $validated['is_lead'] = $request->has('is_lead');
-        $validated['invited'] = $request->has('invited');
-        $validated['attended'] = $request->has('attended');
+        $validated['is_lead'] = $request->boolean('is_lead', false);
+        $validated['invited'] = $request->boolean('invited', false);
+        $validated['attended'] = $request->boolean('attended', false);
+
+        // Generate UUID for activity_user_id if not using database default
+        if (!isset($validated['activity_user_id'])) {
+            $validated['activity_user_id'] = (string) Str::uuid();
+        }
 
         // Check if relationship already exists
         $exists = ActivityUser::where('user_id', $validated['user_id'])
@@ -129,6 +154,12 @@ class ActivityUserController extends Controller
             ->exists();
 
         if ($exists) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This user is already assigned to this activity.'
+                ], 422);
+            }
             return back()->withErrors(['user_id' => 'This user is already assigned to this activity.'])->withInput();
         }
 
@@ -139,11 +170,30 @@ class ActivityUserController extends Controller
             
             DB::commit();
 
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Activity-User relationship created successfully!',
+                    'data' => $activityUser->load(['user', 'activity', 'cop'])
+                ], 201);
+            }
+
             return redirect()->route('activity-users.index')
                 ->with('success', 'Activity-User relationship created successfully!');
+
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Failed to create relationship: ' . $e->getMessage())->withInput();
+            
+            Log::error('Failed to create activity-user relationship: ' . $e->getMessage());
+            
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create relationship: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return back()->withErrors(['error' => 'Failed to create relationship: ' . $e->getMessage()])->withInput();
         }
     }
 
@@ -155,6 +205,13 @@ class ActivityUserController extends Controller
         $activityUser = ActivityUser::with(['user', 'activity', 'cop'])
             ->findOrFail($id);
 
+        if (request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'data' => $activityUser
+            ]);
+        }
+
         return view('activity-users.show', compact('activityUser'));
     }
 
@@ -164,15 +221,11 @@ class ActivityUserController extends Controller
     public function edit($id)
     {
         $activityUser = ActivityUser::findOrFail($id);
-        
-        $activities = Activity::orderBy('activity_title_en')
-            ->get(['activity_id', 'activity_title_en', 'activity_title_ar', 'start_date', 'end_date']);
-        $users = User::orderBy('first_name')
-            ->get(['user_id', 'first_name', 'last_name', 'email']);
-        $cops = Cop::orderBy('cop_name')
-            ->get(['cop_id', 'cop_name']);
+        $cops = Cop::orderBy('cop_name')->get(['cop_id', 'cop_name']);
+        $activities = Activity::orderBy('activity_title_en')->get(['activity_id', 'activity_title_en', 'activity_title_ar']);
+        $users = User::orderBy('first_name')->get(['user_id', 'first_name', 'middle_name', 'last_name', 'email']);
 
-        return view('activity-users.edit', compact('activityUser', 'activities', 'users', 'cops'));
+        return view('activity-users.edit', compact('activityUser', 'cops', 'activities', 'users'));
     }
 
     /**
@@ -183,35 +236,18 @@ class ActivityUserController extends Controller
         $activityUser = ActivityUser::findOrFail($id);
 
         $validated = $request->validate([
-            'user_id' => 'required|exists:users,user_id',
-            'activity_id' => 'required|exists:activities,activity_id',
             'cop_id' => 'nullable|exists:cops,cop_id',
             'type' => 'nullable|string|max:255',
             'is_lead' => 'sometimes|boolean',
             'invited' => 'sometimes|boolean',
             'attended' => 'sometimes|boolean',
-            'external_id' => [
-                'nullable',
-                'string',
-                'max:255',
-                Rule::unique('activity_users', 'external_id')->ignore($activityUser->activity_user_id, 'activity_user_id')
-            ],
+            'external_id' => 'nullable|string|max:255|unique:activity_users,external_id,' . $id . ',activity_user_id',
         ]);
 
         // Set default values for checkboxes if not present
-        $validated['is_lead'] = $request->has('is_lead');
-        $validated['invited'] = $request->has('invited');
-        $validated['attended'] = $request->has('attended');
-
-        // Check if relationship already exists (excluding current record)
-        $exists = ActivityUser::where('user_id', $validated['user_id'])
-            ->where('activity_id', $validated['activity_id'])
-            ->where('activity_user_id', '!=', $activityUser->activity_user_id)
-            ->exists();
-
-        if ($exists) {
-            return back()->withErrors(['user_id' => 'This user is already assigned to this activity.'])->withInput();
-        }
+        $validated['is_lead'] = $request->boolean('is_lead', false);
+        $validated['invited'] = $request->boolean('invited', false);
+        $validated['attended'] = $request->boolean('attended', false);
 
         try {
             DB::beginTransaction();
@@ -220,11 +256,30 @@ class ActivityUserController extends Controller
             
             DB::commit();
 
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Activity-User relationship updated successfully!',
+                    'data' => $activityUser->load(['user', 'activity', 'cop'])
+                ]);
+            }
+
             return redirect()->route('activity-users.index')
                 ->with('success', 'Activity-User relationship updated successfully!');
+
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Failed to update relationship: ' . $e->getMessage())->withInput();
+            
+            Log::error('Failed to update activity-user relationship: ' . $e->getMessage());
+            
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to update relationship: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return back()->withErrors(['error' => 'Failed to update relationship: ' . $e->getMessage()])->withInput();
         }
     }
 
@@ -242,27 +297,50 @@ class ActivityUserController extends Controller
             
             DB::commit();
 
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Activity-User relationship deleted successfully!'
+                ]);
+            }
+
             return redirect()->route('activity-users.index')
                 ->with('success', 'Activity-User relationship deleted successfully!');
+
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Failed to delete relationship: ' . $e->getMessage());
+            
+            Log::error('Failed to delete activity-user relationship: ' . $e->getMessage());
+            
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to delete relationship: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return back()->withErrors(['error' => 'Failed to delete relationship: ' . $e->getMessage()]);
         }
     }
 
     /**
-     * Soft delete the specified activity-user relationship.
+     * Display a listing of trashed (soft-deleted) activity-user relationships.
      */
-    public function softDelete($id)
+    public function trash(Request $request)
     {
-        $activityUser = ActivityUser::findOrFail($id);
+        $deletedActivityUsers = ActivityUser::onlyTrashed()
+            ->with(['user', 'activity', 'cop'])
+            ->orderBy('deleted_at', 'desc')
+            ->paginate(20);
 
-        try {
-            $activityUser->delete();
-            return back()->with('success', 'Activity-User relationship moved to trash successfully!');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Failed to delete relationship: ' . $e->getMessage());
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'data' => $deletedActivityUsers
+            ]);
         }
+
+        return view('activity-users.trash', compact('deletedActivityUsers'));
     }
 
     /**
@@ -274,14 +352,33 @@ class ActivityUserController extends Controller
 
         try {
             $activityUser->restore();
-            return back()->with('success', 'Activity-User relationship restored successfully!');
+
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Activity-User relationship restored successfully!'
+                ]);
+            }
+
+            return redirect()->route('activity-users.trash')
+                ->with('success', 'Activity-User relationship restored successfully!');
+
         } catch (\Exception $e) {
-            return back()->with('error', 'Failed to restore relationship: ' . $e->getMessage());
+            Log::error('Failed to restore activity-user relationship: ' . $e->getMessage());
+
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to restore relationship: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return back()->withErrors(['error' => 'Failed to restore relationship: ' . $e->getMessage()]);
         }
     }
 
     /**
-     * Force delete an activity-user relationship.
+     * Force delete a soft-deleted activity-user relationship.
      */
     public function forceDelete($id)
     {
@@ -294,258 +391,30 @@ class ActivityUserController extends Controller
             
             DB::commit();
 
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Activity-User relationship permanently deleted!'
+                ]);
+            }
+
             return redirect()->route('activity-users.trash')
                 ->with('success', 'Activity-User relationship permanently deleted!');
+
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Failed to permanently delete relationship: ' . $e->getMessage());
-        }
-    }
+            
+            Log::error('Failed to permanently delete activity-user relationship: ' . $e->getMessage());
 
-    /**
-     * Display a list of soft-deleted activity-user relationships.
-     */
-    public function trash()
-    {
-        $deletedActivityUsers = ActivityUser::onlyTrashed()
-            ->with(['user', 'activity', 'cop'])
-            ->orderBy('deleted_at', 'desc')
-            ->paginate(20);
-
-        return view('activity-users.trash', compact('deletedActivityUsers'));
-    }
-
-    /**
-     * Show bulk assignment form.
-     */
-    public function showBulkForm()
-    {
-        $activities = Activity::orderBy('activity_title_en')
-            ->get(['activity_id', 'activity_title_en', 'activity_title_ar']);
-        $users = User::orderBy('first_name')
-            ->get(['user_id', 'first_name', 'last_name', 'email']);
-        $cops = Cop::orderBy('cop_name')
-            ->get(['cop_id', 'cop_name']);
-
-        return view('activity-users.bulk', compact('activities', 'users', 'cops'));
-    }
-
-    /**
-     * Bulk assign users to an activity.
-     */
-    public function bulkStore(Request $request)
-    {
-        $validated = $request->validate([
-            'activity_id' => 'required|exists:activities,activity_id',
-            'user_ids' => 'required|array',
-            'user_ids.*' => 'exists:users,user_id',
-            'cop_id' => 'nullable|exists:cops,cop_id',
-            'type' => 'nullable|string|max:255',
-            'is_lead' => 'sometimes|boolean',
-            'invited' => 'sometimes|boolean',
-            'attended' => 'sometimes|boolean',
-        ]);
-
-        $created = 0;
-        $skipped = 0;
-        $errors = [];
-
-        try {
-            DB::beginTransaction();
-
-            foreach ($validated['user_ids'] as $userId) {
-                // Check if relationship already exists
-                $exists = ActivityUser::where('user_id', $userId)
-                    ->where('activity_id', $validated['activity_id'])
-                    ->exists();
-
-                if (!$exists) {
-                    ActivityUser::create([
-                        'user_id' => $userId,
-                        'activity_id' => $validated['activity_id'],
-                        'cop_id' => $validated['cop_id'] ?? null,
-                        'type' => $validated['type'] ?? null,
-                        'is_lead' => $request->has('is_lead'),
-                        'invited' => $request->has('invited'),
-                        'attended' => $request->has('attended'),
-                    ]);
-                    $created++;
-                } else {
-                    $skipped++;
-                }
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to permanently delete relationship: ' . $e->getMessage()
+                ], 500);
             }
 
-            DB::commit();
-
-            $message = "{$created} users assigned to activity successfully.";
-            if ($skipped > 0) {
-                $message .= " {$skipped} users were already assigned (skipped).";
-            }
-
-            return redirect()->route('activity-users.index', ['activity_id' => $validated['activity_id']])
-                ->with('success', $message);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Failed to bulk assign users: ' . $e->getMessage())->withInput();
+            return back()->withErrors(['error' => 'Failed to permanently delete relationship: ' . $e->getMessage()]);
         }
-    }
-
-    /**
-     * Update attendance status for multiple users.
-     */
-    public function updateAttendance(Request $request)
-    {
-        $validated = $request->validate([
-            'attendances' => 'required|array',
-            'attendances.*' => 'boolean',
-        ]);
-
-        $updated = 0;
-
-        try {
-            DB::beginTransaction();
-
-            foreach ($validated['attendances'] as $activityUserId => $attended) {
-                $activityUser = ActivityUser::find($activityUserId);
-                if ($activityUser) {
-                    $activityUser->update(['attended' => $attended]);
-                    $updated++;
-                }
-            }
-
-            DB::commit();
-
-            return back()->with('success', "Attendance updated for {$updated} users successfully!");
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Failed to update attendance: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Export activity users to CSV.
-     */
-    public function export(Request $request)
-    {
-        $query = ActivityUser::with(['user', 'activity', 'cop']);
-
-        // Apply filters if provided
-        if ($request->has('activity_id') && $request->activity_id) {
-            $query->where('activity_id', $request->activity_id);
-        }
-
-        if ($request->has('user_id') && $request->user_id) {
-            $query->where('user_id', $request->user_id);
-        }
-
-        if ($request->has('type') && $request->type) {
-            $query->where('type', $request->type);
-        }
-
-        $activityUsers = $query->get();
-
-        $filename = 'activity-users-' . now()->format('Y-m-d-His') . '.csv';
-        $handle = fopen('php://output', 'w');
-
-        header('Content-Type: text/csv');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-
-        // Add headers
-        fputcsv($handle, [
-            'External ID',
-            'User Name',
-            'User Email',
-            'Activity Title',
-            'Activity Title (AR)',
-            'Type',
-            'Is Lead',
-            'Invited',
-            'Attended',
-            'COP',
-            'Created At'
-        ]);
-
-        // Add data rows
-        foreach ($activityUsers as $item) {
-            fputcsv($handle, [
-                $item->external_id,
-                $item->user ? $item->user->first_name . ' ' . $item->user->last_name : '',
-                $item->user ? $item->user->email : '',
-                $item->activity ? $item->activity->activity_title_en : '',
-                $item->activity ? $item->activity->activity_title_ar : '',
-                $item->type,
-                $item->is_lead ? 'Yes' : 'No',
-                $item->invited ? 'Yes' : 'No',
-                $item->attended ? 'Yes' : 'No',
-                $item->cop ? $item->cop->cop_name : '',
-                $item->created_at ? $item->created_at->format('Y-m-d H:i:s') : '',
-            ]);
-        }
-
-        fclose($handle);
-        exit;
-    }
-
-    /**
-     * Export a single activity user to CSV.
-     */
-    public function exportSingle($id)
-    {
-        $activityUser = ActivityUser::with(['user', 'activity', 'cop'])
-            ->findOrFail($id);
-
-        $filename = 'activity-user-' . $activityUser->external_id . '-' . now()->format('Y-m-d') . '.csv';
-        $handle = fopen('php://output', 'w');
-
-        header('Content-Type: text/csv');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-
-        // Add headers
-        fputcsv($handle, [
-            'Field',
-            'Value'
-        ]);
-
-        // Add data rows
-        fputcsv($handle, ['External ID', $activityUser->external_id]);
-        fputcsv($handle, ['User', $activityUser->user ? $activityUser->user->first_name . ' ' . $activityUser->user->last_name : '']);
-        fputcsv($handle, ['User Email', $activityUser->user ? $activityUser->user->email : '']);
-        fputcsv($handle, ['Activity', $activityUser->activity ? $activityUser->activity->activity_title_en : '']);
-        fputcsv($handle, ['Activity (AR)', $activityUser->activity ? $activityUser->activity->activity_title_ar : '']);
-        fputcsv($handle, ['Type', $activityUser->type]);
-        fputcsv($handle, ['Is Lead', $activityUser->is_lead ? 'Yes' : 'No']);
-        fputcsv($handle, ['Invited', $activityUser->invited ? 'Yes' : 'No']);
-        fputcsv($handle, ['Attended', $activityUser->attended ? 'Yes' : 'No']);
-        fputcsv($handle, ['COP', $activityUser->cop ? $activityUser->cop->cop_name : '']);
-        fputcsv($handle, ['Created At', $activityUser->created_at ? $activityUser->created_at->format('Y-m-d H:i:s') : '']);
-        fputcsv($handle, ['Updated At', $activityUser->updated_at ? $activityUser->updated_at->format('Y-m-d H:i:s') : '']);
-
-        fclose($handle);
-        exit;
-    }
-
-    /**
-     * Get users by activity for AJAX requests.
-     */
-    public function getUsersByActivity($activityId)
-    {
-        $activityUsers = ActivityUser::with('user')
-            ->where('activity_id', $activityId)
-            ->get();
-
-        return response()->json($activityUsers);
-    }
-
-    /**
-     * Get activities by user for AJAX requests.
-     */
-    public function getActivitiesByUser($userId)
-    {
-        $activityUsers = ActivityUser::with('activity')
-            ->where('user_id', $userId)
-            ->get();
-
-        return response()->json($activityUsers);
     }
 
     /**
@@ -569,8 +438,10 @@ class ActivityUserController extends Controller
                 'attended' => $activityUser->attended,
                 'message' => 'Attendance status updated successfully!'
             ]);
+
         } catch (\Exception $e) {
             DB::rollBack();
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update attendance: ' . $e->getMessage()
@@ -599,12 +470,151 @@ class ActivityUserController extends Controller
                 'invited' => $activityUser->invited,
                 'message' => 'Invitation status updated successfully!'
             ]);
+
         } catch (\Exception $e) {
             DB::rollBack();
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update invitation status: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Toggle lead status.
+     */
+    public function toggleLead($id)
+    {
+        $activityUser = ActivityUser::findOrFail($id);
+
+        try {
+            DB::beginTransaction();
+            
+            $activityUser->update([
+                'is_lead' => !$activityUser->is_lead
+            ]);
+            
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'is_lead' => $activityUser->is_lead,
+                'message' => 'Lead status updated successfully!'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update lead status: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Export activity users to CSV.
+     */
+    public function export(Request $request)
+    {
+        $query = ActivityUser::with(['user', 'activity', 'cop']);
+
+        // Apply filters if provided
+        if ($request->filled('activity_id')) {
+            $query->where('activity_id', $request->activity_id);
+        }
+
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
+
+        if ($request->filled('cop_id')) {
+            $query->where('cop_id', $request->cop_id);
+        }
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
+
+        if ($request->has('is_lead') && $request->is_lead !== '') {
+            $query->where('is_lead', $request->boolean('is_lead'));
+        }
+
+        if ($request->has('invited') && $request->invited !== '') {
+            $query->where('invited', $request->boolean('invited'));
+        }
+
+        if ($request->has('attended') && $request->attended !== '') {
+            $query->where('attended', $request->boolean('attended'));
+        }
+
+        $activityUsers = $query->get();
+
+        $filename = 'activity-users-' . now()->format('Y-m-d-His') . '.csv';
+        $handle = fopen('php://output', 'w');
+
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
+        // Add UTF-8 BOM for Excel compatibility
+        fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
+
+        // Add headers
+        fputcsv($handle, [
+            'ID',
+            'User Name',
+            'User Email',
+            'User Phone',
+            'User Type',
+            'Activity Title (EN)',
+            'Activity Title (AR)',
+            'Activity Type',
+            'Activity Date',
+            'Role/Type',
+            'Is Lead',
+            'Invited',
+            'Attended',
+            'COP',
+            'External ID',
+            'Created At'
+        ]);
+
+        // Add data rows
+        foreach ($activityUsers as $item) {
+            $userName = '';
+            if ($item->user) {
+                $userName = $item->user->first_name;
+                if ($item->user->middle_name) {
+                    $userName .= ' ' . $item->user->middle_name;
+                }
+                $userName .= ' ' . $item->user->last_name;
+            }
+
+            fputcsv($handle, [
+                $item->activity_user_id,
+                $userName,
+                $item->user ? $item->user->email : '',
+                $item->user ? $item->user->phone_number : '',
+                $item->user ? $item->user->type : '',
+                $item->activity ? $item->activity->activity_title_en : '',
+                $item->activity ? $item->activity->activity_title_ar : '',
+                $item->activity ? $item->activity->activity_type : '',
+                $item->activity ? $item->activity->start_date : '',
+                $item->type,
+                $item->is_lead ? 'Yes' : 'No',
+                $item->invited ? 'Yes' : 'No',
+                $item->attended ? 'Yes' : 'No',
+                $item->cop ? $item->cop->cop_name : '',
+                $item->external_id,
+                $item->created_at ? $item->created_at->format('Y-m-d H:i:s') : '',
+            ]);
+        }
+
+        fclose($handle);
+        exit;
     }
 }
