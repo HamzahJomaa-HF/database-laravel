@@ -316,10 +316,14 @@ Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
                 ->get('/{activity}/edit', [ActivityController::class, 'edit'])->name('edit');
             Route::middleware(['hasPermission:activities.edit,activities.manage,activities.full'])
                 ->put('/{activity}', [ActivityController::class, 'update'])->name('update');
+
             Route::middleware(['hasPermission:activities.delete,activities.manage,activities.full'])
-                ->delete('/{activity}', [ActivityController::class, 'destroy'])->name('destroy');
-            Route::middleware(['hasPermission:activities.manage,activities.full'])
-                ->delete('/bulk-destroy', [ActivityController::class, 'bulkDestroy'])->name('bulk.destroy');
+            ->delete('/bulk/destroy', [ActivityController::class, 'bulkDestroy'])
+            ->name('bulk.destroy');  
+
+        Route::middleware(['hasPermission:activities.delete,activities.manage,activities.full'])
+            ->delete('/{activity}', [ActivityController::class, 'destroy'])
+            ->name('destroy');
             
             Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
                 ->prefix('{parentActivity}/children')->name('children.')->group(function () {

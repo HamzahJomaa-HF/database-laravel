@@ -980,4 +980,63 @@ class ActivityController extends Controller
             ]
         ];
     }
+
+
+    /**
+ * Remove multiple activities in bulk using soft delete.
+ */
+public function bulkDestroy(Request $request)
+{
+    try {
+        DB::beginTransaction();
+
+        // Validate the request
+        $request->validate([
+            'activity_ids' => 'required|string',
+        ]);
+
+        // Decode the JSON array of activity IDs
+        $activityIds = json_decode($request->activity_ids, true);
+
+        if (empty($activityIds) || !is_array($activityIds)) {
+            return back()->with('error', 'No activities selected for deletion.');
+        }
+
+        // Validate that all IDs exist (optional but recommended)
+        $existingActivities = Activity::whereIn('activity_id', $activityIds)->count();
+        
+        if ($existingActivities !== count($activityIds)) {
+            return back()->with('error', 'One or more activities not found.');
+        }
+
+        // Perform soft delete on all selected activities
+        Activity::whereIn('activity_id', $activityIds)->delete();
+
+        // Optional: Also handle related records if needed
+        // Delete related project activities mappings
+        ProjectActivity::whereIn('activity_id', $activityIds)->delete();
+        
+        // Delete related portfolio activities mappings
+        PortfolioActivity::whereIn('activity_id', $activityIds)->delete();
+        
+        // Delete related RP activity mappings
+        DB::table('rp_activity_mappings')
+            ->whereIn('activity_id', $activityIds)
+            ->delete();
+
+        DB::commit();
+
+        return redirect()->route('activities.index')
+            ->with('success', count($activityIds) . ' activities deleted successfully.');
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Error in bulk delete: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString(),
+            'activity_ids' => $request->activity_ids ?? null
+        ]);
+
+        return back()->with('error', 'Error deleting activities: ' . $e->getMessage());
+    }
+}
 }
