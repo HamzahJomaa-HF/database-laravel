@@ -1,6 +1,8 @@
 <?php 
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
+use App\Models\User;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\ActivityController;
 use App\Http\Controllers\API\ProgramController;
@@ -231,3 +233,11 @@ Route::prefix('activity-users')->group(function () {
 Route::apiResource('project-portfolios', ProjectPortfolioController::class);
 Route::get('portfolios/{portfolioId}/projects', [ProjectPortfolioController::class, 'getProjectsByPortfolio']);
 Route::get('projects/{projectId}/portfolios', [ProjectPortfolioController::class, 'getPortfoliosByProject']);
+
+
+
+
+
+
+
+

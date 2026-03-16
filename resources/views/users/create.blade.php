@@ -494,32 +494,36 @@
                         </div>
 
                         {{-- ============================================== --}}
-                        {{-- SECTION 6: COMMUNITY OF PRACTICE (Optional) --}}
-                        {{-- ============================================== --}}
-                        <div class="section-card mb-4">
-                            <div class="section-header">
-                                <h6 class="mb-0 fw-semibold">Community of Practice</h6>
-                                <span class="text-muted small">Enter default COP for activities</span>
-                            </div>
-                            <div class="section-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="default_cop_name" class="form-label fw-semibold">Default COP</label>
-                                            <input type="text" 
-                                                   name="default_cop_name" 
-                                                   id="default_cop_name" 
-                                                   class="form-control @error('default_cop_name') is-invalid @enderror"
-                                                   value="{{ old('default_cop_name') }}"
-                                                   placeholder="Enter COP name">
-                                            @error('default_cop_name')
-                                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+{{-- SECTION 6: COMMUNITY OF PRACTICE (Optional) --}}
+{{-- ============================================== --}}
+<div class="section-card mb-4">
+    <div class="section-header">
+        <h6 class="mb-0 fw-semibold">Community of Practice</h6>
+        <span class="text-muted small">Select default COP for activities</span>
+    </div>
+    <div class="section-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="default_cop_id" class="form-label fw-semibold">Default COP</label>
+                    <select name="default_cop_id" 
+                            id="default_cop_id" 
+                            class="form-control form-select @error('default_cop_id') is-invalid @enderror">
+                        <option value="">Select COP (Optional)</option>
+                        @foreach($cops as $cop)
+                            <option value="{{ $cop->cop_id }}" {{ old('default_cop_id') == $cop->cop_id ? 'selected' : '' }}>
+                                {{ $cop->cop_name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('default_cop_id')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
                         {{-- ==================================== --}}
                         {{-- SECTION 7: NATIONALITIES (Optional) --}}

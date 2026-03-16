@@ -16,100 +16,136 @@ class ActivityUserController extends Controller
      * Display a listing of activity-user relationships.
      */
     public function index(Request $request)
-    {
-        $query = ActivityUser::with(['user', 'activity', 'cop'])
-            ->orderBy('created_at', 'desc');
+{
+    $query = ActivityUser::with(['user', 'activity', 'cop'])
+        ->orderBy('created_at', 'desc');
 
-        // Filter by activity if provided
-        if ($request->filled('activity_id')) {
-            $query->where('activity_id', $request->activity_id);
-        }
-
-        // Filter by user if provided
-        if ($request->filled('user_id')) {
-            $query->where('user_id', $request->user_id);
-        }
-
-        // Filter by cop if provided
-        if ($request->filled('cop_id')) {
-            $query->where('cop_id', $request->cop_id);
-        }
-
-        // Filter by type
-        if ($request->filled('type')) {
-            $query->where('type', $request->type);
-        }
-
-        // Filter by lead status
-        if ($request->has('is_lead') && $request->is_lead !== '') {
-            $query->where('is_lead', $request->boolean('is_lead'));
-        }
-
-        // Filter by invited status
-        if ($request->has('invited') && $request->invited !== '') {
-            $query->where('invited', $request->boolean('invited'));
-        }
-
-        // Filter by attended status
-        if ($request->has('attended') && $request->attended !== '') {
-            $query->where('attended', $request->boolean('attended'));
-        }
-
-        // Search by user or activity names
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->whereHas('user', function ($userQuery) use ($search) {
-                    $userQuery->where('first_name', 'ilike', "%{$search}%")
-                              ->orWhere('middle_name', 'ilike', "%{$search}%")
-                              ->orWhere('last_name', 'ilike', "%{$search}%")
-                              ->orWhere('email', 'ilike', "%{$search}%")
-                              ->orWhere('phone_number', 'ilike', "%{$search}%")
-                              ->orWhere('identification_id', 'ilike', "%{$search}%")
-                              ->orWhere('passport_number', 'ilike', "%{$search}%")
-                              ->orWhere('register_number', 'ilike', "%{$search}%");
-                })
-                ->orWhereHas('activity', function ($activityQuery) use ($search) {
-                    $activityQuery->where('activity_title_en', 'ilike', "%{$search}%")
-                                  ->orWhere('activity_title_ar', 'ilike', "%{$search}%");
-                });
-            });
-        }
-
-        // Handle pagination
-        $perPage = $request->get('per_page', 20);
-        $activityUsers = $query->paginate($perPage);
-
-        // Get data for filter dropdowns
-        $activities = Activity::orderBy('activity_title_en')
-            ->get(['activity_id', 'activity_title_en', 'activity_title_ar']);
-        
-        $users = User::orderBy('first_name')
-            ->get(['user_id', 'first_name', 'middle_name', 'last_name', 'email']);
-        
-        $cops = Cop::orderBy('cop_name')
-            ->get(['cop_id', 'cop_name']);
-
-        // Get distinct types for filter dropdown
-        $types = ActivityUser::distinct()->whereNotNull('type')->pluck('type')->filter()->values();
-
-        // Check if request expects JSON response
-        if ($request->wantsJson()) {
-            return response()->json([
-                'success' => true,
-                'data' => $activityUsers,
-                'filters' => [
-                    'activities' => $activities,
-                    'users' => $users,
-                    'cops' => $cops,
-                    'types' => $types
-                ]
-            ]);
-        }
-
-        return view('activity-users.index', compact('activityUsers', 'activities', 'users', 'cops', 'types'));
+    // Filter by activity if provided
+    if ($request->filled('activity_id')) {
+        $query->where('activity_id', $request->activity_id);
     }
 
+    // Filter by user if provided
+    if ($request->filled('user_id')) {
+        $query->where('user_id', $request->user_id);
+    }
+
+    // Filter by cop if provided
+    if ($request->filled('cop_id')) {
+        $query->where('cop_id', $request->cop_id);
+    }
+
+   if ($request->filled('type')) {
+    $type = $request->type;
+    $query->whereHas('user', function ($userQuery) use ($type) {
+        $userQuery->where('type', $type);
+    });
+}
+
+    // Filter by invited status
+    if ($request->has('invited') && $request->invited !== '') {
+        $query->where('invited', $request->boolean('invited'));
+    }
+
+    // Filter by attended status
+    if ($request->has('attended') && $request->attended !== '') {
+        $query->where('attended', $request->boolean('attended'));
+    }
+    
+    // NEW: Filter by activity start date
+    if ($request->filled('start_date')) {
+        $startDate = $request->start_date;
+        $query->whereHas('activity', function ($activityQuery) use ($startDate) {
+            $activityQuery->whereDate('start_date', $startDate);
+        });
+    }
+
+    // Global search by user or activity names
+    if ($request->filled('search')) {
+        $search = $request->search;
+        $query->where(function ($q) use ($search) {
+            $q->whereHas('user', function ($userQuery) use ($search) {
+                $userQuery->where('first_name', 'ilike', "%{$search}%")
+                          ->orWhere('middle_name', 'ilike', "%{$search}%")
+                          ->orWhere('last_name', 'ilike', "%{$search}%")
+                          ->orWhere('email', 'ilike', "%{$search}%")
+                          ->orWhere('phone_number', 'ilike', "%{$search}%")
+                          ->orWhere('identification_id', 'ilike', "%{$search}%")
+                          ->orWhere('passport_number', 'ilike', "%{$search}%")
+                          ->orWhere('register_number', 'ilike', "%{$search}%");
+            })
+            ->orWhereHas('activity', function ($activityQuery) use ($search) {
+                $activityQuery->where('activity_title_en', 'ilike', "%{$search}%")
+                              ->orWhere('activity_title_ar', 'ilike', "%{$search}%");
+            });
+        });
+    }
+    
+    // NEW: User-specific search
+ if ($request->filled('user_search')) {
+    $userSearch = $request->user_search;
+    
+    $query->whereHas('user', function ($userQuery) use ($userSearch) {
+        $userQuery->where(function($q) use ($userSearch) {
+            // Match first name OR last name containing the search term
+            $q->where('first_name', 'ilike', "%{$userSearch}%")
+              ->orWhere('middle_name', 'ilike', "%{$userSearch}%")
+              ->orWhere('last_name', 'ilike', "%{$userSearch}%")
+              ->orWhere('email', 'ilike', "%{$userSearch}%")
+              ->orWhere(DB::raw("CONCAT(first_name, ' ', last_name)"), 'ilike', "%{$userSearch}%")
+              ->orWhere(DB::raw("CONCAT(first_name, ' ', middle_name, ' ', last_name)"), 'ilike', "%{$userSearch}%");
+        });
+    });
+}
+    // NEW: Activity-specific search
+    if ($request->filled('activity_search')) {
+        $activitySearch = $request->activity_search;
+        $query->whereHas('activity', function ($activityQuery) use ($activitySearch) {
+            $activityQuery->where(function($q) use ($activitySearch) {
+                $q->where('activity_title_en', 'ilike', "%{$activitySearch}%")
+                  ->orWhere('activity_title_ar', 'ilike', "%{$activitySearch}%")
+                  ->orWhere('activity_type', 'ilike', "%{$activitySearch}%")
+                  ->orWhere('venue', 'ilike', "%{$activitySearch}%");
+            });
+        });
+    }
+
+    // Handle pagination
+    $perPage = $request->get('per_page', 20);
+    $activityUsers = $query->paginate($perPage);
+
+    // Get data for filter dropdowns
+    $activities = Activity::orderBy('activity_title_en')
+        ->limit(100)
+        ->get(['activity_id', 'activity_title_en', 'activity_title_ar']);
+    
+    $users = User::orderBy('first_name')
+        ->limit(100)
+        ->get(['user_id', 'first_name', 'middle_name', 'last_name', 'email']);
+    
+    $cops = Cop::orderBy('cop_name')
+        ->limit(100)
+        ->get(['cop_id', 'cop_name']);
+
+    // Get distinct types for filter dropdown
+    $types = ActivityUser::distinct()->whereNotNull('type')->pluck('type')->filter()->values();
+
+    // Check if request expects JSON response
+    if ($request->wantsJson()) {
+        return response()->json([
+            'success' => true,
+            'data' => $activityUsers,
+            'filters' => [
+                'activities' => $activities,
+                'users' => $users,
+                'cops' => $cops,
+                'types' => $types
+            ]
+        ]);
+    }
+
+    return view('activity-users.index', compact('activityUsers', 'activities', 'users', 'cops', 'types'));
+}
     /**
      * Show the form for creating a new activity-user relationship.
      */
@@ -132,14 +168,12 @@ class ActivityUserController extends Controller
             'activity_id' => 'required|exists:activities,activity_id',
             'cop_id' => 'nullable|exists:cops,cop_id',
             'type' => 'nullable|string|max:255',
-            'is_lead' => 'sometimes|boolean',
             'invited' => 'sometimes|boolean',
             'attended' => 'sometimes|boolean',
             'external_id' => 'nullable|string|max:255|unique:activity_users,external_id',
         ]);
 
         // Set default values for checkboxes if not present
-        $validated['is_lead'] = $request->boolean('is_lead', false);
         $validated['invited'] = $request->boolean('invited', false);
         $validated['attended'] = $request->boolean('attended', false);
 
@@ -197,23 +231,7 @@ class ActivityUserController extends Controller
         }
     }
 
-    /**
-     * Display the specified activity-user relationship.
-     */
-    public function show($id)
-    {
-        $activityUser = ActivityUser::with(['user', 'activity', 'cop'])
-            ->findOrFail($id);
-
-        if (request()->wantsJson()) {
-            return response()->json([
-                'success' => true,
-                'data' => $activityUser
-            ]);
-        }
-
-        return view('activity-users.show', compact('activityUser'));
-    }
+    
 
     /**
      * Show the form for editing the specified activity-user relationship.
@@ -225,63 +243,48 @@ class ActivityUserController extends Controller
         $activities = Activity::orderBy('activity_title_en')->get(['activity_id', 'activity_title_en', 'activity_title_ar']);
         $users = User::orderBy('first_name')->get(['user_id', 'first_name', 'middle_name', 'last_name', 'email']);
 
-        return view('activity-users.edit', compact('activityUser', 'cops', 'activities', 'users'));
+        // IMPORTANT: Pass the $id to the view
+    return view('activity-users.edit', compact('activityUser', 'cops', 'activities', 'users', 'id'));
     }
 
     /**
      * Update the specified activity-user relationship in storage.
      */
     public function update(Request $request, $id)
-    {
-        $activityUser = ActivityUser::findOrFail($id);
+{
+    $activityUser = ActivityUser::findOrFail($id);
 
-        $validated = $request->validate([
-            'cop_id' => 'nullable|exists:cops,cop_id',
-            'type' => 'nullable|string|max:255',
-            'is_lead' => 'sometimes|boolean',
-            'invited' => 'sometimes|boolean',
-            'attended' => 'sometimes|boolean',
-            'external_id' => 'nullable|string|max:255|unique:activity_users,external_id,' . $id . ',activity_user_id',
-        ]);
+    $validated = $request->validate([
+        'user_id' => 'required|exists:users,user_id',        // ← ADD THIS
+        'activity_id' => 'required|exists:activities,activity_id', // ← ADD THIS
+        'cop_id' => 'nullable|exists:cops,cop_id',
+        'type' => 'nullable|string|max:255',
+        'invited' => 'sometimes|boolean',
+        'attended' => 'sometimes|boolean',
+    ]);
 
-        // Set default values for checkboxes if not present
-        $validated['is_lead'] = $request->boolean('is_lead', false);
-        $validated['invited'] = $request->boolean('invited', false);
-        $validated['attended'] = $request->boolean('attended', false);
+    // Set default values for checkboxes if not present
+    $validated['invited'] = $request->boolean('invited', false);
+    $validated['attended'] = $request->boolean('attended', false);
 
-        try {
-            DB::beginTransaction();
-            
-            $activityUser->update($validated);
-            
-            DB::commit();
+    try {
+        DB::beginTransaction();
+        
+        $activityUser->update($validated); // Now includes user_id and activity_id
+        
+        DB::commit();
 
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Activity-User relationship updated successfully!',
-                    'data' => $activityUser->load(['user', 'activity', 'cop'])
-                ]);
-            }
+        return redirect()->route('activity-users.index')
+            ->with('success', 'Activity-User relationship updated successfully!');
 
-            return redirect()->route('activity-users.index')
-                ->with('success', 'Activity-User relationship updated successfully!');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            
-            Log::error('Failed to update activity-user relationship: ' . $e->getMessage());
-            
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to update relationship: ' . $e->getMessage()
-                ], 500);
-            }
-
-            return back()->withErrors(['error' => 'Failed to update relationship: ' . $e->getMessage()])->withInput();
-        }
+    } catch (\Exception $e) {
+        DB::rollBack();
+        
+        Log::error('Failed to update activity-user relationship: ' . $e->getMessage());
+        
+        return back()->withErrors(['error' => 'Failed to update relationship: ' . $e->getMessage()])->withInput();
     }
+}
 
     /**
      * Remove the specified activity-user relationship from storage.
@@ -323,26 +326,7 @@ class ActivityUserController extends Controller
         }
     }
 
-    /**
-     * Display a listing of trashed (soft-deleted) activity-user relationships.
-     */
-    public function trash(Request $request)
-    {
-        $deletedActivityUsers = ActivityUser::onlyTrashed()
-            ->with(['user', 'activity', 'cop'])
-            ->orderBy('deleted_at', 'desc')
-            ->paginate(20);
-
-        if ($request->wantsJson()) {
-            return response()->json([
-                'success' => true,
-                'data' => $deletedActivityUsers
-            ]);
-        }
-
-        return view('activity-users.trash', compact('deletedActivityUsers'));
-    }
-
+    
     /**
      * Restore a soft-deleted activity-user relationship.
      */
@@ -417,101 +401,10 @@ class ActivityUserController extends Controller
         }
     }
 
-    /**
-     * Toggle attendance status.
-     */
-    public function toggleAttendance($id)
-    {
-        $activityUser = ActivityUser::findOrFail($id);
+    
 
-        try {
-            DB::beginTransaction();
-            
-            $activityUser->update([
-                'attended' => !$activityUser->attended
-            ]);
-            
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'attended' => $activityUser->attended,
-                'message' => 'Attendance status updated successfully!'
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update attendance: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Toggle invited status.
-     */
-    public function toggleInvited($id)
-    {
-        $activityUser = ActivityUser::findOrFail($id);
-
-        try {
-            DB::beginTransaction();
-            
-            $activityUser->update([
-                'invited' => !$activityUser->invited
-            ]);
-            
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'invited' => $activityUser->invited,
-                'message' => 'Invitation status updated successfully!'
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update invitation status: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Toggle lead status.
-     */
-    public function toggleLead($id)
-    {
-        $activityUser = ActivityUser::findOrFail($id);
-
-        try {
-            DB::beginTransaction();
-            
-            $activityUser->update([
-                'is_lead' => !$activityUser->is_lead
-            ]);
-            
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'is_lead' => $activityUser->is_lead,
-                'message' => 'Lead status updated successfully!'
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update lead status: ' . $e->getMessage()
-            ], 500);
-        }
-    }
+   
+    
 
     /**
      * Export activity users to CSV.
@@ -537,9 +430,7 @@ class ActivityUserController extends Controller
             $query->where('type', $request->type);
         }
 
-        if ($request->has('is_lead') && $request->is_lead !== '') {
-            $query->where('is_lead', $request->boolean('is_lead'));
-        }
+       
 
         if ($request->has('invited') && $request->invited !== '') {
             $query->where('invited', $request->boolean('invited'));
@@ -575,7 +466,6 @@ class ActivityUserController extends Controller
             'Activity Type',
             'Activity Date',
             'Role/Type',
-            'Is Lead',
             'Invited',
             'Attended',
             'COP',
@@ -605,7 +495,6 @@ class ActivityUserController extends Controller
                 $item->activity ? $item->activity->activity_type : '',
                 $item->activity ? $item->activity->start_date : '',
                 $item->type,
-                $item->is_lead ? 'Yes' : 'No',
                 $item->invited ? 'Yes' : 'No',
                 $item->attended ? 'Yes' : 'No',
                 $item->cop ? $item->cop->cop_name : '',
@@ -617,4 +506,48 @@ class ActivityUserController extends Controller
         fclose($handle);
         exit;
     }
+/**
+ * Remove multiple activity-user relationships from storage.
+ */
+public function bulkDestroy(Request $request)
+{
+    $request->validate([
+        'activity_user_ids' => 'required|array',
+        'activity_user_ids.*' => 'uuid|exists:activity_users,activity_user_id'
+    ]);
+
+    try {
+        DB::beginTransaction();
+
+        $count = ActivityUser::whereIn('activity_user_id', $request->activity_user_ids)->count();
+        ActivityUser::whereIn('activity_user_id', $request->activity_user_ids)->delete();
+
+        DB::commit();
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "{$count} activity-user relationship(s) deleted successfully!"
+            ]);
+        }
+
+        return redirect()->route('activity-users.index')
+            ->with('success', "{$count} activity-user relationship(s) deleted successfully!");
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+
+        Log::error('Failed to bulk delete activity-user relationships: ' . $e->getMessage());
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete relationships: ' . $e->getMessage()
+            ], 500);
+        }
+
+        return back()->withErrors(['error' => 'Failed to delete relationships: ' . $e->getMessage()]);
+    }
+}
+    
 }

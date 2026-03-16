@@ -15,6 +15,9 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ModuleAccessController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\CopController;
+use App\Http\Controllers\ActivityUserController;
+
+use Illuminate\Support\Facades\DB;
 
 
 
@@ -50,38 +53,6 @@ Route::get('/', function () {
 
 
 // routes/web.php (Shorter Version)
-
-use App\Http\Controllers\ActivityUserController;
-// User search routes
-Route::get('/activity-users/search-users', [ActivityUserController::class, 'searchUsers'])->name('activity-users.search-users');
-Route::get('/activity-users/get-user/{id}', [ActivityUserController::class, 'getUser'])->name('activity-users.get-user');
-
-// Activity search routes
-Route::post('/activity-users/search-activities', [ActivityUserController::class, 'searchActivities'])->name('activity-users.search-activities');
-Route::get('/activity-users/get-activity/{id}', [ActivityUserController::class, 'getActivity'])->name('activity-users.get-activity');
-
-// Toggle routes
-Route::post('/activity-users/{id}/toggle-attendance', [ActivityUserController::class, 'toggleAttendance'])->name('activity-users.toggle-attendance');
-Route::post('/activity-users/{id}/toggle-invited', [ActivityUserController::class, 'toggleInvited'])->name('activity-users.toggle-invited');
-Route::post('/activity-users/{id}/toggle-lead', [ActivityUserController::class, 'toggleLead'])->name('activity-users.toggle-lead');
-
-Route::get('/activity-users', [ActivityUserController::class, 'index'])->name('activity-users.index');
-Route::get('/activity-users/create', [ActivityUserController::class, 'create'])->name('activity-users.create');
-Route::post('/activity-users', [ActivityUserController::class, 'store'])->name('activity-users.store');
-Route::get('/activity-users/{id}/edit', [ActivityUserController::class, 'edit'])->name('activity-users.edit');
-Route::put('/activity-users/{id}', [ActivityUserController::class, 'update'])->name('activity-users.update');
-Route::delete('/activity-users/{id}', [ActivityUserController::class, 'destroy'])->name('activity-users.destroy');
-
-// ONE ADDITIONAL ROUTE for post-activity statistics (as requested)
-Route::get('/activities/{activityId}/statistics', [ActivityUserController::class, 'activityStatistics'])->name('activity-users.statistics');
-Route::get('/activities/{activityId}/statistics', [ActivityUserController::class, 'activityStatistics'])->name('activity-users.statistics');
-
-// Optional: If you want a dedicated bulk create page (the "Bulk Assign" button)
-Route::get('/activity-users/bulk/create', [ActivityUserController::class, 'bulkCreate'])->name('activity-users.bulk.form');
-Route::post('/activity-users/bulk', [ActivityUserController::class, 'bulkStore'])->name('activity-users.bulk.store');
-Route::post('/activity-users/export', [ActivityUserController::class, 'export'])->name('activity-users.export');
-Route::post('/activity-users/trash', [ActivityUserController::class, 'trash'])->name('activity-users.trash');
-Route::post('/activity-users/update-attendance', [ActivityUserController::class, 'updateAttendance'])->name('activity-users.update-attendance');
 
 
 // ============================================================================
@@ -457,4 +428,60 @@ Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
             Route::get('/{project}/budget', [ProjectController::class, 'budget'])->name('budget');
         });
     
+
+
+
+// ------------------------------------------------------------------------
+    // ACTIVITY USERS MODULE 
+    // ------------------------------------------------------------------------
+    Route::middleware(['hasPermission:ActivityUsers.view,ActivityUsers.manage,ActivityUsers.full'])->prefix('activity-users')->name('activity-users.')->group(function () {
+        
+        // View routes (index, show, export)
+        Route::get('/', [ActivityUserController::class, 'index'])->name('index');
+        Route::get('/export/csv', [ActivityUserController::class, 'export'])->name('export');
+        
+        // Create routes
+        Route::middleware(['hasPermission:ActivityUsers.create,ActivityUsers.manage,ActivityUsers.full'])
+            ->get('/create', [ActivityUserController::class, 'create'])->name('create');
+        Route::middleware(['hasPermission:ActivityUsers.create,ActivityUsers.manage,ActivityUsers.full'])
+            ->post('/', [ActivityUserController::class, 'store'])->name('store');
+        
+        // Edit/Update routes
+        Route::middleware(['hasPermission:ActivityUsers.edit,ActivityUsers.manage,ActivityUsers.full'])
+            ->get('/{id}/edit', [ActivityUserController::class, 'edit'])->name('edit');
+        Route::middleware(['hasPermission:ActivityUsers.edit,ActivityUsers.manage,ActivityUsers.full'])
+            ->put('/{id}', [ActivityUserController::class, 'update'])->name('update');
+        
+        // Delete routes (single and bulk)
+        Route::middleware(['hasPermission:ActivityUsers.delete,ActivityUsers.manage,ActivityUsers.full'])
+            ->delete('/{id}', [ActivityUserController::class, 'destroy'])->name('destroy');
+        Route::middleware(['hasPermission:ActivityUsers.delete,ActivityUsers.manage,ActivityUsers.full'])
+            ->delete('/bulk/destroy', [ActivityUserController::class, 'bulkDestroy'])->name('bulk.destroy');
+        
+        // Trash/Restore routes (for soft deletes)
+        Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+            ->get('/trash/list', [ActivityUserController::class, 'trash'])->name('trash');
+        Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+            ->post('/{id}/restore', [ActivityUserController::class, 'restore'])->name('restore');
+        Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+            ->delete('/{id}/force-delete', [ActivityUserController::class, 'forceDelete'])->name('force-delete');
+    });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }); // End of auth middleware group
