@@ -314,7 +314,7 @@
             <div class="container-fluid">
                 <div class="row align-items-center">
                     <div class="col-md-6">
-                        <span class="text-muted small">© {{ date('Y') }} Hariri Foundation Management System. All rights reserved.</span>
+                        <span class="text-muted small">© {{ date('Y') }} Hariri Foundation Management System. All rights reserved</span>
                     </div>
                     <div class="col-md-6 text-md-end">
                     </div>
