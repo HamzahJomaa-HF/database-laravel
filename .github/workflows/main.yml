@@ -105,7 +105,7 @@ jobs:
             echo "📦 Publishing Livewire assets..."
             php artisan livewire:publish || true
       
-            # 🔥 MANUALLY COPY LIVEWIRE JS FILES
+            #  MANUALLY COPY LIVEWIRE JS FILES
             echo "📦 Copying Livewire JavaScript files..."
             mkdir -p public/vendor/livewire
             cp vendor/livewire/livewire/dist/livewire.min.js public/vendor/livewire/ 2>/dev/null || echo "⚠️ JS file not found"
