@@ -25,7 +25,7 @@
 <div class="row mb-4" id="bulkActionsSection" style="display: none;">
     <div class="col-12">
         <div class="card shadow-sm border-0">
-            <div class="card-header bg-warning border-bottom py-3">
+            <div class="card-header bg-white border-bottom py-3">
                 <div class="d-flex align-items-center">
                     <div class="flex-grow-1">
                         <h5 class="mb-0 fw-semibold">

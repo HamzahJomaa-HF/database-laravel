@@ -36,6 +36,7 @@
             $canAccessPortfolios = $employee->hasPermission('Portfolios') || $hasFullAccess;
             $canAccessCOPs = $employee->hasPermission('COPs') || $hasFullAccess;
             $canAccessModuleAccess = $hasFullAccess; // Only full access for module access
+            $canAccessActivityUsers = $employee->hasPermission('ActivityUsers') || $hasFullAccess; // NEW
         @endphp
         
         <div class="text-center mb-4 px-3">
@@ -351,7 +352,8 @@
                 <a class="nav-link d-flex justify-content-between align-items-center" 
                    data-bs-toggle="collapse" href="#copsDirectoryCollapse" role="button">
                     <span>
-                        <i class="bi bi-people-fill me-2"></i> Community of Practice</span>
+                        <i class="bi bi-people-fill me-2"></i> Community of Practice
+                    </span>
                     <i class="bi bi-chevron-down collapse-icon"></i>
                 </a>
                 <div class="collapse {{ request()->is('cops*') ? 'show' : '' }}" id="copsDirectoryCollapse">
@@ -419,6 +421,54 @@
             @endif
         @endauth
 
+        {{-- NEW: Activity User Directory --}}
+        @auth('employee')
+            @if($hasFullAccess || $canAccessActivityUsers)
+            <li class="nav-item">
+                <a class="nav-link d-flex justify-content-between align-items-center" 
+                   data-bs-toggle="collapse" href="#activityUserDirectoryCollapse" role="button">
+                    <span>
+                        <i class="bi bi-person-check me-2"></i> Activity User
+                    </span>
+                    <i class="bi bi-chevron-down collapse-icon"></i>
+                </a>
+                <div class="collapse {{ request()->is('activity-users*') ? 'show' : '' }}" id="activityUserDirectoryCollapse">
+                    <ul class="nav flex-column sub-menu ms-4">
+                        {{-- All Activity Users --}}
+                        @if($hasFullAccess || $employee->hasPermission('ActivityUsers'))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('activity-users.index') ? 'active' : '' }}" 
+                               href="{{ route('activity-users.index') }}">
+                                <i class="bi bi-list-ul me-2"></i> All Activity Users
+                            </a>
+                        </li>
+                        @endif
+                        
+                        {{-- Create Activity User --}}
+                        @if($hasFullAccess || $employee->hasPermission('ActivityUsers'))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('activity-users.create') ? 'active' : '' }}" 
+                               href="{{ route('activity-users.create') }}">
+                                <i class="bi bi-plus-circle me-2"></i> Create Activity User
+                            </a>
+                        </li>
+                        @endif
+                        
+                        {{-- Export Activity Users --}}
+                        @if($hasFullAccess || $employee->hasPermission('ActivityUsers'))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('activity-users.export') ? 'active' : '' }}" 
+                               href="{{ route('activity-users.export') }}">
+                                <i class="bi bi-download me-2"></i> Export
+                            </a>
+                        </li>
+                        @endif
+                    </ul>
+                </div>
+            </li>
+            @endif
+        @endauth
+
         {{-- Action Plans --}}
         @auth('employee')
             @if($hasFullAccess || $canAccessActionPlans || $canAccessReports)
@@ -460,64 +510,7 @@
             </li>
             @endif
         @endauth
-                        
-        {{-- Cross-Platform Analytics --}}
-        @auth('employee')
-            @if($hasFullAccess || $canAccessReports)
-            <div class="nav-header mt-4">Cross-Platform Analytics</div>
-            <ul class="nav flex-column mb-2">
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-speedometer me-2"></i> Executive Dashboard
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-pie-chart-fill me-2"></i> Overall Statistics
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-graph-up-arrow me-2"></i> Performance Overview
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-arrow-left-right me-2"></i> Data Integration
-                    </a>
-                </li>
-            </ul>
-            @endif
-        @endauth
-
-        {{-- Administration --}}
-        @auth('employee')
-            @if($hasFullAccess)
-            <div class="nav-header mt-4">Administration</div>
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-gear me-2"></i> System Settings
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-shield-lock me-2"></i> Security & Permissions
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-database me-2"></i> Data Management
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-upload me-2"></i> Bulk Operations
-                    </a>
-                </li>
-            </ul>
-            @endif
-        @endauth
+       
         
         {{-- Authentication Section --}}
         @auth('employee')

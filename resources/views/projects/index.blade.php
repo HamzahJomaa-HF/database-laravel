@@ -30,20 +30,21 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
         
-        .filtering-bar-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            gap: 1rem;
-        }
+        
         
         .search-input-container {
             flex: 1;
             max-width: 400px;
             position: relative;
         }
-        
+        .filtering-bar-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
         .search-input {
             width: 100%;
             padding: 0.625rem 2.5rem 0.625rem 1rem;
@@ -74,7 +75,7 @@
         }
         
         .table-container {
-            min-width: 1000px;
+            min-width: 100px;
         }
         
         .table {

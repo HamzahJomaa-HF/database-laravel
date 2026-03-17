@@ -195,7 +195,36 @@
                                 </div>
                             </div>
                         </div>
-
+{{-- ============================ --}}
+                        {{-- SECTION: USER TYPE --}}
+                        {{-- ============================ --}}
+                        <div class="section-card mb-4">
+                            <div class="section-header">
+                                <h6 class="mb-0 fw-semibold">User Type</h6>
+                                <span class="text-muted small">Select the type of user</span>
+                            </div>
+                            <div class="section-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label for="type" class="form-label fw-semibold">
+                                            User Type <span class="text-danger">*</span>
+                                        </label>
+                                        <select name="type" id="type" class="form-control form-select @error('type') is-invalid @enderror" required>
+                                            <option value="">Select User Type</option>
+                                            <option value="Stakeholder" {{ old('type', $user->type) == 'Stakeholder' ? 'selected' : '' }}>Stakeholder</option>
+                                            <option value="Beneficiary" {{ old('type', $user->type) == 'Beneficiary' ? 'selected' : '' }}>Beneficiary</option>
+                                        </select>
+                                        @error('type')
+                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
+                                        <div class="form-text text-muted small">
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            Stakeholders are typically partners, donors, or institutions. Beneficiaries are recipients of services.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         {{-- ================================ --}}
                         {{-- SECTION 2: CONTACT INFORMATION --}}
                         {{-- ================================ --}}
@@ -478,33 +507,42 @@
                             </div>
                         </div>
 
-                        {{-- ============================================== --}}
-                        {{-- SECTION 6: COMMUNITY OF PRACTICE (Optional) --}}
-                        {{-- ============================================== --}}
-                        <div class="section-card mb-4">
-                            <div class="section-header">
-                                <h6 class="mb-0 fw-semibold">Community of Practice</h6>
-                                <span class="text-muted small">Enter default COP for activities</span>
-                            </div>
-                            <div class="section-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="default_cop_name" class="form-label fw-semibold">Default COP</label>
-                                            <input type="text" 
-                                                   name="default_cop_name" 
-                                                   id="default_cop_name" 
-                                                   class="form-control @error('default_cop_name') is-invalid @enderror"
-                                                   value="{{ old('default_cop_name', $user->default_cop_name) }}"
-                                                   placeholder="Enter COP name">
-                                            @error('default_cop_name')
-                                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                       {{-- ============================================== --}}
+{{-- SECTION 6: COMMUNITY OF PRACTICE (Optional) --}}
+{{-- ============================================== --}}
+<div class="section-card mb-4">
+    <div class="section-header">
+        <h6 class="mb-0 fw-semibold">Community of Practice</h6>
+        <span class="text-muted small">Select default COP for activities</span>
+    </div>
+    <div class="section-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="default_cop_id" class="form-label fw-semibold">Default COP</label>
+                    <select name="default_cop_id" 
+                            id="default_cop_id" 
+                            class="form-control form-select @error('default_cop_id') is-invalid @enderror">
+                        <option value="">Select COP (Optional)</option>
+                        @foreach($cops as $cop)
+                            <option value="{{ $cop->cop_id }}" 
+                                {{ old('default_cop_id', $user->default_cop_id) == $cop->cop_id ? 'selected' : '' }}>
+                                {{ $cop->cop_name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('default_cop_id')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                    <div class="form-text text-muted small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Select the default Community of Practice for this user's activities
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
                         {{-- ==================================== --}}
                         {{-- SECTION 7: NATIONALITIES (Optional) --}}

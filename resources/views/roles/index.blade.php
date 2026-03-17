@@ -417,18 +417,14 @@
                                                     <a href="{{ route('roles.show', $role) }}" 
                                                        class="action-btn" 
                                                        title="View">
-                                                        <i class="fas fa-eye"></i>
+                                                        
                                                     </a>
                                                     <a href="{{ route('roles.edit', $role) }}" 
                                                        class="action-btn" 
                                                        title="Edit">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
-                                                    <a href="{{ route('roles.permissions', $role) }}" 
-                                                       class="action-btn" 
-                                                       title="Permissions">
-                                                        <i class="fas fa-key"></i>
-                                                    </a>
+                                                    
                                                     <form action="{{ route('roles.destroy', $role) }}" 
                                                           method="POST" 
                                                           class="d-inline"

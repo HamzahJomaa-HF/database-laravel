@@ -75,6 +75,16 @@ class ModuleAccessSeeder extends Seeder
                 'delete' => 'Can delete COPs but cannot create or edit',
                 'full'   => 'Administrator level access with all permissions',
             ],
+
+            // Activity Users Module
+            'ActivityUsers' => [
+                'view'   => 'Can only view activity-user assignments, no modifications',
+                'create' => 'Can create new activity-user assignments but cannot edit or delete',
+                'edit'   => 'Can edit existing activity-user assignments but cannot create or delete',
+                'delete' => 'Can delete activity-user assignments but cannot create or edit',
+                'full'   => 'Administrator level access with all permissions for activity-user management',
+            ],
+
     
             // Additional Modules
             'Dashboard' => [

@@ -15,6 +15,9 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ModuleAccessController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\CopController;
+use App\Http\Controllers\ActivityUserController;
+
+use Illuminate\Support\Facades\DB;
 
 
 
@@ -47,6 +50,9 @@ use App\Http\Controllers\CopController;
 Route::get('/', function () {
     return view('welcome'); // or dashboard
 })->middleware('auth')->name('home');
+
+
+// routes/web.php (Shorter Version)
 
 
 // ============================================================================
@@ -426,4 +432,60 @@ Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
             Route::get('/{project}/budget', [ProjectController::class, 'budget'])->name('budget');
         });
     
+
+
+
+// ------------------------------------------------------------------------
+    // ACTIVITY USERS MODULE 
+    // ------------------------------------------------------------------------
+    Route::middleware(['hasPermission:ActivityUsers.view,ActivityUsers.manage,ActivityUsers.full'])->prefix('activity-users')->name('activity-users.')->group(function () {
+        
+        // View routes (index, show, export)
+        Route::get('/', [ActivityUserController::class, 'index'])->name('index');
+        Route::get('/export/csv', [ActivityUserController::class, 'export'])->name('export');
+        
+        // Create routes
+        Route::middleware(['hasPermission:ActivityUsers.create,ActivityUsers.manage,ActivityUsers.full'])
+            ->get('/create', [ActivityUserController::class, 'create'])->name('create');
+        Route::middleware(['hasPermission:ActivityUsers.create,ActivityUsers.manage,ActivityUsers.full'])
+            ->post('/', [ActivityUserController::class, 'store'])->name('store');
+        
+        // Edit/Update routes
+        Route::middleware(['hasPermission:ActivityUsers.edit,ActivityUsers.manage,ActivityUsers.full'])
+            ->get('/{id}/edit', [ActivityUserController::class, 'edit'])->name('edit');
+        Route::middleware(['hasPermission:ActivityUsers.edit,ActivityUsers.manage,ActivityUsers.full'])
+            ->put('/{id}', [ActivityUserController::class, 'update'])->name('update');
+        
+        // Delete routes (single and bulk)
+        Route::middleware(['hasPermission:ActivityUsers.delete,ActivityUsers.manage,ActivityUsers.full'])
+            ->delete('/{id}', [ActivityUserController::class, 'destroy'])->name('destroy');
+        Route::middleware(['hasPermission:ActivityUsers.delete,ActivityUsers.manage,ActivityUsers.full'])
+            ->delete('/bulk/destroy', [ActivityUserController::class, 'bulkDestroy'])->name('bulk.destroy');
+        
+        // Trash/Restore routes (for soft deletes)
+        Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+            ->get('/trash/list', [ActivityUserController::class, 'trash'])->name('trash');
+        Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+            ->post('/{id}/restore', [ActivityUserController::class, 'restore'])->name('restore');
+        Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+            ->delete('/{id}/force-delete', [ActivityUserController::class, 'forceDelete'])->name('force-delete');
+    });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }); // End of auth middleware group
