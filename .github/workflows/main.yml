@@ -113,6 +113,9 @@ jobs:
             php artisan route:cache || true
             php artisan view:cache || true
             php artisan migrate --force
+            # ✅ ADD YOUR MODULE ACCESS SEEDER HERE - RIGHT AFTER MIGRATIONS
+            echo "Seeding module access data..."
+            php artisan db:seed --class=ModuleAccessSeeder --force
 
             ln -sfn "$RELEASE_DIR" "$APP_DIR/current"
 
