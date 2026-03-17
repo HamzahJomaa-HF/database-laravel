@@ -99,18 +99,23 @@ jobs:
             fi
             ln -sfn "$SHARED_DIR/.env" "$RELEASE_DIR/.env"
 
-            cd "$RELEASE_DIR"
+                       cd "$RELEASE_DIR"
 
             composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
             echo "📦 Publishing Livewire assets..."
             php artisan livewire:publish || true
       
-            #  MANUALLY COPY LIVEWIRE JS FILES
+            # MANUALLY COPY LIVEWIRE JS FILES
             echo "📦 Copying Livewire JavaScript files..."
             mkdir -p public/vendor/livewire
             cp vendor/livewire/livewire/dist/livewire.min.js public/vendor/livewire/ 2>/dev/null || echo "⚠️ JS file not found"
             cp vendor/livewire/livewire/dist/livewire.min.js.map public/vendor/livewire/ 2>/dev/null || true
 
+            # 🔥 CRITICAL: Fix permissions so web server can read the files
+            echo "🔧 Setting permissions for Livewire assets..."
+            sudo chown -R www-data:www-data public/vendor
+            sudo chmod -R 755 public/vendor
+            sudo chmod 644 public/vendor/livewire/*.js
 
             if ! grep -q "^APP_KEY=base64:" "$RELEASE_DIR/.env"; then
               php artisan key:generate --force
