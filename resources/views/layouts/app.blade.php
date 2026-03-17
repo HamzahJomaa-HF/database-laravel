@@ -361,7 +361,8 @@
             });
         });
     </script>
-
+{{-- 🔥 FIX: Add Livewire CDN here --}}
+<script src="https://cdn.jsdelivr.net/npm/livewire@4.x/dist/livewire.min.js"></script>
     {{-- THIS IS WHERE YOUR IMPORT AND STATISTICS PAGES WILL LOAD THEIR SCRIPTS --}}
     @yield('scripts')
 </body>
