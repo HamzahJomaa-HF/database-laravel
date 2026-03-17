@@ -103,7 +103,7 @@ jobs:
 
             composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
             echo "📦 Publishing Livewire assets..."
-            php artisan livewire:publish --assets --force || true
+            php artisan livewire:publish || true
             php artisan optimize:clear
 
 
