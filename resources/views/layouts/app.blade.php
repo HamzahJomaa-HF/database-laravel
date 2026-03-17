@@ -314,7 +314,7 @@
             <div class="container-fluid">
                 <div class="row align-items-center">
                     <div class="col-md-6">
-                        <span class="text-muted small">© {{ date('Y') }} Hariri Foundation Management System. All rights reserved</span>
+                        <span class="text-muted small">© {{ date('Y') }} Hariri Foundation Management System. All rights reserved.</span>
                     </div>
                     <div class="col-md-6 text-md-end">
                     </div>
@@ -361,18 +361,21 @@
             });
         });
     </script>
- {{-- 🔥 CORRECTED LIVEWIRE CDN FOR V4 --}}
-    <script src="https://cdn.jsdelivr.net/npm/livewire@4/dist/livewire.js"></script>
+  {{-- 🔥 CORRECT LIVEWIRE V4.2.1 CDN --}}
+    <script src="https://cdn.jsdelivr.net/npm/livewire@4/dist/livewire.min.js"></script>
     
     {{-- 🔥 FALLBACK if CDN fails --}}
     <script>
         if (typeof Livewire === 'undefined') {
-            console.warn('Primary Livewire CDN failed, loading fallback...');
+            console.warn('⚠️ Primary CDN failed, loading fallback...');
             var fallbackScript = document.createElement('script');
-            fallbackScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/livewire/4.0.0/livewire.js';
+            fallbackScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/livewire/4.0.0/livewire.min.js';
+            fallbackScript.onload = function() {
+                console.log('✅ Livewire loaded from fallback');
+            };
             document.head.appendChild(fallbackScript);
         } else {
-            console.log('✅ Livewire loaded successfully');
+            console.log('✅ Livewire loaded successfully from primary CDN');
         }
     </script>
 
