@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
+    
     {{-- Custom Styles --}}
     <style>
         :root {
@@ -238,6 +239,9 @@
         }
     </style>
 
+    {{-- 🔥 LIVEWIRE STYLES --}}
+    @livewireStyles
+    
     @yield('styles')
 </head>
 <body>
@@ -361,23 +365,9 @@
             });
         });
     </script>
-  {{-- 🔥 CORRECT LIVEWIRE V4.2.1 CDN --}}
-    <script src="https://cdn.jsdelivr.net/npm/livewire@4/dist/livewire.min.js"></script>
-    
-    {{-- 🔥 FALLBACK if CDN fails --}}
-    <script>
-        if (typeof Livewire === 'undefined') {
-            console.warn('⚠️ Primary CDN failed, loading fallback...');
-            var fallbackScript = document.createElement('script');
-            fallbackScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/livewire/4.0.0/livewire.min.js';
-            fallbackScript.onload = function() {
-                console.log('✅ Livewire loaded from fallback');
-            };
-            document.head.appendChild(fallbackScript);
-        } else {
-            console.log('✅ Livewire loaded successfully from primary CDN');
-        }
-    </script>
+
+    {{-- 🔥 LIVEWIRE SCRIPTS --}}
+    @livewireScripts
 
     {{-- THIS IS WHERE YOUR IMPORT AND STATISTICS PAGES WILL LOAD THEIR SCRIPTS --}}
     @yield('scripts')
