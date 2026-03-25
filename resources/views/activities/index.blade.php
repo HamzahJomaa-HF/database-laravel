@@ -20,7 +20,9 @@
             </div>
         </div>
     </div>
-
+<a href="{{ route('activities.export', request()->query()) }}" class="btn btn-success">
+    <i class="fas fa-file-excel"></i> Export to Excel
+</a>
     {{-- Bulk Actions Section --}}
     <div class="row mb-4" id="bulkActionsSection" style="display: none;">
         <div class="col-12">

@@ -18,6 +18,8 @@ use App\Models\ProjectActivity;
 use App\Models\RpActivityMapping;
 use App\Models\Portfolio;
 use App\Models\PortfolioActivity;
+use App\Exports\ActivitiesExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 use Illuminate\Support\Str;
 
@@ -399,7 +401,8 @@ class ActivityController extends Controller
             'selected_component_id',
             'selected_rp_activity_ids',
             'portfolios',
-            'selected_portfolios'
+            'selected_portfolios',
+            'selectedFocalPoints'
         ));
     }
     
@@ -1039,4 +1042,36 @@ public function bulkDestroy(Request $request)
         return back()->with('error', 'Error deleting activities: ' . $e->getMessage());
     }
 }
+
+public function export(Request $request)
+{
+    try {
+        // Get filters from request (same as index method)
+        $filters = [
+            'title' => $request->title,
+            'activity_type' => $request->activity_type,
+            'venue' => $request->venue,
+            'status' => $request->status,
+            'start_date_from' => $request->start_date_from,
+            'end_date_to' => $request->end_date_to,
+        ];
+        
+        // Generate filename with current date
+        $fileName = 'activities_export_' . date('Y-m-d_His') . '.xlsx';
+        
+        // Download the file
+        return Excel::download(new ActivitiesExport($filters), $fileName);
+        
+    } catch (\Exception $e) {
+        Log::error('Error exporting activities: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        return back()->with('error', 'Error exporting activities: ' . $e->getMessage());
+    }
+}
+
+
+
+
 }

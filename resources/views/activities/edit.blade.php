@@ -488,7 +488,7 @@
         </div>
     </div>
 </div>
-  {{-- ====================================== --}}
+ {{-- ====================================== --}}
 {{-- SECTION 7: FOCAL POINTS --}}
 {{-- ====================================== --}}
 <div class="section-card mb-4">
@@ -502,61 +502,39 @@
                 <div class="form-group mb-0">
                     <label for="focal_points_select" class="form-label fw-semibold mb-2">Select Focal Points</label>
                     
-                    <?php
-                    // Direct database query to get all employees (like in create blade)
-                    use Illuminate\Support\Facades\DB;
-                    
-                    // Get all active employees
-                    $allEmployees = DB::table('employees')
-                        ->whereNull('deleted_at')
-                        ->orderBy('first_name')
-                        ->get(['employee_id', 'first_name', 'last_name', 'email', 'employee_type']);
-                    
-                    // Get selected focal points for this activity
-                    // First try from activity_focal_points table (if you're using it)
-                    $selectedFocalPointsFromTable = DB::table('activity_focal_points')
-                        ->where('activity_id', $activity->activity_id)
-                        ->whereNull('deleted_at')
-                        ->pluck('rp_focalpoints_id')
-                        ->toArray();
-                    
-                    // Also check if there's JSON in focal_points column (for backward compatibility)
-                    $selectedFocalPointsFromJson = [];
-                    if (!empty($activity->focal_points)) {
-                        $decoded = json_decode($activity->focal_points, true);
-                        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                            $selectedFocalPointsFromJson = $decoded;
+                    @php
+                        use Illuminate\Support\Facades\DB;
+                        
+                        // Get all active employees
+                        $employees = DB::table('employees')
+                            ->whereNull('deleted_at')
+                            ->orderBy('first_name')
+                            ->get(['employee_id', 'first_name', 'last_name', 'email', 'employee_type']);
+                        
+                        // Use passed selectedFocalPoints from controller, fallback to old input
+                        $selectedFocalPoints = isset($selectedFocalPoints) ? $selectedFocalPoints : [];
+                        
+                        if (old('focal_points')) {
+                            $selectedFocalPoints = old('focal_points', []);
                         }
-                    }
-                    
-                    // Combine both sources, prioritize table data
-                    $selectedFocalPoints = !empty($selectedFocalPointsFromTable) 
-                        ? $selectedFocalPointsFromTable 
-                        : $selectedFocalPointsFromJson;
-                    
-                    // If form was submitted with errors, use old input
-                    if (old('focal_points')) {
-                        $selectedFocalPoints = old('focal_points', []);
-                    }
-                    ?>
+                    @endphp
                     
                     <select id="focal_points_select" 
                             multiple
                             class="form-control @error('focal_points') is-invalid @enderror"
                             name="focal_points[]">
                         
-                        @if($allEmployees->count() > 0)
-                            @foreach($allEmployees as $employee)
+                        @if($employees->count() > 0)
+                            @foreach($employees as $employee)
                                 @php
                                     $isSelected = in_array($employee->employee_id, $selectedFocalPoints);
                                     $displayName = trim($employee->first_name . ' ' . $employee->last_name);
-                                    $email = $employee->email ?? '';
-                                    $type = $employee->employee_type ?? '';
+                                    $type = $employee->employee_type ?? 'Unknown Type';
                                 @endphp
                                 
                                 <option value="{{ $employee->employee_id }}" 
                                         {{ $isSelected ? 'selected' : '' }}>
-                                    {{ $displayName }} - {{ $email }} ({{ $type }})
+                                    {{ $displayName }} - {{ $employee->email }} ({{ $type }})
                                 </option>
                             @endforeach
                         @else
@@ -565,9 +543,6 @@
                     </select>
                     
                     @error('focal_points')
-                        <div class="invalid-feedback d-block">{{ $message }}</div>
-                    @enderror
-                    @error('focal_points.*')
                         <div class="invalid-feedback d-block">{{ $message }}</div>
                     @enderror
                     
@@ -580,7 +555,6 @@
         </div>
     </div>
 </div>
-
 
 {{-- ========================================== --}}
 {{-- SECTION 8: OPERATIONAL SUPPORT REQUIRED --}}
