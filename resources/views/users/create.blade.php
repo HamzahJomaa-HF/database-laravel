@@ -67,120 +67,183 @@
                         {{-- Hidden field for user type --}}
                         <input type="hidden" name="type" value="Stakeholder">
                         
-                        {{-- ============================ --}}
-                        {{-- SECTION 1: BASIC INFORMATION --}}
-                        {{-- ============================ --}}
-                        <div class="section-card mb-4">
-                            <div class="section-header">
-                                <h6 class="mb-0 fw-semibold">Basic Information</h6>
-                                <span class="text-muted small">Personal and contact details</span>
-                            </div>
-                            <div class="section-body">
-                                <div class="row g-3">
-                                    {{-- Row 1 --}}
-                                    <div class="col-md-3">
-                                        <label for="first_name" class="form-label fw-semibold">
-                                            First Name <span class="text-danger">*</span>
-                                        </label>
-                                        <input type="text" name="first_name" id="first_name" 
-                                               class="form-control @error('first_name') is-invalid @enderror" 
-                                               value="{{ old('first_name') }}" 
-                                               placeholder="First Name" required>
-                                        @error('first_name')
-                                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                                        @enderror
-                                    </div>
+                      {{-- ============================ --}}
+{{-- SECTION 1: BASIC INFORMATION --}}
+{{-- ============================ --}}
+<div class="section-card mb-4">
+    <div class="section-header">
+        <h6 class="mb-0 fw-semibold">Basic Information</h6>
+        <span class="text-muted small">Personal and contact details</span>
+    </div>
+    <div class="section-body">
+        <div class="row g-3">
+            {{-- Row 1 --}}
+            <div class="col-md-3">
+                <label for="first_name" class="form-label fw-semibold">
+                    First Name <span class="text-danger">*</span>
+                </label>
+                <input type="text" name="first_name" id="first_name" 
+                       class="form-control @error('first_name') is-invalid @enderror" 
+                       value="{{ old('first_name') }}" 
+                       placeholder="First Name" required>
+                @error('first_name')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+            </div>
 
-                                    <div class="col-md-3">
-                                        <label for="middle_name" class="form-label fw-semibold">Middle Name</label>
-                                        <input type="text" name="middle_name" id="middle_name" 
-                                               class="form-control @error('middle_name') is-invalid @enderror" 
-                                               value="{{ old('middle_name') }}" 
-                                               placeholder="Middle Name">
-                                        @error('middle_name')
-                                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                                        @enderror
-                                    </div>
+            <div class="col-md-3">
+                <label for="middle_name" class="form-label fw-semibold">Middle Name</label>
+                <input type="text" name="middle_name" id="middle_name" 
+                       class="form-control @error('middle_name') is-invalid @enderror" 
+                       value="{{ old('middle_name') }}" 
+                       placeholder="Middle Name">
+                @error('middle_name')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+            </div>
 
-                                    <div class="col-md-3">
-                                        <label for="last_name" class="form-label fw-semibold">
-                                            Last Name <span class="text-danger">*</span>
-                                        </label>
-                                        <input type="text" name="last_name" id="last_name" 
-                                               class="form-control @error('last_name') is-invalid @enderror" 
-                                               value="{{ old('last_name') }}" 
-                                               placeholder="Last Name" required>
-                                        @error('last_name')
-                                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                    
-                                    <div class="col-md-3">
-                                        <label for="mother_name" class="form-label fw-semibold">Mother's Name</label>
-                                        <input type="text" name="mother_name" id="mother_name" 
-                                               class="form-control @error('mother_name') is-invalid @enderror" 
-                                               value="{{ old('mother_name') }}" 
-                                               placeholder="Mother's Name">
-                                        @error('mother_name')
-                                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                                        @enderror
-                                    </div>
+            <div class="col-md-3">
+                <label for="last_name" class="form-label fw-semibold">
+                    Last Name <span class="text-danger">*</span>
+                </label>
+                <input type="text" name="last_name" id="last_name" 
+                       class="form-control @error('last_name') is-invalid @enderror" 
+                       value="{{ old('last_name') }}" 
+                       placeholder="Last Name" required>
+                @error('last_name')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+            </div>
+            
+            <div class="col-md-3">
+                <label for="mother_name" class="form-label fw-semibold">Mother's Name</label>
+                <input type="text" name="mother_name" id="mother_name" 
+                       class="form-control @error('mother_name') is-invalid @enderror" 
+                       value="{{ old('mother_name') }}" 
+                       placeholder="Mother's Name">
+                @error('mother_name')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+            </div>
 
-                                    {{-- Row 2 --}}
-                                    <div class="col-md-3">
-                                        <label for="gender" class="form-label fw-semibold">
-                                            Gender <span class="text-danger">*</span>
-                                        </label>
-                                        <select name="gender" id="gender" class="form-control form-select @error('gender') is-invalid @enderror" required>
-                                            <option value="">Select Gender</option>
-                                            <option value="Male" {{ old('gender')=='Male' ? 'selected':'' }}>Male</option>
-                                            <option value="Female" {{ old('gender')=='Female' ? 'selected':'' }}>Female</option>
-                                        </select>
-                                        @error('gender')
-                                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                                        @enderror
-                                    </div>
+            {{-- Row 2 --}}
+            <div class="col-md-3">
+                <label for="gender" class="form-label fw-semibold">
+                    Gender <span class="text-danger">*</span>
+                </label>
+                <select name="gender" id="gender" class="form-control form-select @error('gender') is-invalid @enderror" required>
+                    <option value="">Select Gender</option>
+                    <option value="Male" {{ old('gender')=='Male' ? 'selected':'' }}>Male</option>
+                    <option value="Female" {{ old('gender')=='Female' ? 'selected':'' }}>Female</option>
+                </select>
+                @error('gender')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+            </div>
 
-                                    <div class="col-md-3">
-                                        <label for="dob" class="form-label fw-semibold">Date of Birth</label>
-                                        <input type="date" name="dob" id="dob" 
-                                               class="form-control @error('dob') is-invalid @enderror" 
-                                               value="{{ old('dob') }}">
-                                        @error('dob')
-                                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                                        @enderror
-                                    </div>
+            <div class="col-md-3">
+                <label for="dob" class="form-label fw-semibold">Date of Birth</label>
+                <input type="date" name="dob" id="dob" 
+                       class="form-control @error('dob') is-invalid @enderror" 
+                       value="{{ old('dob') }}">
+                @error('dob')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+            </div>
 
-                                    <div class="col-md-3">
-                                        <label for="prefix" class="form-label fw-semibold">Prefix</label>
-                                        <select name="prefix" id="prefix" class="form-control form-select @error('prefix') is-invalid @enderror">
-                                            <option value="">Select Prefix</option>
-                                            <option value="Dr." {{ old('prefix')=='Dr.' ? 'selected':'' }}>Dr.</option>
-                                            <option value="Mr." {{ old('prefix')=='Mr.' ? 'selected':'' }}>Mr.</option>
-                                            <option value="Ms." {{ old('prefix')=='Ms.' ? 'selected':'' }}>Ms.</option>
-                                            <option value="Mrs." {{ old('prefix')=='Mrs.' ? 'selected':'' }}>Mrs.</option>
-                                            <option value="Prof." {{ old('prefix')=='Prof.' ? 'selected':'' }}>Prof.</option>
-                                        </select>
-                                        @error('prefix')
-                                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                    
-                                    <div class="col-md-3">
-                                        <label for="address" class="form-label fw-semibold">
-                                            Address <span class="text-danger">*</span>
-                                        </label>
-                                        <input type="text" name="address" id="address" 
-                                               class="form-control @error('address') is-invalid @enderror" 
-                                               value="{{ old('address') }}" 
-                                               placeholder="Address" required>
-                                        @error('address')
-                                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+            <div class="col-md-3">
+                <label for="prefix" class="form-label fw-semibold">Prefix</label>
+                <select name="prefix" id="prefix" class="form-control form-select @error('prefix') is-invalid @enderror">
+                    <option value="">Select Prefix</option>
+                    <option value="Dr." {{ old('prefix')=='Dr.' ? 'selected':'' }}>Dr.</option>
+                    <option value="Mr." {{ old('prefix')=='Mr.' ? 'selected':'' }}>Mr.</option>
+                    <option value="Ms." {{ old('prefix')=='Ms.' ? 'selected':'' }}>Ms.</option>
+                    <option value="Mrs." {{ old('prefix')=='Mrs.' ? 'selected':'' }}>Mrs.</option>
+                    <option value="Prof." {{ old('prefix')=='Prof.' ? 'selected':'' }}>Prof.</option>
+                </select>
+                @error('prefix')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+            </div>
+            
+            <div class="col-md-3">
+                <label for="address" class="form-label fw-semibold">
+                    Address <span class="text-danger">*</span>
+                </label>
+                <input type="text" name="address" id="address" 
+                       class="form-control @error('address') is-invalid @enderror" 
+                       value="{{ old('address') }}" 
+                       placeholder="Address" required>
+                @error('address')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+            </div>
+
+            {{-- NEW ROW 3: Identification Fields --}}
+            <div class="col-md-6">
+                <label for="identification_id" class="form-label fw-semibold">Identification ID</label>
+                <input type="text" name="identification_id" id="identification_id" 
+                       class="form-control @error('identification_id') is-invalid @enderror" 
+                       value="{{ old('identification_id') }}" 
+                       placeholder="Identification ID">
+                @error('identification_id')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+                
+            </div>
+
+            <div class="col-md-6">
+                <label for="passport_number" class="form-label fw-semibold">Passport Number</label>
+                <input type="text" name="passport_number" id="passport_number" 
+                       class="form-control @error('passport_number') is-invalid @enderror" 
+                       value="{{ old('passport_number') }}" 
+                       placeholder="Passport Number">
+                @error('passport_number')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+                
+            </div>
+
+            {{-- NEW ROW 4: Register Number and Place --}}
+            <div class="col-md-6">
+                <label for="register_number" class="form-label fw-semibold">Register Number</label>
+                <input type="text" name="register_number" id="register_number" 
+                       class="form-control @error('register_number') is-invalid @enderror" 
+                       value="{{ old('register_number') }}" 
+                       placeholder="Register Number">
+                @error('register_number')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="col-md-6">
+                <label for="register_place" class="form-label fw-semibold">Register Place</label>
+                <input type="text" name="register_place" id="register_place" 
+                       class="form-control @error('register_place') is-invalid @enderror" 
+                       value="{{ old('register_place') }}" 
+                       placeholder="Register Place">
+                @error('register_place')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+            </div>
+
+            {{-- NEW ROW 5: Marital Status --}}
+            <div class="col-md-6">
+                <label for="marital_status" class="form-label fw-semibold">Marital Status</label>
+                <select name="marital_status" id="marital_status" class="form-control form-select @error('marital_status') is-invalid @enderror">
+                    <option value="">Select Marital Status</option>
+                    <option value="Single" {{ old('marital_status')=='Single' ? 'selected':'' }}>Single</option>
+                    <option value="Married" {{ old('marital_status')=='Married' ? 'selected':'' }}>Married</option>
+                    <option value="Divorced" {{ old('marital_status')=='Divorced' ? 'selected':'' }}>Divorced</option>
+                    <option value="Widowed" {{ old('marital_status')=='Widowed' ? 'selected':'' }}>Widowed</option>
+                </select>
+                @error('marital_status')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
+    </div>
+</div>
 {{-- ============================ --}}
 {{-- SECTION: USER TYPE --}}
 {{-- ============================ --}}

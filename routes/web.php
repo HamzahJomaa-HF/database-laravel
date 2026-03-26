@@ -45,7 +45,12 @@ use Illuminate\Support\Facades\DB;
 | Here is where you can register web routes for your application.
 |
 */
-
+// Activity User Import Routes
+Route::prefix('activity-users')->group(function () {
+    Route::get('import', [ActivityUserController::class, 'importForm'])->name('activity-users.import.form');
+    Route::post('import', [ActivityUserController::class, 'import'])->name('activity-users.import.process');
+    Route::get('download-template', [ActivityUserController::class, 'downloadTemplate'])->name('activity-users.download-template');
+});
 
 Route::get('/', function () {
     return view('welcome'); // or dashboard
