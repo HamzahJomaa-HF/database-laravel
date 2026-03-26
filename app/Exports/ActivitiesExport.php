@@ -83,7 +83,6 @@ class ActivitiesExport implements FromQuery, WithHeadings, WithMapping, WithStyl
             'Activity Portfolio',     // Portfolio category
             'Status',                 // Status (Planned/Complete/Cancelled/etc)
             'Focal Point',            // Focal point person
-            'Data'                    // Additional data column
         ];
     }
 
@@ -150,7 +149,6 @@ public function map($activity): array
         $portfolios ?: '',                     // Activity Portfolio
         ucfirst($status) ?? '',                // Status (Planned/Complete/etc)
         $focalPoints ?: '',                    // Focal Point (names from employees/focalpoints)
-        ''                                     // Data column (empty as in sample)
     ];
 }
     public function styles(Worksheet $sheet)
@@ -166,7 +164,7 @@ public function map($activity): array
         return [
             AfterSheet::class => function(AfterSheet $event) {
                 // Auto-size columns
-                $columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+                $columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
                 foreach ($columns as $column) {
                     $event->sheet->getDelegate()->getColumnDimension($column)->setAutoSize(true);
                 }
@@ -175,10 +173,10 @@ public function map($activity): array
                 $event->sheet->getDelegate()->freezePane('A2');
                 
                 // Add filter to the header
-                $event->sheet->getDelegate()->setAutoFilter('A1:L1');
+                $event->sheet->getDelegate()->setAutoFilter('A1:K1');
                 
                 // Set header background color (optional)
-                $event->sheet->getDelegate()->getStyle('A1:L1')->getFill()
+                $event->sheet->getDelegate()->getStyle('A1:K1')->getFill()
                     ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
                     ->getStartColor()->setARGB('FFE0E0E0');
             },

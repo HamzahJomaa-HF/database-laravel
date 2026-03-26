@@ -310,7 +310,8 @@ Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
     // ------------------------------------------------------------------------
     // ACTIVITIES MODULE
     // ------------------------------------------------------------------------
-    Route::get('/activities/export', [ActivityController::class, 'export'])->name('activities.export');
+    Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
+        ->get('/activities/export', [ActivityController::class, 'export'])->name('activities.export');
     Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
         ->prefix('activities')->name('activities.')->group(function () {
             Route::get('/', [ActivityController::class, 'index'])->name('index');

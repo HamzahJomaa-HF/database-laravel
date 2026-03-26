@@ -13,6 +13,10 @@
                     <p class="text-muted mb-0">Manage and organize your activities efficiently</p>
                 </div>
                 <div class="d-flex gap-2">
+                    <a href="{{ route('activities.export', request()->query()) }}" class="btn btn-outline-primary" style="background-color: white; border-color: #0a58ca; color: #0a58ca;">
+                        <i class="fas fa-file-excel me-1"></i> Export to Excel
+                    </a>
+                <div class="d-flex gap-2">
                     <a href="{{ route('activities.create') }}" class="btn btn-primary">
                         <i class="bi bi-calendar-plus me-1"></i>Add Activity
                     </a>
@@ -20,9 +24,7 @@
             </div>
         </div>
     </div>
-<a href="{{ route('activities.export', request()->query()) }}" class="btn btn-success">
-    <i class="fas fa-file-excel"></i> Export to Excel
-</a>
+
     {{-- Bulk Actions Section --}}
     <div class="row mb-4" id="bulkActionsSection" style="display: none;">
         <div class="col-12">

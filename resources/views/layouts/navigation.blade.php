@@ -415,7 +415,17 @@
                             </a>
                         </li>
                         @endif
+                        {{-- Export Activities --}}
+                @if($hasFullAccess || $employee->hasPermission('Activities'))
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('activities.export') ? 'active' : '' }}" 
+                       href="{{ route('activities.export') }}">
+                        <i class="bi bi-download me-2"></i> Export
+                    </a>
+                </li>
+                @endif
                     </ul>
+                    
                 </div>
             </li>
             @endif
