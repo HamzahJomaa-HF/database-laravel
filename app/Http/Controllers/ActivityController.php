@@ -243,13 +243,50 @@ class ActivityController extends Controller
         }
 
         // ============================================
-        // Handle Focal Points (if you store in activities table as JSON)
+        // Handle Focal Points (Using activity_focal_points pivot table)
         // ============================================
         if (!empty($focalPoints)) {
-            // Update the activity with focal_points JSON
-            $activity->update([
-                'focal_points' => json_encode($focalPoints)
-            ]);
+            // First, ensure each employee has an rp_focalpoints record
+            foreach ($focalPoints as $employeeId) {
+                $exists = DB::table('rp_focalpoints')
+                    ->where('employee_id', $employeeId)
+                    ->whereNull('deleted_at')
+                    ->exists();
+                
+                if (!$exists) {
+                    $employee = DB::table('employees')
+                        ->where('employee_id', $employeeId)
+                        ->first();
+                    
+                    if ($employee) {
+                        DB::table('rp_focalpoints')->insert([
+                            'rp_focalpoints_id' => (string) Str::uuid(),
+                            'name' => trim($employee->first_name . ' ' . $employee->last_name),
+                            'type' => 'employee',
+                            'employee_id' => $employeeId,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                }
+            }
+            
+            // Get the rp_focalpoints IDs for the selected employees
+            $rpFocalpoints = DB::table('rp_focalpoints')
+                ->whereIn('employee_id', $focalPoints)
+                ->whereNull('deleted_at')
+                ->get();
+            
+            // Create pivot records in activity_focal_points
+            foreach ($rpFocalpoints as $rpFocalpoint) {
+                DB::table('activity_focal_points')->insert([
+                    'activity_focal_point_id' => (string) Str::uuid(),
+                    'activity_id' => $activity->activity_id,
+                    'rp_focalpoints_id' => $rpFocalpoint->rp_focalpoints_id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
 
         DB::commit();
@@ -386,6 +423,22 @@ class ActivityController extends Controller
             return (string) $id;
         })
         ->toArray();
+        
+        // ============================================
+        // FETCH SELECTED FOCAL POINTS (Employee IDs)
+        // ============================================
+        $selectedFocalPoints = DB::table('activity_focal_points')
+            ->join('rp_focalpoints', 'rp_focalpoints.rp_focalpoints_id', '=', 'activity_focal_points.rp_focalpoints_id')
+            ->where('activity_focal_points.activity_id', $activity->activity_id)
+            ->whereNull('activity_focal_points.deleted_at')
+            ->whereNotNull('rp_focalpoints.employee_id')
+            ->pluck('rp_focalpoints.employee_id')
+            ->toArray();
+
+        // Override with old input if validation fails
+        if (old('focal_points')) {
+            $selectedFocalPoints = old('focal_points', []);
+        }
 
         // ============================================
         // Return view
@@ -453,13 +506,6 @@ class ActivityController extends Controller
             $validated['operational_support'] = json_encode($validated['operational_support']);
         } else {
             $validated['operational_support'] = null;
-        }
-
-        // Handle focal_points as JSON
-        if (!empty($focalPoints)) {
-            $validated['focal_points'] = json_encode($focalPoints);
-        } else {
-            $validated['focal_points'] = null;
         }
 
         // Handle rp_activities as JSON in the activity table
@@ -540,6 +586,63 @@ class ActivityController extends Controller
         } else {
             // If no RP activities selected, delete any existing mappings
             DB::table('rp_activity_mappings')
+                ->where('activity_id', $activity->activity_id)
+                ->delete();
+        }
+
+        // ============================================
+        // Handle Focal Points (Using activity_focal_points pivot table)
+        // ============================================
+        if (!empty($focalPoints)) {
+            // First, ensure each employee has an rp_focalpoints record
+            foreach ($focalPoints as $employeeId) {
+                $exists = DB::table('rp_focalpoints')
+                    ->where('employee_id', $employeeId)
+                    ->whereNull('deleted_at')
+                    ->exists();
+                
+                if (!$exists) {
+                    $employee = DB::table('employees')
+                        ->where('employee_id', $employeeId)
+                        ->first();
+                    
+                    if ($employee) {
+                        DB::table('rp_focalpoints')->insert([
+                            'rp_focalpoints_id' => (string) Str::uuid(),
+                            'name' => trim($employee->first_name . ' ' . $employee->last_name),
+                            'type' => 'employee',
+                            'employee_id' => $employeeId,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                }
+            }
+            
+            // Get the rp_focalpoints IDs for the selected employees
+            $rpFocalpoints = DB::table('rp_focalpoints')
+                ->whereIn('employee_id', $focalPoints)
+                ->whereNull('deleted_at')
+                ->get();
+            
+            // First, delete existing focal points for this activity
+            DB::table('activity_focal_points')
+                ->where('activity_id', $activity->activity_id)
+                ->delete();
+            
+            // Then create new pivot records
+            foreach ($rpFocalpoints as $rpFocalpoint) {
+                DB::table('activity_focal_points')->insert([
+                    'activity_focal_point_id' => (string) Str::uuid(),
+                    'activity_id' => $activity->activity_id,
+                    'rp_focalpoints_id' => $rpFocalpoint->rp_focalpoints_id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        } else {
+            // If no focal points selected, delete all existing ones
+            DB::table('activity_focal_points')
                 ->where('activity_id', $activity->activity_id)
                 ->delete();
         }
@@ -1026,6 +1129,11 @@ public function bulkDestroy(Request $request)
         DB::table('rp_activity_mappings')
             ->whereIn('activity_id', $activityIds)
             ->delete();
+        
+        // Delete related focal points mappings
+        DB::table('activity_focal_points')
+            ->whereIn('activity_id', $activityIds)
+            ->delete();
 
         DB::commit();
 
@@ -1070,8 +1178,5 @@ public function export(Request $request)
         return back()->with('error', 'Error exporting activities: ' . $e->getMessage());
     }
 }
-
-
-
 
 }

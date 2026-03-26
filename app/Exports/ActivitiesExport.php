@@ -90,6 +90,9 @@ class ActivitiesExport implements FromQuery, WithHeadings, WithMapping, WithStyl
     /**
  * Map each activity to the Excel row
  */
+/**
+ * Map each activity to the Excel row
+ */
 public function map($activity): array
 {
     $this->rowNumber++;
@@ -101,20 +104,27 @@ public function map($activity): array
         ->pluck('portfolios.name')
         ->implode(', ');
     
-    // Get focal points from employees table
-    $focalPoints = '';
-    if ($activity->focal_points) {
-        $focalPointsArray = json_decode($activity->focal_points, true);
-        if (is_array($focalPointsArray) && !empty($focalPointsArray)) {
-            // Fetch employee names from the employees table using employee_id
-            $employeeNames = DB::table('employees')
-                ->whereIn('employee_id', $focalPointsArray) // Using employee_id as the primary key
-                ->selectRaw("CONCAT(first_name, ' ', last_name) as full_name")
-                ->pluck('full_name')
-                ->implode(', ');
-            
-            $focalPoints = $employeeNames;
-        }
+    // ============================================
+    // FOCAL POINTS - CORRECT WAY USING PIVOT TABLE
+    // ============================================
+    // Get focal points from the pivot table structure
+    $focalPoints = DB::table('activity_focal_points')
+        ->join('rp_focalpoints', 'rp_focalpoints.rp_focalpoints_id', '=', 'activity_focal_points.rp_focalpoints_id')
+        ->leftJoin('employees', 'employees.employee_id', '=', 'rp_focalpoints.employee_id')
+        ->where('activity_focal_points.activity_id', $activity->activity_id)
+        ->whereNull('activity_focal_points.deleted_at')
+        ->selectRaw("CONCAT(employees.first_name, ' ', employees.last_name) as full_name")
+        ->pluck('full_name')
+        ->implode(', ');
+    
+    // If no employees found (focal points without employee association), use the focal point name
+    if (empty($focalPoints)) {
+        $focalPoints = DB::table('activity_focal_points')
+            ->join('rp_focalpoints', 'rp_focalpoints.rp_focalpoints_id', '=', 'activity_focal_points.rp_focalpoints_id')
+            ->where('activity_focal_points.activity_id', $activity->activity_id)
+            ->whereNull('activity_focal_points.deleted_at')
+            ->pluck('rp_focalpoints.name')
+            ->implode(', ');
     }
     
     // Determine status based on dates if not explicitly set
@@ -139,7 +149,7 @@ public function map($activity): array
         $activityScope,                        // Activity Scope
         $portfolios ?: '',                     // Activity Portfolio
         ucfirst($status) ?? '',                // Status (Planned/Complete/etc)
-        $focalPoints,                          // Focal Point (full name from employees table)
+        $focalPoints ?: '',                    // Focal Point (names from employees/focalpoints)
         ''                                     // Data column (empty as in sample)
     ];
 }

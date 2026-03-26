@@ -472,7 +472,7 @@
                             </div>
                         </div>
 
-                       {{-- ====================================== --}}
+ {{-- ====================================== --}}
 {{-- SECTION 7: FOCAL POINTS --}}
 {{-- ====================================== --}}
 <div class="section-card mb-4">
@@ -487,7 +487,6 @@
                     <label for="focal_points_select" class="form-label fw-semibold mb-2">Select Focal Points</label>
                     
                     @php
-                        // Direct database query in Blade
                         use Illuminate\Support\Facades\DB;
                         
                         // Get all active employees

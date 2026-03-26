@@ -511,9 +511,11 @@
                             ->orderBy('first_name')
                             ->get(['employee_id', 'first_name', 'last_name', 'email', 'employee_type']);
                         
-                        // Use passed selectedFocalPoints from controller, fallback to old input
+                        // Get selected focal points from controller (employee IDs)
+                        // This is now passed from the edit method
                         $selectedFocalPoints = isset($selectedFocalPoints) ? $selectedFocalPoints : [];
                         
+                        // Override with old input if validation fails (for form resubmission)
                         if (old('focal_points')) {
                             $selectedFocalPoints = old('focal_points', []);
                         }
@@ -543,6 +545,9 @@
                     </select>
                     
                     @error('focal_points')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                    @error('focal_points.*')
                         <div class="invalid-feedback d-block">{{ $message }}</div>
                     @enderror
                     
