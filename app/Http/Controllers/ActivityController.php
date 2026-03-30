@@ -153,7 +153,7 @@ class ActivityController extends Controller
     try {
         DB::beginTransaction();
 
-        // Validate the request
+        // Validate the request - ADDED 'experts' field
         $validated = $request->validate([
             'activity_title_en' => 'required_without:activity_title_ar|string|max:255',
             'activity_title_ar' => 'nullable|string|max:255|required_without:activity_title_en',
@@ -163,12 +163,13 @@ class ActivityController extends Controller
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'venue' => 'nullable|string|max:255',
             'content_network' => 'nullable|string',
+            'experts' => 'nullable|string', // ADDED experts field
             'rp_component_id' => 'nullable|exists:rp_components,rp_components_id',
             'rp_activities' => 'nullable|array',
             'focal_points' => 'nullable|array',
             'operational_support' => 'nullable|array',
-        'portfolios.*' => 'exists:portfolios,portfolio_id', 
-                    'maximum_capacity' => 'nullable|integer|min:0',
+            'portfolios.*' => 'exists:portfolios,portfolio_id', 
+            'maximum_capacity' => 'nullable|integer|min:0',
 
         ]);
 
@@ -465,7 +466,7 @@ class ActivityController extends Controller
     public function update(Request $request, $id)
     {
         $activity = Activity::findOrFail($id);
-        // Validate the request - ADD action_plan_id
+        // Validate the request - ADDED 'experts' field
         $validated = $request->validate([
             'activity_title_en' => 'required|string|max:255',
             'activity_title_ar' => 'nullable|string|max:255',
@@ -475,14 +476,15 @@ class ActivityController extends Controller
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'venue' => 'nullable|string|max:255',
             'content_network' => 'nullable|string',
+            'experts' => 'nullable|string', // ADDED experts field
             'action_plan_id' => 'nullable|exists:action_plans,action_plan_id', // NEW
             'rp_component_id' => 'nullable|exists:rp_components,rp_components_id',
             'rp_activities' => 'nullable|array',
             'focal_points' => 'nullable|array',
             'operational_support' => 'nullable|array',
             'maximum_capacity' => 'nullable|integer|min:0',
-                    'portfolios.*' => 'exists:portfolios,portfolio_id', 
-                    'maximum_capacity' => 'nullable|integer|min:0',
+            'portfolios.*' => 'exists:portfolios,portfolio_id', 
+            'maximum_capacity' => 'nullable|integer|min:0',
         ]);
         
         // Extract the specific arrays from the request
@@ -515,7 +517,7 @@ class ActivityController extends Controller
             $validated['rp_activities'] = null;
         }
 
-        // Update the activity with ALL validated data including action_plan_id, component and activities
+        // Update the activity with ALL validated data including action_plan_id and component and activities
         $activity->update($validated);
 
         // Get project ids from request (ensure it's an array of ids)
@@ -977,13 +979,13 @@ class ActivityController extends Controller
                 'programs as actions_count' => function ($query) {
                     $query->select(DB::raw('count(distinct rp_actions.rp_actions_id)'))
                         ->join('rp_units', 'rp_programs.rp_programs_id', '=', 'rp_units.rp_programs_id')
-                        ->join('rp_actions', 'rp_units.rp_units_id', '=', 'rp_actions.rp_units_id')
+                        ->join('rp_actions', 'rp_units.rp_units_id', '=', 'rp_actions.rp_actions_id')
                         ->whereNull('rp_actions.deleted_at');
                 },
                 'programs as activities_count' => function ($query) {
                     $query->select(DB::raw('count(distinct rp_activities.rp_activities_id)'))
                         ->join('rp_units', 'rp_programs.rp_programs_id', '=', 'rp_units.rp_programs_id')
-                        ->join('rp_actions', 'rp_units.rp_units_id', '=', 'rp_actions.rp_units_id')
+                        ->join('rp_actions', 'rp_units.rp_units_id', '=', 'rp_actions.rp_actions_id')
                         ->join('rp_activities', 'rp_actions.rp_actions_id', '=', 'rp_activities.rp_actions_id')
                         ->whereNull('rp_activities.deleted_at');
                 }

@@ -301,7 +301,7 @@
                                                 {{ $activity->activity_type ?? 'Not specified' }}
                                             </span>
                                             @php
-                                                $statusColor = 'secondary';
+                                                $statusColor = 'danger';
                                                 if ($activity->end_date && now()->gt($activity->end_date)) {
                                                     $status = 'completed';
                                                     $statusColor = 'success';

@@ -53,6 +53,7 @@ class Activity extends Model
         'activity_title_ar',
         'activity_type',
         'content_network',
+        'experts',
         'start_date',
         'end_date',
         'parent_activity',

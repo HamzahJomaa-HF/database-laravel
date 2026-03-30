@@ -67,7 +67,7 @@ class ActivitiesExport implements FromQuery, WithHeadings, WithMapping, WithStyl
     }
 
     /**
-     * Define the column headers - EXACTLY matching your sample
+     * Define the column headers
      */
     public function headings(): array
     {
@@ -81,76 +81,83 @@ class ActivitiesExport implements FromQuery, WithHeadings, WithMapping, WithStyl
             'Activity Type',          // Type of activity
             'Activity Scope',         // Scope (Local/Regional/International)
             'Activity Portfolio',     // Portfolio category
-            'Status',                 // Status (Planned/Complete/Cancelled/etc)
+            'Project Name',           // Associated Project Name
+            'Content / Network',      // Content and network description
+            'Experts',                // Experts involved
+            'Status',                 // Status (planned/upcoming/ongoing/completed/cancelled)
             'Focal Point',            // Focal point person
         ];
     }
 
     /**
- * Map each activity to the Excel row
- */
-/**
- * Map each activity to the Excel row
- */
-public function map($activity): array
-{
-    $this->rowNumber++;
-    
-    // Get portfolios (Activity Portfolio)
-    $portfolios = DB::table('portfolio_activities')
-        ->join('portfolios', 'portfolio_activities.portfolio_id', '=', 'portfolios.portfolio_id')
-        ->where('portfolio_activities.activity_id', $activity->activity_id)
-        ->pluck('portfolios.name')
-        ->implode(', ');
-    
-    // ============================================
-    // FOCAL POINTS - CORRECT WAY USING PIVOT TABLE
-    // ============================================
-    // Get focal points from the pivot table structure
-    $focalPoints = DB::table('activity_focal_points')
-        ->join('rp_focalpoints', 'rp_focalpoints.rp_focalpoints_id', '=', 'activity_focal_points.rp_focalpoints_id')
-        ->leftJoin('employees', 'employees.employee_id', '=', 'rp_focalpoints.employee_id')
-        ->where('activity_focal_points.activity_id', $activity->activity_id)
-        ->whereNull('activity_focal_points.deleted_at')
-        ->selectRaw("CONCAT(employees.first_name, ' ', employees.last_name) as full_name")
-        ->pluck('full_name')
-        ->implode(', ');
-    
-    // If no employees found (focal points without employee association), use the focal point name
-    if (empty($focalPoints)) {
+     * Map each activity to the Excel row
+     */
+    public function map($activity): array
+    {
+        $this->rowNumber++;
+        
+        // Get portfolios (Activity Portfolio)
+        $portfolios = DB::table('portfolio_activities')
+            ->join('portfolios', 'portfolio_activities.portfolio_id', '=', 'portfolios.portfolio_id')
+            ->where('portfolio_activities.activity_id', $activity->activity_id)
+            ->pluck('portfolios.name')
+            ->implode(', ');
+        
+        // GET PROJECT NAME FROM project_activities and projects tables
+        $projectNames = DB::table('project_activities')
+            ->join('projects', 'project_activities.project_id', '=', 'projects.project_id')
+            ->where('project_activities.activity_id', $activity->activity_id)
+            ->pluck('projects.name')
+            ->implode(', ');
+        
+        // FOCAL POINTS - USING PIVOT TABLE
         $focalPoints = DB::table('activity_focal_points')
             ->join('rp_focalpoints', 'rp_focalpoints.rp_focalpoints_id', '=', 'activity_focal_points.rp_focalpoints_id')
+            ->leftJoin('employees', 'employees.employee_id', '=', 'rp_focalpoints.employee_id')
             ->where('activity_focal_points.activity_id', $activity->activity_id)
             ->whereNull('activity_focal_points.deleted_at')
-            ->pluck('rp_focalpoints.name')
+            ->selectRaw("CONCAT(employees.first_name, ' ', employees.last_name) as full_name")
+            ->pluck('full_name')
             ->implode(', ');
+        
+        // If no employees found, use the focal point name
+        if (empty($focalPoints)) {
+            $focalPoints = DB::table('activity_focal_points')
+                ->join('rp_focalpoints', 'rp_focalpoints.rp_focalpoints_id', '=', 'activity_focal_points.rp_focalpoints_id')
+                ->where('activity_focal_points.activity_id', $activity->activity_id)
+                ->whereNull('activity_focal_points.deleted_at')
+                ->pluck('rp_focalpoints.name')
+                ->implode(', ');
+        }
+        
+        // DETERMINE STATUS - exactly as displayed in the application
+        $status = $this->determineStatus($activity);
+        
+        // Format dates (26-Feb-26 format)
+        $startDate = $activity->start_date ? date('d-M-y', strtotime($activity->start_date)) : '';
+        $endDate = $activity->end_date ? date('d-M-y', strtotime($activity->end_date)) : '';
+        
+        // Determine activity scope
+        $activityScope = $activity->activity_scope ?? 'Local';
+        
+        return [
+            $this->rowNumber,                      // # column
+            $activity->activity_title_en ?? '',    // Activity Name EN
+            $activity->activity_title_ar ?? '',    // Activity Name AR
+            $startDate,                            // Start Date
+            $endDate,                              // End Date
+            $activity->venue ?? '',                // Venue
+            $activity->activity_type ?? '',        // Activity Type
+            $activityScope,                        // Activity Scope
+            $portfolios ?: '',                     // Activity Portfolio
+            $projectNames ?: '',                   // Project Name
+            $activity->content_network ?? '',      // Content / Network
+            $activity->experts ?? '',              // Experts
+            $status,                               // Status
+            $focalPoints ?: '',                    // Focal Point
+        ];
     }
     
-    // Determine status based on dates if not explicitly set
-    $status = $activity->status ?? $this->determineStatus($activity);
-    
-    // Format dates as per your sample (26-Feb-26 format)
-    $startDate = $activity->start_date ? date('d-M-y', strtotime($activity->start_date)) : '';
-    $endDate = $activity->end_date ? date('d-M-y', strtotime($activity->end_date)) : '';
-    
-    // Determine activity scope (you may need to adjust this based on your data)
-    // If you have a scope field in your activities table, use it
-    $activityScope = $activity->activity_scope ?? 'Local'; // Default to 'Local' if not specified
-    
-    return [
-        $this->rowNumber,                      // # column
-        $activity->activity_title_en ?? '',    // Activity Name EN
-        $activity->activity_title_ar ?? '',    // Activity Name AR
-        $startDate,                            // Start Date
-        $endDate,                              // End Date
-        $activity->venue ?? '',                // Venue
-        $activity->activity_type ?? '',        // Activity Type
-        $activityScope,                        // Activity Scope
-        $portfolios ?: '',                     // Activity Portfolio
-        ucfirst($status) ?? '',                // Status (Planned/Complete/etc)
-        $focalPoints ?: '',                    // Focal Point (names from employees/focalpoints)
-    ];
-}
     public function styles(Worksheet $sheet)
     {
         return [
@@ -164,7 +171,7 @@ public function map($activity): array
         return [
             AfterSheet::class => function(AfterSheet $event) {
                 // Auto-size columns
-                $columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
+                $columns = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'];
                 foreach ($columns as $column) {
                     $event->sheet->getDelegate()->getColumnDimension($column)->setAutoSize(true);
                 }
@@ -173,10 +180,10 @@ public function map($activity): array
                 $event->sheet->getDelegate()->freezePane('A2');
                 
                 // Add filter to the header
-                $event->sheet->getDelegate()->setAutoFilter('A1:K1');
+                $event->sheet->getDelegate()->setAutoFilter('A1:N1');
                 
-                // Set header background color (optional)
-                $event->sheet->getDelegate()->getStyle('A1:K1')->getFill()
+                // Set header background color
+                $event->sheet->getDelegate()->getStyle('A1:N1')->getFill()
                     ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
                     ->getStartColor()->setARGB('FFE0E0E0');
             },
@@ -184,32 +191,54 @@ public function map($activity): array
     }
     
     /**
-     * Determine status based on dates
+     * Determine status based on dates - exactly as displayed in the application
+     * Returns: 'planned', 'upcoming', 'ongoing', 'completed', or 'cancelled'
      */
-    private function determineStatus($activity)
-    {
-        $now = now();
-        
-        // Check if activity is cancelled
-        if (isset($activity->is_cancelled) && $activity->is_cancelled) {
-            return 'cancelled';
+   /**
+ * Determine status based on dates - exactly as displayed in the application
+ * Returns: 'planned', 'upcoming', 'ongoing', 'completed', 'cancelled', or 'unknown'
+ */
+private function determineStatus($activity)
+{
+    $now = now();
+    
+    // Check if activity is cancelled (if you have this field)
+    if (isset($activity->is_cancelled) && $activity->is_cancelled) {
+        return 'cancelled';
+    }
+    
+    // If no start date, status is unknown
+    if (empty($activity->start_date)) {
+        return 'unknown';
+    }
+    
+    // Check if completed (end date exists and is in the past)
+    if (!empty($activity->end_date) && $activity->end_date < $now) {
+        return 'completed';
+    }
+    
+    // Check if ongoing (start date is now or in the past, and activity is not completed)
+    if ($activity->start_date <= $now) {
+        // If no end date, it's unknown (as per your requirement)
+        if (empty($activity->end_date)) {
+            return 'unknown';
         }
-        
-        // Check if completed
-        if ($activity->end_date && $activity->end_date < $now) {
-            return 'complete';
-        }
-        
-        // Check if ongoing
-        if ($activity->start_date <= $now && $activity->end_date >= $now) {
+        // If end date exists and is now or in the future
+        if ($activity->end_date >= $now) {
             return 'ongoing';
         }
-        
-        // Check if upcoming/planned
-        if ($activity->start_date > $now) {
-            return 'planned';
-        }
-        
-        return 'planned';
     }
+    
+    // Check if upcoming (start date is in the future)
+    if ($activity->start_date > $now) {
+        // If no end date, it's upcoming
+        if (empty($activity->end_date)) {
+            return 'upcoming';
+        }
+        return 'upcoming';
+    }
+    
+    // Default fallback
+    return 'unknown';
+}
 }

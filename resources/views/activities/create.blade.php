@@ -353,29 +353,47 @@
                             </div>
                         </div>
 
-                        {{-- ================================== --}}
-                        {{-- SECTION 4: CONTENT AND NETWORK --}}
-                        {{-- ================================== --}}
-                        <div class="section-card mb-4">
-                            <div class="section-header">
-                                <h6 class="mb-0 fw-semibold">Content and Network</h6>
-                                <span class="text-muted small">Activity description and reporting</span>
-                            </div>
-                            <div class="section-body">
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <label for="content_network" class="form-label fw-semibold">Content / Network</label>
-                                        <textarea name="content_network" id="content_network" 
-                                                  class="form-control @error('content_network') is-invalid @enderror" 
-                                                  rows="3" 
-                                                  placeholder="Describe the activity content and network...">{{ old('content_network') }}</textarea>
-                                        @error('content_network')
-                                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                       {{-- ================================== --}}
+{{-- SECTION 4: CONTENT AND NETWORK --}}
+{{-- ================================== --}}
+<div class="section-card mb-4">
+    <div class="section-header">
+        <h6 class="mb-0 fw-semibold">Content and Network</h6>
+        <span class="text-muted small">Activity description and reporting</span>
+    </div>
+    <div class="section-body">
+        <div class="row">
+            <div class="col-md-12">
+                <label for="content_network" class="form-label fw-semibold">Content / Network</label>
+                <textarea name="content_network" id="content_network" 
+                          class="form-control @error('content_network') is-invalid @enderror" 
+                          rows="3" 
+                          placeholder="Describe the activity content and network...">{{ old('content_network') }}</textarea>
+                @error('content_network')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
+        
+        {{-- Experts Field --}}
+        <div class="row mt-3">
+            <div class="col-md-12">
+                <label for="experts" class="form-label fw-semibold">Experts</label>
+                <textarea name="experts" id="experts" 
+                          class="form-control @error('experts') is-invalid @enderror" 
+                          rows="3" 
+                          placeholder="List the experts involved in this activity...">{{ old('experts') }}</textarea>
+                @error('experts')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+                <div class="form-text mt-1">
+                    <i class="bi bi-info-circle me-1"></i>
+                    List names, titles, or any relevant information about experts participating in this activity
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
                         {{-- ====================================== --}}
                         {{-- SECTION 5: ACTION PLAN SELECTION --}}
