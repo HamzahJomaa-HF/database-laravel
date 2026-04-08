@@ -5,6 +5,8 @@ use App\Models\ActivityUser;
 use App\Models\Activity;
 use App\Models\User;
 use App\Models\Cop;
+use App\Models\Nationality;
+use App\Models\Diploma;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -558,7 +560,7 @@ class ActivityUserController extends Controller
             $file = fopen('php://output', 'w');
             fwrite($file, "\xEF\xBB\xBF"); // BOM for UTF-8
             
-            // Template headers - added attended column
+            // Template headers
             fputcsv($file, [
                 'first_name*',
                 'last_name*',
@@ -591,10 +593,14 @@ class ActivityUserController extends Controller
                 'type',
                 'default_cop_id',
                 'role_in_activity',
-                'attended'
+                'attended',
+                'nationality_name',
+                'diploma_name',
+                'diploma_institution',
+                'diploma_year'
             ]);
             
-            // Example data row with attended example
+            // Example data row
             fputcsv($file, [
                 'John',                         // first_name*
                 'Doe',                          // last_name*
@@ -627,7 +633,11 @@ class ActivityUserController extends Controller
                 'Stakeholder',                  // type
                 '123e4567-e89b-12d3-a456-426614174000', // default_cop_id
                 'Participant',                  // role_in_activity
-                'yes'                           // attended
+                'yes',                          // attended
+                'Lebanese',                     // nationality_name
+                'Bachelor of Science',          // diploma_name
+                'American University of Beirut', // diploma_institution
+                '2020'                          // diploma_year
             ]);
             
             fclose($file);
@@ -637,7 +647,7 @@ class ActivityUserController extends Controller
     }
 
     /**
-     * Process the import file - WITH ATTENDED COLUMN SUPPORT
+     * Process the import file - WITH ENHANCED DUPLICATE DETECTION AND MERGING LOGIC
      */
     public function import(Request $request)
     {
@@ -660,9 +670,11 @@ class ActivityUserController extends Controller
             'total' => 0,
             'new_users' => 0,
             'existing_users' => 0,
+             'already_assigned' => 0, 
             'assigned' => 0,
             'failed' => 0,
             'duplicates' => 0,
+            'merged_users' => 0,
             'errors' => []
         ];
         
@@ -689,7 +701,7 @@ class ActivityUserController extends Controller
             
             foreach ($data as $rowIndex => $row) {
                 $results['total']++;
-                $rowNumber = $rowIndex + 2; // +2 for header and 1-based index
+                $rowNumber = $rowIndex + 2;
                 
                 try {
                     // ONLY first_name and last_name are required
@@ -740,192 +752,551 @@ class ActivityUserController extends Controller
                         throw new \Exception("first_name and last_name are required and cannot be empty");
                     }
                     
-                    // Build duplicate check key based on: first_name, middle_name, last_name, dob, phone_number
-                    $middleName = $userData['middle_name'] ?? '';
-                    $dob = $userData['dob'] ?? '';
-                    $phoneNumber = $userData['phone_number'] ?? '';
-                    
-                    $duplicateKey = strtolower(trim($userData['first_name'])) . '|' .
-                                    strtolower(trim($middleName)) . '|' .
-                                    strtolower(trim($userData['last_name'])) . '|' .
-                                    $dob . '|' .
-                                    $phoneNumber;
+                    // Build duplicate check key based on: first_name, last_name (for cache)
+                    $cacheKey = strtolower(trim($userData['first_name'])) . '|' .
+                                strtolower(trim($userData['last_name']));
                     
                     // Check for duplicate within current import
-                    if (isset($importedUsersCache[$duplicateKey])) {
-                        $results['duplicates']++;
-                        throw new \Exception("Duplicate user found in import file: User with same name, DOB, and phone number already exists in this import (Row: {$importedUsersCache[$duplicateKey]})");
-                    }
-                    
-                    // Validate unique fields
-                    $existingUser = null;
-                    
-                    // Check by email first if provided
-                    if (!empty($userData['email'])) {
-                        $existingUser = User::where('email', $userData['email'])->first();
-                        if ($existingUser) {
-                            $results['duplicates']++;
-                            throw new \Exception("User with email '{$userData['email']}' already exists (User ID: {$existingUser->user_id})");
-                        }
-                    }
-                    
-                    // If not found by email, check by identification_id
-                    if (!$existingUser && !empty($userData['identification_id'])) {
-                        $existingUser = User::where('identification_id', $userData['identification_id'])->first();
-                        if ($existingUser) {
-                            $results['duplicates']++;
-                            throw new \Exception("User with identification_id '{$userData['identification_id']}' already exists (User ID: {$existingUser->user_id})");
-                        }
-                    }
-                    
-                    // If not found, check by passport_number
-                    if (!$existingUser && !empty($userData['passport_number'])) {
-                        $existingUser = User::where('passport_number', $userData['passport_number'])->first();
-                        if ($existingUser) {
-                            $results['duplicates']++;
-                            throw new \Exception("User with passport_number '{$userData['passport_number']}' already exists (User ID: {$existingUser->user_id})");
-                        }
-                    }
-                    
-                    // Check by name + phone combination (first_name, middle_name, last_name, dob, phone_number)
-                    if (!$existingUser) {
-                        $query = User::where('first_name', $userData['first_name'])
-                            ->where('last_name', $userData['last_name']);
+                    if (isset($importedUsersCache[$cacheKey])) {
+                        $cachedUser = $importedUsersCache[$cacheKey];
                         
-                        // Add middle_name condition if provided
-                        if (!empty($userData['middle_name'])) {
-                            $query->where('middle_name', $userData['middle_name']);
+                        // Check if current row has phone number and cached doesn't
+                        $currentHasPhone = !empty($userData['phone_number']) && $userData['phone_number'] !== 'Not Provided';
+                        $cachedHasPhone = !empty($cachedUser['phone_number']) && $cachedUser['phone_number'] !== 'Not Provided';
+                        
+                        if ($currentHasPhone && !$cachedHasPhone) {
+                            // Replace cached user with the one that has phone number
+                            $importedUsersCache[$cacheKey] = $userData;
+                            $results['merged_users']++;
+                            Log::info("Replaced cached user with phone number", [
+                                'first_name' => $userData['first_name'],
+                                'last_name' => $userData['last_name'],
+                                'phone' => $userData['phone_number']
+                            ]);
+                        } elseif (!$currentHasPhone && $cachedHasPhone) {
+                            // Keep the cached user that has phone number, skip current
+                            $results['duplicates']++;
+                            throw new \Exception("Duplicate user found: User with same name already exists in this import with a phone number. This record will be skipped.");
                         } else {
-                            $query->where(function($q) {
-                                $q->whereNull('middle_name')->orWhere('middle_name', '');
+                            // Both have phone or both don't - treat as duplicate
+                            $results['duplicates']++;
+                            throw new \Exception("Duplicate user found in import file: User with same name already exists in this import (Row: {$cachedUser['row']})");
+                        }
+                        
+                        // If we reach here, we're using the cached user
+                        // Get the actual user from database or create if needed
+                        $user = $this->findOrCreateUserFromCache($importedUsersCache[$cacheKey], $cacheKey, $results);
+                        
+                        if (!$user) {
+                            throw new \Exception("Failed to process user");
+                        }
+                        
+                        goto assign_activity;
+                    }
+                    
+                    // Store in cache for future duplicate detection within this import
+                    $importedUsersCache[$cacheKey] = array_merge($userData, ['row' => $rowNumber]);
+                    
+                    // ========== MODIFIED LOGIC: Find existing user with preference for phone number ==========
+                    
+                    // STEP 1: Find ALL potential matching users by first_name and last_name only
+                    $potentialUsers = User::where('first_name', $userData['first_name'])
+                        ->where('last_name', $userData['last_name'])
+                        ->get();
+                    
+                    $selectedUser = null;
+                    
+                    if ($potentialUsers->count() > 0) {
+                        // STEP 2: Prioritize user with phone number if current import row has phone number
+                        $currentHasPhone = !empty($userData['phone_number']) && $userData['phone_number'] !== 'Not Provided';
+                        
+                        if ($currentHasPhone) {
+                            // Try to find matching user with the same phone number first
+                            $selectedUser = $potentialUsers->first(function ($user) use ($userData) {
+                                return !empty($user->phone_number) && 
+                                       $user->phone_number === $userData['phone_number'];
                             });
+                            
+                            // If no exact phone match, look for any user with a phone number (to merge later)
+                            if (!$selectedUser) {
+                                $userWithPhone = $potentialUsers->first(function ($user) {
+                                    return !empty($user->phone_number) && $user->phone_number !== 'Not Provided';
+                                });
+                                
+                                if ($userWithPhone) {
+                                    $selectedUser = $userWithPhone;
+                                    $results['merged_users']++;
+                                    Log::info("Will merge import data into existing user with phone number", [
+                                        'existing_user_id' => $selectedUser->user_id,
+                                        'existing_phone' => $selectedUser->phone_number,
+                                        'import_phone' => $userData['phone_number']
+                                    ]);
+                                }
+                            }
+                        } else {
+                            // Current row has NO phone number - look for any matching user
+                            $selectedUser = $potentialUsers->first();
+                            
+                            // If found user has a phone number, that's fine - we'll use it
+                            if ($selectedUser && !empty($selectedUser->phone_number)) {
+                                Log::info("Using existing user with phone number for name-only match", [
+                                    'user_id' => $selectedUser->user_id,
+                                    'phone' => $selectedUser->phone_number
+                                ]);
+                            }
                         }
                         
-                        // Add dob condition if provided
-                        if (!empty($userData['dob'])) {
-                            $query->where('dob', $userData['dob']);
-                        }
-                        
-                        // Add phone_number condition if provided
-                        if (!empty($userData['phone_number'])) {
-                            $query->where('phone_number', $userData['phone_number']);
-                        }
-                        
-                        $existingUser = $query->first();
-                        
-                        if ($existingUser) {
-                            $results['duplicates']++;
-                            throw new \Exception("User already exists with same name, DOB, and phone number (User ID: {$existingUser->user_id})");
+                        // STEP 3: If we found a user, optionally update their data with new information
+                        if ($selectedUser) {
+                            $user = $selectedUser;
+                            $results['existing_users']++;
+                            
+                            // Update user with any missing information from import
+                            $updated = false;
+                            
+                            // Update phone number if current has phone and existing doesn't
+                            if ($currentHasPhone && (empty($user->phone_number) || $user->phone_number === 'Not Provided')) {
+                                $user->phone_number = $userData['phone_number'];
+                                $updated = true;
+                                Log::info("Updated user with phone number", [
+                                    'user_id' => $user->user_id,
+                                    'phone' => $userData['phone_number']
+                                ]);
+                            }
+                            
+                            // Update email if current has email and existing doesn't
+                            if (!empty($userData['email']) && empty($user->email)) {
+                                $user->email = $userData['email'];
+                                $updated = true;
+                            }
+                            
+                            // Update identification_id if current has it and existing doesn't
+                            if (!empty($userData['identification_id']) && empty($user->identification_id)) {
+                                $user->identification_id = $userData['identification_id'];
+                                $updated = true;
+                            }
+                            
+                            // Update passport_number if current has it and existing doesn't
+                            if (!empty($userData['passport_number']) && empty($user->passport_number)) {
+                                $user->passport_number = $userData['passport_number'];
+                                $updated = true;
+                            }
+                            
+                            // Update other fields if they are empty in existing user
+                            $fieldsToUpdate = ['middle_name', 'mother_name', 'dob', 'gender', 'position_1', 'organization_1', 'organization_type_1', 'status_1', 'address', 'sector'];
+                            foreach ($fieldsToUpdate as $field) {
+                                if (!empty($userData[$field]) && (empty($user->$field) || $user->$field === 'Not Specified' || $user->$field === 'Not Provided')) {
+                                    $user->$field = $userData[$field];
+                                    $updated = true;
+                                }
+                            }
+                            
+                            if ($updated) {
+                                $user->save();
+                                Log::info("Updated existing user with missing information", ['user_id' => $user->user_id]);
+                            }
+                            
+                            // Handle nationality for existing user
+                            if (!empty($userData['_nationality_id'])) {
+                                $nationalityExists = DB::table('users_nationality')
+                                    ->where('user_id', $user->user_id)
+                                    ->where('nationality_id', $userData['_nationality_id'])
+                                    ->exists();
+                                
+                                if (!$nationalityExists) {
+                                    DB::table('users_nationality')->insert([
+                                        'user_id' => $user->user_id,
+                                        'nationality_id' => $userData['_nationality_id'],
+                                        'created_at' => now(),
+                                        'updated_at' => now(),
+                                    ]);
+                                    Log::info("Assigned nationality to existing user", [
+                                        'user_id' => $user->user_id,
+                                        'nationality_id' => $userData['_nationality_id']
+                                    ]);
+                                }
+                            }
+                            
+                            // Handle diploma for existing user
+                            if (!empty($userData['_diploma_id'])) {
+                                $diplomaExists = DB::table('users_diploma')
+                                    ->where('user_id', $user->user_id)
+                                    ->where('diploma_id', $userData['_diploma_id'])
+                                    ->exists();
+                                
+                                if (!$diplomaExists) {
+                                    DB::table('users_diploma')->insert([
+                                        'user_id' => $user->user_id,
+                                        'diploma_id' => $userData['_diploma_id'],
+                                        'created_at' => now(),
+                                        'updated_at' => now(),
+                                    ]);
+                                    Log::info("Assigned diploma to existing user", [
+                                        'user_id' => $user->user_id,
+                                        'diploma_id' => $userData['_diploma_id']
+                                    ]);
+                                }
+                            }
+                            
+                            goto assign_activity;
                         }
                     }
                     
-                    // Check by phone number only (as a secondary check)
-                    if (!$existingUser && !empty($userData['phone_number']) && $userData['phone_number'] !== 'Not Provided') {
-                        $existingUser = User::where('phone_number', $userData['phone_number'])->first();
-                        if ($existingUser) {
-                            $results['duplicates']++;
-                            throw new \Exception("User with phone number '{$userData['phone_number']}' already exists (User ID: {$existingUser->user_id})");
+                    // STEP 4: Check by email if still no user found
+                    if (!$selectedUser && !empty($userData['email'])) {
+                        $existingUserByEmail = User::where('email', $userData['email'])->first();
+                        if ($existingUserByEmail) {
+                            $user = $existingUserByEmail;
+                            $results['existing_users']++;
+                            Log::info("User found by email", ['user_id' => $user->user_id, 'email' => $user->email]);
+                            
+                            // Handle nationality for existing user
+                            if (!empty($userData['_nationality_id'])) {
+                                $nationalityExists = DB::table('users_nationality')
+                                    ->where('user_id', $user->user_id)
+                                    ->where('nationality_id', $userData['_nationality_id'])
+                                    ->exists();
+                                
+                                if (!$nationalityExists) {
+                                    DB::table('users_nationality')->insert([
+                                        'user_id' => $user->user_id,
+                                        'nationality_id' => $userData['_nationality_id'],
+                                        'created_at' => now(),
+                                        'updated_at' => now(),
+                                    ]);
+                                }
+                            }
+                            
+                            // Handle diploma for existing user
+                            if (!empty($userData['_diploma_id'])) {
+                                $diplomaExists = DB::table('users_diploma')
+                                    ->where('user_id', $user->user_id)
+                                    ->where('diploma_id', $userData['_diploma_id'])
+                                    ->exists();
+                                
+                                if (!$diplomaExists) {
+                                    DB::table('users_diploma')->insert([
+                                        'user_id' => $user->user_id,
+                                        'diploma_id' => $userData['_diploma_id'],
+                                        'created_at' => now(),
+                                        'updated_at' => now(),
+                                    ]);
+                                }
+                            }
+                            
+                            goto assign_activity;
                         }
                     }
                     
-                    // Check if user already exists (from previous checks)
-                    if ($existingUser) {
-                        $user = $existingUser;
-                        $results['existing_users']++;
-                    } else {
-                        // Create new user with validated data
-                        $user = User::create($userData);
-                        $results['new_users']++;
-                        
-                        // Store in cache to detect duplicates within this import
-                        $importedUsersCache[$duplicateKey] = $rowNumber;
+                    // STEP 5: Check by identification_id if still no user found
+                    if (!$selectedUser && !empty($userData['identification_id'])) {
+                        $existingUserByIdentification = User::where('identification_id', $userData['identification_id'])->first();
+                        if ($existingUserByIdentification) {
+                            $user = $existingUserByIdentification;
+                            $results['existing_users']++;
+                            Log::info("User found by identification_id", ['user_id' => $user->user_id]);
+                            
+                            // Handle nationality for existing user
+                            if (!empty($userData['_nationality_id'])) {
+                                $nationalityExists = DB::table('users_nationality')
+                                    ->where('user_id', $user->user_id)
+                                    ->where('nationality_id', $userData['_nationality_id'])
+                                    ->exists();
+                                
+                                if (!$nationalityExists) {
+                                    DB::table('users_nationality')->insert([
+                                        'user_id' => $user->user_id,
+                                        'nationality_id' => $userData['_nationality_id'],
+                                        'created_at' => now(),
+                                        'updated_at' => now(),
+                                    ]);
+                                }
+                            }
+                            
+                            // Handle diploma for existing user
+                            if (!empty($userData['_diploma_id'])) {
+                                $diplomaExists = DB::table('users_diploma')
+                                    ->where('user_id', $user->user_id)
+                                    ->where('diploma_id', $userData['_diploma_id'])
+                                    ->exists();
+                                
+                                if (!$diplomaExists) {
+                                    DB::table('users_diploma')->insert([
+                                        'user_id' => $user->user_id,
+                                        'diploma_id' => $userData['_diploma_id'],
+                                        'created_at' => now(),
+                                        'updated_at' => now(),
+                                    ]);
+                                }
+                            }
+                            
+                            goto assign_activity;
+                        }
                     }
                     
-                    // Determine attended status:
-                    // Priority: 1. Value from Excel/CSV column, 2. Default from form, 3. False
-                    $attendedStatus = $attendedValue !== null ? $attendedValue : $attendedDefault;
+                    // STEP 6: Check by passport_number if still no user found
+                    if (!$selectedUser && !empty($userData['passport_number'])) {
+                        $existingUserByPassport = User::where('passport_number', $userData['passport_number'])->first();
+                        if ($existingUserByPassport) {
+                            $user = $existingUserByPassport;
+                            $results['existing_users']++;
+                            Log::info("User found by passport_number", ['user_id' => $user->user_id]);
+                            
+                            // Handle nationality for existing user
+                            if (!empty($userData['_nationality_id'])) {
+                                $nationalityExists = DB::table('users_nationality')
+                                    ->where('user_id', $user->user_id)
+                                    ->where('nationality_id', $userData['_nationality_id'])
+                                    ->exists();
+                                
+                                if (!$nationalityExists) {
+                                    DB::table('users_nationality')->insert([
+                                        'user_id' => $user->user_id,
+                                        'nationality_id' => $userData['_nationality_id'],
+                                        'created_at' => now(),
+                                        'updated_at' => now(),
+                                    ]);
+                                }
+                            }
+                            
+                            // Handle diploma for existing user
+                            if (!empty($userData['_diploma_id'])) {
+                                $diplomaExists = DB::table('users_diploma')
+                                    ->where('user_id', $user->user_id)
+                                    ->where('diploma_id', $userData['_diploma_id'])
+                                    ->exists();
+                                
+                                if (!$diplomaExists) {
+                                    DB::table('users_diploma')->insert([
+                                        'user_id' => $user->user_id,
+                                        'diploma_id' => $userData['_diploma_id'],
+                                        'created_at' => now(),
+                                        'updated_at' => now(),
+                                    ]);
+                                }
+                            }
+                            
+                            goto assign_activity;
+                        }
+                    }
                     
+                    // STEP 7: Check by phone number only if still no user found
+                    if (!$selectedUser && !empty($userData['phone_number']) && $userData['phone_number'] !== 'Not Provided') {
+                        $existingUserByPhone = User::where('phone_number', $userData['phone_number'])->first();
+                        if ($existingUserByPhone) {
+                            $user = $existingUserByPhone;
+                            $results['existing_users']++;
+                            Log::info("User found by phone_number", ['user_id' => $user->user_id]);
+                            
+                            // Handle nationality for existing user
+                            if (!empty($userData['_nationality_id'])) {
+                                $nationalityExists = DB::table('users_nationality')
+                                    ->where('user_id', $user->user_id)
+                                    ->where('nationality_id', $userData['_nationality_id'])
+                                    ->exists();
+                                
+                                if (!$nationalityExists) {
+                                    DB::table('users_nationality')->insert([
+                                        'user_id' => $user->user_id,
+                                        'nationality_id' => $userData['_nationality_id'],
+                                        'created_at' => now(),
+                                        'updated_at' => now(),
+                                    ]);
+                                }
+                            }
+                            
+                            // Handle diploma for existing user
+                            if (!empty($userData['_diploma_id'])) {
+                                $diplomaExists = DB::table('users_diploma')
+                                    ->where('user_id', $user->user_id)
+                                    ->where('diploma_id', $userData['_diploma_id'])
+                                    ->exists();
+                                
+                                if (!$diplomaExists) {
+                                    DB::table('users_diploma')->insert([
+                                        'user_id' => $user->user_id,
+                                        'diploma_id' => $userData['_diploma_id'],
+                                        'created_at' => now(),
+                                        'updated_at' => now(),
+                                    ]);
+                                }
+                            }
+                            
+                            goto assign_activity;
+                        }
+                    }
+                    
+                    // STEP 8: No existing user found - create new user
+                    $user = User::create($userData);
+                    $results['new_users']++;
+                    
+                    // Handle nationality assignment for new user
+                    if (!empty($userData['_nationality_id'])) {
+                        DB::table('users_nationality')->insert([
+                            'user_id' => $user->user_id,
+                            'nationality_id' => $userData['_nationality_id'],
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                        Log::info("Assigned nationality to new user", [
+                            'user_id' => $user->user_id,
+                            'nationality_id' => $userData['_nationality_id']
+                        ]);
+                    }
+                    
+                    // Handle diploma assignment for new user
+                    if (!empty($userData['_diploma_id'])) {
+                        DB::table('users_diploma')->insert([
+                            'user_id' => $user->user_id,
+                            'diploma_id' => $userData['_diploma_id'],
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                        Log::info("Assigned diploma to new user", [
+                            'user_id' => $user->user_id,
+                            'diploma_id' => $userData['_diploma_id']
+                        ]);
+                    }
+                    
+                    // Update cache with the newly created user's data
+                    $importedUsersCache[$cacheKey] = array_merge($userData, ['user_id' => $user->user_id, 'row' => $rowNumber]);
+                    
+                    Log::info("New user created", [
+                        'user_id' => $user->user_id,
+                        'first_name' => $user->first_name,
+                        'last_name' => $user->last_name,
+                        'has_phone' => !empty($user->phone_number) && $user->phone_number !== 'Not Provided'
+                    ]);
+                    
+                    assign_activity:
                     // Check if relationship already exists
-                    $exists = ActivityUser::where('user_id', $user->user_id)
+                    $relationshipExists = ActivityUser::where('user_id', $user->user_id)
                         ->where('activity_id', $activityId)
                         ->exists();
                     
-                    if (!$exists) {
-                        // Create activity user relationship
-                        $activityUserData = [
+                    if (!$relationshipExists) {
+                        ActivityUser::create([
                             'activity_user_id' => (string) Str::uuid(),
                             'user_id' => $user->user_id,
                             'activity_id' => $activityId,
+                            'cop_id' => $copId,
                             'invited' => $invitedDefault,
-                            'attended' => $attendedStatus,
-                            'type' => $row['role_in_activity'] ?? null,
-                        ];
-                        
-                        if ($copId) {
-                            $activityUserData['cop_id'] = $copId;
-                        }
-                        
-                        ActivityUser::create($activityUserData);
-                        $results['assigned']++;
-                    } else {
-                        // Already assigned, update if needed
-                        $activityUser = ActivityUser::where('user_id', $user->user_id)
-                            ->where('activity_id', $activityId)
-                            ->first();
-                        
-                        $updated = false;
-                        
-                        if ($invitedDefault && !$activityUser->invited) {
-                            $activityUser->invited = true;
-                            $updated = true;
-                        }
-                        
-                        // Update attended if value from Excel/CSV is different or if default is different
-                        if ($attendedValue !== null && $activityUser->attended != $attendedValue) {
-                            $activityUser->attended = $attendedValue;
-                            $updated = true;
-                        } elseif ($attendedDefault && !$activityUser->attended && $attendedValue === null) {
-                            $activityUser->attended = true;
-                            $updated = true;
-                        }
-                        
-                        if (!empty($row['role_in_activity']) && empty($activityUser->type)) {
-                            $activityUser->type = $row['role_in_activity'];
-                            $updated = true;
-                        }
-                        
-                        if ($copId && empty($activityUser->cop_id)) {
-                            $activityUser->cop_id = $copId;
-                            $updated = true;
-                        }
-                        
-                        if ($updated) {
-                            $activityUser->save();
-                        }
-                        
+                            'attended' => $attendedDefault ?? $attendedValue,
+                        ]);
                         $results['assigned']++;
                     }
                     
                 } catch (\Exception $e) {
                     $results['failed']++;
                     $results['errors'][] = "Row {$rowNumber}: " . $e->getMessage();
-                    Log::error("Import error at row {$rowNumber}: " . $e->getMessage());
+                    Log::error("Import row {$rowNumber} failed: " . $e->getMessage());
                 }
             }
             
             DB::commit();
             
-            return $this->handleImportResults($results);
+            // Build enhanced success message
+            $message = sprintf(
+                "Import completed: %d users processed. %d new users created, %d existing users found, %d merged/updated, %d assigned to activity, %d duplicates skipped, %d failed.",
+                $results['total'],
+                $results['new_users'],
+                $results['existing_users'],
+                $results['merged_users'],
+                $results['assigned'],
+                $results['duplicates'],
+                $results['failed']
+            );
+            
+            if ($results['failed'] > 0 || $results['duplicates'] > 0) {
+                $errorDetails = implode('<br>', array_slice($results['errors'], 0, 10));
+                if (count($results['errors']) > 10) {
+                    $errorDetails .= '<br>... and ' . (count($results['errors']) - 10) . ' more errors';
+                }
+                
+                return redirect()
+                    ->route('activity-users.import.form')
+                    ->with('warning', $message)
+                    ->with('error_details', $errorDetails);
+            }
+            
+            return redirect()
+                ->route('activity-users.index')
+                ->with('success', $message);
             
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Import failed: ' . $e->getMessage());
             
-            return redirect()->route('activity-users.import.form')
+            return redirect()
+                ->route('activity-users.import.form')
                 ->with('error', 'Failed to process file: ' . $e->getMessage());
         }
     }
 
+    /**
+     * Find or create user from cache data
+     */
+    private function findOrCreateUserFromCache($cachedData, $cacheKey, &$results)
+    {
+        // Check if user already exists in database
+        $existingUser = User::where('first_name', $cachedData['first_name'])
+            ->where('last_name', $cachedData['last_name'])
+            ->first();
+        
+        if ($existingUser) {
+            // Update user with cached data if needed
+            $updated = false;
+            
+            if (!empty($cachedData['phone_number']) && $cachedData['phone_number'] !== 'Not Provided' && 
+                (empty($existingUser->phone_number) || $existingUser->phone_number === 'Not Provided')) {
+                $existingUser->phone_number = $cachedData['phone_number'];
+                $updated = true;
+            }
+            
+            if (!empty($cachedData['email']) && empty($existingUser->email)) {
+                $existingUser->email = $cachedData['email'];
+                $updated = true;
+            }
+            
+            if ($updated) {
+                $existingUser->save();
+                $results['merged_users']++;
+            }
+            
+            $results['existing_users']++;
+            return $existingUser;
+        }
+        
+        // Create new user
+        $userData = $cachedData;
+        unset($userData['row']); // Remove row tracking data
+        
+        $newUser = User::create($userData);
+        $results['new_users']++;
+        
+        // Handle nationality assignment for new user from cache
+        if (!empty($userData['_nationality_id'])) {
+            DB::table('users_nationality')->insert([
+                'user_id' => $newUser->user_id,
+                'nationality_id' => $userData['_nationality_id'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+        
+        // Handle diploma assignment for new user from cache
+        if (!empty($userData['_diploma_id'])) {
+            DB::table('users_diploma')->insert([
+                'user_id' => $newUser->user_id,
+                'diploma_id' => $userData['_diploma_id'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+        
+        return $newUser;
+    }
+    
     /**
      * Parse CSV file
      */
@@ -1045,256 +1416,326 @@ class ActivityUserController extends Controller
         return null;
     }
 
-    /**
-     * Prepare user data for import - WITH 'Not Specified' for empty gender
-     */
-    private function prepareUserData($row, $defaultUserType = null)
-    {
-        // Validate and sanitize first_name and last_name (MANDATORY)
-        $firstName = trim($row['first_name'] ?? '');
-        $lastName = trim($row['last_name'] ?? '');
+   /**
+ * Prepare user data for import - WITH 'Not Specified' for empty gender
+ */
+private function prepareUserData($row, $defaultUserType = null)
+{
+    // Validate and sanitize first_name and last_name (MANDATORY)
+    $firstName = trim($row['first_name'] ?? '');
+    $lastName = trim($row['last_name'] ?? '');
+    
+    if (empty($firstName)) {
+        throw new \Exception("first_name is required");
+    }
+    
+    if (empty($lastName)) {
+        throw new \Exception("last_name is required");
+    }
+    
+    // Convert boolean strings
+    $isHighProfile = false;
+    if (isset($row['is_high_profile']) && !empty($row['is_high_profile'])) {
+        $val = strtolower(trim($row['is_high_profile']));
+        $isHighProfile = in_array($val, ['true', 'yes', '1', 't']);
+    }
+    
+    // Handle scope - ALWAYS set a default (required field)
+    $scope = 'National';
+    if (!empty($row['scope'])) {
+        $scope = trim($row['scope']);
+        $scope = ucfirst(strtolower($scope));
         
-        if (empty($firstName)) {
-            throw new \Exception("first_name is required");
-        }
-        
-        if (empty($lastName)) {
-            throw new \Exception("last_name is required");
-        }
-        
-        // Convert boolean strings
-        $isHighProfile = false;
-        if (isset($row['is_high_profile']) && !empty($row['is_high_profile'])) {
-            $val = strtolower(trim($row['is_high_profile']));
-            $isHighProfile = in_array($val, ['true', 'yes', '1', 't']);
-        }
-        
-        // Handle scope - ALWAYS set a default (required field)
-        $scope = 'National';
-        if (!empty($row['scope'])) {
-            $scope = trim($row['scope']);
-            $scope = ucfirst(strtolower($scope));
-            
-            $scopeMap = [
-                'int' => 'International',
-                'internat' => 'International',
-                'international' => 'International',
-                'reg' => 'Regional',
-                'regional' => 'Regional',
-                'nat' => 'National',
-                'national' => 'National',
-                'loc' => 'Local',
-                'local' => 'Local',
-            ];
-            
-            $lowerScope = strtolower($scope);
-            if (isset($scopeMap[$lowerScope])) {
-                $scope = $scopeMap[$lowerScope];
-            }
-            
-            if (!in_array($scope, ['International', 'Regional', 'National', 'Local'])) {
-                Log::warning("Invalid scope value '{$scope}', defaulting to 'National'");
-                $scope = 'National';
-            }
-        }
-        
-        // Handle gender - set to 'Not Specified' if empty
-        $gender = 'Not Specified';
-        if (!empty($row['gender'])) {
-            $gender = trim($row['gender']);
-            $gender = ucfirst(strtolower($gender));
-            
-            $genderMap = [
-                'm' => 'Male',
-                'male' => 'Male',
-                'f' => 'Female',
-                'female' => 'Female',
-                'other' => 'Other',
-                'not specified' => 'Not Specified',
-                'not-specified' => 'Not Specified',
-                'not_specified' => 'Not Specified',
-                'ns' => 'Not Specified',
-                'na' => 'Not Specified',
-                'n/a' => 'Not Specified',
-            ];
-            
-            $lowerGender = strtolower($gender);
-            if (isset($genderMap[$lowerGender])) {
-                $gender = $genderMap[$lowerGender];
-            }
-            
-            if (!in_array($gender, ['Male', 'Female', 'Other', 'Not Specified'])) {
-                $gender = 'Not Specified';
-            }
-        }
-        
-        // Handle organization_type_1 - set default
-        $orgType1 = 'Private Sector';
-        if (!empty($row['organization_type_1'])) {
-            $orgType1 = trim($row['organization_type_1']);
-            $orgType1 = ucwords(strtolower($orgType1));
-            
-            $orgMap = [
-                'public sector' => 'Public Sector',
-                'public' => 'Public Sector',
-                'private sector' => 'Private Sector',
-                'private' => 'Private Sector',
-                'academia' => 'Academia',
-                'academic' => 'Academia',
-                'un' => 'UN',
-                'united nations' => 'UN',
-                'ingos' => 'INGOs',
-                'ingo' => 'INGOs',
-                'civil society' => 'Civil Society',
-                'civil' => 'Civil Society',
-                'ngos' => 'NGOs',
-                'ngo' => 'NGOs',
-                'activist' => 'Activist',
-                'advocacy' => 'Activist',
-            ];
-            
-            $lowerOrg = strtolower($orgType1);
-            if (isset($orgMap[$lowerOrg])) {
-                $orgType1 = $orgMap[$lowerOrg];
-            }
-            
-            $allowedOrgTypes = ['Public Sector', 'Private Sector', 'Academia', 'UN', 'INGOs', 'Civil Society', 'NGOs', 'Activist'];
-            if (!in_array($orgType1, $allowedOrgTypes)) {
-                $orgType1 = 'Private Sector';
-            }
-        }
-        
-        // Handle phone number
-        $phoneNumber = $this->normalizePhone($row['phone_number'] ?? null);
-        
-        // Handle date of birth
-        $dob = null;
-        if (!empty($row['dob'])) {
-            try {
-                $dob = \Carbon\Carbon::parse($row['dob'])->format('Y-m-d');
-            } catch (\Exception $e) {
-                Log::warning("Invalid date format for dob: {$row['dob']}");
-                $dob = null;
-            }
-        }
-        
-        // Handle type (Stakeholder/Beneficiary)
-        $type = null;
-        if (!empty($row['type'])) {
-            $type = ucfirst(strtolower(trim($row['type'])));
-            $allowedTypes = ['Stakeholder', 'Beneficiary'];
-            if (!in_array($type, $allowedTypes)) {
-                Log::warning("Invalid type value '{$type}', setting to null");
-                $type = null;
-            }
-        } elseif ($defaultUserType) {
-            $type = $defaultUserType;
-        }
-        
-        // Handle organization_type_2 if provided
-        $orgType2 = null;
-        if (!empty($row['organization_type_2'])) {
-            $orgType2 = trim($row['organization_type_2']);
-            $orgType2 = ucwords(strtolower($orgType2));
-            $lowerOrg2 = strtolower($orgType2);
-            $orgMap = [
-                'public sector' => 'Public Sector',
-                'private sector' => 'Private Sector',
-                'academia' => 'Academia',
-                'un' => 'UN',
-                'ingos' => 'INGOs',
-                'civil society' => 'Civil Society',
-                'ngos' => 'NGOs',
-                'activist' => 'Activist',
-            ];
-            if (isset($orgMap[$lowerOrg2])) {
-                $orgType2 = $orgMap[$lowerOrg2];
-            }
-            $allowedOrgTypes = ['Public Sector', 'Private Sector', 'Academia', 'UN', 'INGOs', 'Civil Society', 'NGOs', 'Activist'];
-            if (!in_array($orgType2, $allowedOrgTypes)) {
-                $orgType2 = null;
-            }
-        }
-        
-        // Handle default_cop_id (UUID, keep as string)
-        $defaultCopId = null;
-        if (!empty($row['default_cop_id'])) {
-            $defaultCopId = trim($row['default_cop_id']);
-            if ($defaultCopId === '') {
-                $defaultCopId = null;
-            }
-        }
-        
-        // Handle position_1 - set default if not provided
-        $position1 = trim($row['position_1'] ?? '');
-        if (empty($position1)) {
-            $position1 = 'Not Specified';
-        }
-        
-        // Handle organization_1 - set default if not provided
-        $organization1 = trim($row['organization_1'] ?? '');
-        if (empty($organization1)) {
-            $organization1 = 'Not Specified';
-        }
-        
-        // Handle status_1 - set default if not provided
-        $status1 = trim($row['status_1'] ?? '');
-        if (empty($status1)) {
-            $status1 = 'Active';
-        }
-        
-        // Handle address - set default if not provided
-        $address = trim($row['address'] ?? '');
-        if (empty($address)) {
-            $address = 'Not Provided';
-        }
-        
-        // Build user data array - INCLUDES ALL REQUIRED FIELDS WITH DEFAULTS
-        $userData = [
-            'first_name' => $firstName,
-            'last_name' => $lastName,
-            'scope' => $scope,
-            'is_high_profile' => $isHighProfile,
-            'gender' => $gender,
-            'position_1' => $position1,
-            'organization_1' => $organization1,
-            'organization_type_1' => $orgType1,
-            'status_1' => $status1,
-            'address' => $address,
+        $scopeMap = [
+            'int' => 'International',
+            'internat' => 'International',
+            'international' => 'International',
+            'reg' => 'Regional',
+            'regional' => 'Regional',
+            'nat' => 'National',
+            'national' => 'National',
+            'loc' => 'Local',
+            'local' => 'Local',
         ];
         
-        // Add phone number if provided
-        if ($phoneNumber) {
-            $userData['phone_number'] = $phoneNumber;
-        } else {
-            $userData['phone_number'] = 'Not Provided';
+        $lowerScope = strtolower($scope);
+        if (isset($scopeMap[$lowerScope])) {
+            $scope = $scopeMap[$lowerScope];
         }
         
-        // Add optional fields only if they have values
-        if (!empty($row['sector'])) $userData['sector'] = $row['sector'];
-        if (!empty($row['middle_name'])) $userData['middle_name'] = $row['middle_name'];
-        if (!empty($row['mother_name'])) $userData['mother_name'] = $row['mother_name'];
-        if (!empty($row['office_phone'])) $userData['office_phone'] = $this->normalizePhone($row['office_phone']);
-        if (!empty($row['home_phone'])) $userData['home_phone'] = $this->normalizePhone($row['home_phone']);
-        if (!empty($row['email'])) $userData['email'] = strtolower(trim($row['email']));
-        if (!empty($row['position_2'])) $userData['position_2'] = $row['position_2'];
-        if (!empty($row['organization_2'])) $userData['organization_2'] = $row['organization_2'];
-        if ($orgType2) $userData['organization_type_2'] = $orgType2;
-        if (!empty($row['status_2'])) $userData['status_2'] = $row['status_2'];
-        if (!empty($row['identification_id'])) $userData['identification_id'] = $row['identification_id'];
-        if (!empty($row['register_number'])) $userData['register_number'] = $row['register_number'];
-        if (!empty($row['marital_status'])) $userData['marital_status'] = $row['marital_status'];
-        if (!empty($row['employment_status'])) $userData['employment_status'] = $row['employment_status'];
-        if (!empty($row['passport_number'])) $userData['passport_number'] = $row['passport_number'];
-        if (!empty($row['register_place'])) $userData['register_place'] = $row['register_place'];
-        if ($defaultCopId) $userData['default_cop_id'] = $defaultCopId;
-        if ($dob) $userData['dob'] = $dob;
-        if ($type) $userData['type'] = $type;
-        if (!empty($row['prefix'])) $userData['prefix'] = $row['prefix'];
-        
-        return $userData;
+        if (!in_array($scope, ['International', 'Regional', 'National', 'Local'])) {
+            Log::warning("Invalid scope value '{$scope}', defaulting to 'National'");
+            $scope = 'National';
+        }
     }
-
+    
+    // Handle gender - set to 'Not Specified' if empty
+    $gender = 'Not Specified';
+    if (!empty($row['gender'])) {
+        $gender = trim($row['gender']);
+        $gender = ucfirst(strtolower($gender));
+        
+        $genderMap = [
+            'm' => 'Male',
+            'male' => 'Male',
+            'f' => 'Female',
+            'female' => 'Female',
+            'other' => 'Other',
+            'not specified' => 'Not Specified',
+            'not-specified' => 'Not Specified',
+            'not_specified' => 'Not Specified',
+            'ns' => 'Not Specified',
+            'na' => 'Not Specified',
+            'n/a' => 'Not Specified',
+        ];
+        
+        $lowerGender = strtolower($gender);
+        if (isset($genderMap[$lowerGender])) {
+            $gender = $genderMap[$lowerGender];
+        }
+        
+        if (!in_array($gender, ['Male', 'Female', 'Other', 'Not Specified'])) {
+            $gender = 'Not Specified';
+        }
+    }
+    
+    // Handle organization_type_1 - set default
+    $orgType1 = 'Private Sector';
+    if (!empty($row['organization_type_1'])) {
+        $orgType1 = trim($row['organization_type_1']);
+        $orgType1 = ucwords(strtolower($orgType1));
+        
+        $orgMap = [
+            'public sector' => 'Public Sector',
+            'public' => 'Public Sector',
+            'private sector' => 'Private Sector',
+            'private' => 'Private Sector',
+            'academia' => 'Academia',
+            'academic' => 'Academia',
+            'un' => 'UN',
+            'united nations' => 'UN',
+            'ingos' => 'INGOs',
+            'ingo' => 'INGOs',
+            'civil society' => 'Civil Society',
+            'civil' => 'Civil Society',
+            'ngos' => 'NGOs',
+            'ngo' => 'NGOs',
+            'activist' => 'Activist',
+            'advocacy' => 'Activist',
+        ];
+        
+        $lowerOrg = strtolower($orgType1);
+        if (isset($orgMap[$lowerOrg])) {
+            $orgType1 = $orgMap[$lowerOrg];
+        }
+        
+        $allowedOrgTypes = ['Public Sector', 'Private Sector', 'Academia', 'UN', 'INGOs', 'Civil Society', 'NGOs', 'Activist'];
+        if (!in_array($orgType1, $allowedOrgTypes)) {
+            $orgType1 = 'Private Sector';
+        }
+    }
+    
+    // Handle phone number
+    $phoneNumber = $this->normalizePhone($row['phone_number'] ?? null);
+    
+    // Handle date of birth
+    $dob = null;
+    if (!empty($row['dob'])) {
+        try {
+            $dob = \Carbon\Carbon::parse($row['dob'])->format('Y-m-d');
+        } catch (\Exception $e) {
+            Log::warning("Invalid date format for dob: {$row['dob']}");
+            $dob = null;
+        }
+    }
+    
+    // Handle type (Stakeholder/Beneficiary)
+    $type = null;
+    if (!empty($row['type'])) {
+        $type = ucfirst(strtolower(trim($row['type'])));
+        $allowedTypes = ['Stakeholder', 'Beneficiary'];
+        if (!in_array($type, $allowedTypes)) {
+            Log::warning("Invalid type value '{$type}', setting to null");
+            $type = null;
+        }
+    } elseif ($defaultUserType) {
+        $type = $defaultUserType;
+    }
+    
+    // Handle organization_type_2 if provided
+    $orgType2 = null;
+    if (!empty($row['organization_type_2'])) {
+        $orgType2 = trim($row['organization_type_2']);
+        $orgType2 = ucwords(strtolower($orgType2));
+        $lowerOrg2 = strtolower($orgType2);
+        $orgMap = [
+            'public sector' => 'Public Sector',
+            'private sector' => 'Private Sector',
+            'academia' => 'Academia',
+            'un' => 'UN',
+            'ingos' => 'INGOs',
+            'civil society' => 'Civil Society',
+            'ngos' => 'NGOs',
+            'activist' => 'Activist',
+        ];
+        if (isset($orgMap[$lowerOrg2])) {
+            $orgType2 = $orgMap[$lowerOrg2];
+        }
+        $allowedOrgTypes = ['Public Sector', 'Private Sector', 'Academia', 'UN', 'INGOs', 'Civil Society', 'NGOs', 'Activist'];
+        if (!in_array($orgType2, $allowedOrgTypes)) {
+            $orgType2 = null;
+        }
+    }
+    
+    // Handle default_cop_id (UUID, keep as string)
+    $defaultCopId = null;
+    if (!empty($row['default_cop_id'])) {
+        $defaultCopId = trim($row['default_cop_id']);
+        if ($defaultCopId === '') {
+            $defaultCopId = null;
+        }
+    }
+    
+    // Handle position_1 - set default if not provided
+    $position1 = trim($row['position_1'] ?? '');
+    if (empty($position1)) {
+        $position1 = 'Not Specified';
+    }
+    
+    // Handle organization_1 - set default if not provided
+    $organization1 = trim($row['organization_1'] ?? '');
+    if (empty($organization1)) {
+        $organization1 = 'Not Specified';
+    }
+    
+    // Handle status_1 - set default if not provided
+    $status1 = trim($row['status_1'] ?? '');
+    if (empty($status1)) {
+        $status1 = 'Active';
+    }
+    
+    // Handle address - set default if not provided
+    $address = trim($row['address'] ?? '');
+    if (empty($address)) {
+        $address = 'Not Provided';
+    }
+    
+    // Handle nationality - find or create nationality (DO NOT SET nationality_id, let model handle it)
+    $nationalityId = null;
+    if (!empty($row['nationality_name'])) {
+        $nationalityName = trim($row['nationality_name']);
+        
+        // Try to find existing nationality
+        $nationality = Nationality::where('name', $nationalityName)->first();
+        
+        if (!$nationality) {
+            // Create new nationality - model will auto-generate the UUID
+            $nationality = Nationality::create([
+                'name' => $nationalityName,
+                // Do NOT provide nationality_id - let model handle it
+                // Do NOT provide external_id unless you want to override - let boot method handle it
+            ]);
+            Log::info("Created new nationality: {$nationalityName}", ['nationality_id' => $nationality->nationality_id]);
+        }
+        $nationalityId = $nationality->nationality_id;
+    }
+    
+    // Handle diploma - find or create diploma (DO NOT SET diploma_id, let model handle it)
+    $diplomaId = null;
+    if (!empty($row['diploma_name'])) {
+        $diplomaName = trim($row['diploma_name']);
+        $institution = $row['diploma_institution'] ?? null;
+        $year = $row['diploma_year'] ?? null;
+        
+        // Try to find existing diploma by name
+        $diploma = Diploma::where('diploma_name', $diplomaName)->first();
+        
+        if (!$diploma) {
+            // Create new diploma - model will auto-generate the UUID
+            $diplomaData = [
+                'diploma_name' => $diplomaName,
+                // Do NOT provide diploma_id - let model handle it
+            ];
+            
+            // Add optional fields if provided
+            if ($institution) {
+                $diplomaData['institution'] = $institution;
+            }
+            if ($year) {
+                $diplomaData['year'] = $year;
+            }
+            
+            $diploma = Diploma::create($diplomaData);
+            Log::info("Created new diploma: {$diplomaName}", ['diploma_id' => $diploma->diploma_id]);
+        } else {
+            // Update existing diploma with missing info if needed
+            $updated = false;
+            if ($institution && empty($diploma->institution)) {
+                $diploma->institution = $institution;
+                $updated = true;
+            }
+            if ($year && empty($diploma->year)) {
+                $diploma->year = $year;
+                $updated = true;
+            }
+            if ($updated) {
+                $diploma->save();
+                Log::info("Updated existing diploma: {$diplomaName}");
+            }
+        }
+        $diplomaId = $diploma->diploma_id;
+    }
+    
+    // Build user data array - INCLUDES ALL REQUIRED FIELDS WITH DEFAULTS
+    $userData = [
+        'first_name' => $firstName,
+        'last_name' => $lastName,
+        'scope' => $scope,
+        'is_high_profile' => $isHighProfile,
+        'gender' => $gender,
+        'position_1' => $position1,
+        'organization_1' => $organization1,
+        'organization_type_1' => $orgType1,
+        'status_1' => $status1,
+        'address' => $address,
+    ];
+    
+    // Add phone number if provided
+    if ($phoneNumber) {
+        $userData['phone_number'] = $phoneNumber;
+    } else {
+        $userData['phone_number'] = 'Not Provided';
+    }
+    
+    // Add optional fields only if they have values
+    if (!empty($row['sector'])) $userData['sector'] = $row['sector'];
+    if (!empty($row['middle_name'])) $userData['middle_name'] = $row['middle_name'];
+    if (!empty($row['mother_name'])) $userData['mother_name'] = $row['mother_name'];
+    if (!empty($row['office_phone'])) $userData['office_phone'] = $this->normalizePhone($row['office_phone']);
+    if (!empty($row['extension_number'])) $userData['extension_number'] = $row['extension_number'];
+    if (!empty($row['home_phone'])) $userData['home_phone'] = $this->normalizePhone($row['home_phone']);
+    if (!empty($row['email'])) $userData['email'] = strtolower(trim($row['email']));
+    if (!empty($row['position_2'])) $userData['position_2'] = $row['position_2'];
+    if (!empty($row['organization_2'])) $userData['organization_2'] = $row['organization_2'];
+    if ($orgType2) $userData['organization_type_2'] = $orgType2;
+    if (!empty($row['status_2'])) $userData['status_2'] = $row['status_2'];
+    if (!empty($row['identification_id'])) $userData['identification_id'] = $row['identification_id'];
+    if (!empty($row['register_number'])) $userData['register_number'] = $row['register_number'];
+    if (!empty($row['marital_status'])) $userData['marital_status'] = $row['marital_status'];
+    if (!empty($row['employment_status'])) $userData['employment_status'] = $row['employment_status'];
+    if (!empty($row['passport_number'])) $userData['passport_number'] = $row['passport_number'];
+    if (!empty($row['register_place'])) $userData['register_place'] = $row['register_place'];
+    if ($defaultCopId) $userData['default_cop_id'] = $defaultCopId;
+    if ($dob) $userData['dob'] = $dob;
+    if ($type) $userData['type'] = $type;
+    if (!empty($row['prefix'])) $userData['prefix'] = $row['prefix'];
+    
+    // Add nationality and diploma IDs for pivot table assignment
+    $userData['_nationality_id'] = $nationalityId;
+    $userData['_diploma_id'] = $diplomaId;
+    
+    return $userData;
+}
     /**
      * Helper methods for normalization
      */

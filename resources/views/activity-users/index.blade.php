@@ -685,14 +685,17 @@
 
     <div class="main-div">
         <!-- Page Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="page-title">Activity Users Management</h4>
-            <div class="action-buttons">
-                <a href="{{ route('activity-users.create') }}" class="btn-primary">
-                    <i class="fas fa-plus"></i> Add Assignment
-                </a>
-            </div>
-        </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="page-title">Activity Users Management</h4>
+    <div class="action-buttons">
+        <a href="{{ route('activity-users.create') }}" class="btn-primary">
+            <i class="fas fa-plus"></i> Add Assignment
+        </a>
+        <a href="{{ route('activity-users.import.form') }}" style="background-color: white; color: #2563eb; border: 1px solid #2563eb; padding: 0.625rem 1.25rem; border-radius: 0.375rem; font-weight: 500; font-size: 0.875rem; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; margin-left: 0.75rem;">
+            <i class="fas fa-file-import"></i> Import
+        </a>
+    </div>
+</div>
 
         <!-- Filtering Bar -->
         <div class="card mb-4">

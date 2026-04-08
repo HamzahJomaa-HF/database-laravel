@@ -23,7 +23,7 @@ class ActivityUserForm extends Component
     public $is_lead = false;
     public $invited = true;
     public $attended = false;
-    
+    public $embedMode = false;
     // UI state properties
     public $userSearch = '';
     public $activitySearch = '';
@@ -288,6 +288,9 @@ class ActivityUserForm extends Component
         ];
         $this->activitySearch = '';
         $this->showActivityResults = false;
+        if ($this->embedMode) {
+                $this->dispatch('activity-selected', activityId: $this->activity_id);
+       } 
     }
 }
 
@@ -298,6 +301,9 @@ class ActivityUserForm extends Component
         $this->selectedActivityDisplay = null;
         $this->activitySearch = '';
         $this->showActivityResults = false;
+        if ($this->embedMode) {
+            $this->dispatch('activity-cleared');
+        }
     }
 
     // Hide results (called from JavaScript)

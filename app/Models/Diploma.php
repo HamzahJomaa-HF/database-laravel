@@ -5,16 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes; 
+use Illuminate\Support\Str;
 
 class Diploma extends Model
 {
-     use SoftDeletes;
+    use SoftDeletes;
     use HasFactory;
+    
     protected $table = 'diploma';
 
     protected $primaryKey = 'diploma_id';  
-    public $incrementing = false;    // UUID primary key
-    protected $keyType = 'string';     // UUID is a string
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
         'diploma_name',
@@ -28,10 +30,13 @@ class Diploma extends Model
         parent::boot();
 
         static::creating(function ($diploma) {
-
+            // Generate UUID for primary key if not set
+            if (empty($diploma->diploma_id)) {
+                $diploma->diploma_id = (string) Str::uuid();
+            }
+            
             // Generate a unique external ID if not provided
             if (empty($diploma->external_id)) {
-
                 $yearNow = now()->format('Y');
                 $monthNow = now()->format('m');
 

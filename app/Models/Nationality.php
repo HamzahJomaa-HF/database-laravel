@@ -9,12 +9,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Nationality extends Model
 {
-     use SoftDeletes;
+    use SoftDeletes;
     use HasFactory;
 
-    protected $table = 'nationality'; // Table name
+    protected $table = 'nationality';
     protected $primaryKey = 'nationality_id';
-    public $incrementing = false; // UUID primary key
+    public $incrementing = false;
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -27,9 +27,13 @@ class Nationality extends Model
         parent::boot();
 
         static::creating(function ($nationality) {
+            // Generate UUID for primary key if not set
+            if (empty($nationality->nationality_id)) {
+                $nationality->nationality_id = (string) Str::uuid();
+            }
+            
             // Generate a unique external ID if not provided
             if (empty($nationality->external_id)) {
-
                 $year = now()->format('Y');
                 $month = now()->format('m');
 
