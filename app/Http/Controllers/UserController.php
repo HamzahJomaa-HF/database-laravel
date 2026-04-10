@@ -848,195 +848,224 @@ class UserController extends Controller
     }
 
     /**
-     * Process imported users - UPDATED for 35-column CSV
-     */
-    public function import(Request $request)
-    {
-        $request->validate([
-            'import_file' => 'required|file|mimes:csv,txt|max:10240' // 10MB max
-        ]);
+ * Process imported users - UPDATED with only first_name and last_name as required
+ */
+public function import(Request $request)
+{
+    $request->validate([
+        'import_file' => 'required|file|mimes:csv,txt|max:10240' // 10MB max
+    ]);
 
-        $results = [
-            'total' => 0,
-            'successful' => 0,
-            'failed' => 0,
-            'errors' => []
-        ];
+    $results = [
+        'total' => 0,
+        'successful' => 0,
+        'failed' => 0,
+        'errors' => []
+    ];
 
-        try {
-            $file = $request->file('import_file');
-            
-            if (!$file || !$file->isValid()) {
-                throw new \Exception('File upload failed');
-            }
+    try {
+        $file = $request->file('import_file');
+        
+        if (!$file || !$file->isValid()) {
+            throw new \Exception('File upload failed');
+        }
 
-            $handle = fopen($file->getPathname(), 'r');
-            
-            if (!$handle) {
-                throw new \Exception('Cannot open file');
-            }
+        $handle = fopen($file->getPathname(), 'r');
+        
+        if (!$handle) {
+            throw new \Exception('Cannot open file');
+        }
 
-            // Skip header row
-            $header = fgetcsv($handle);
+        // Skip header row
+        $header = fgetcsv($handle);
+        
+        // Expected number of columns (35)
+        $expectedColumns = 35;
+        
+        $rowNumber = 1; // Start counting after header
+        
+        while (($data = fgetcsv($handle)) !== FALSE) {
+            $results['total']++;
+            $rowNumber++;
             
-            // Expected number of columns (35)
-            $expectedColumns = 35;
-            
-            $rowNumber = 1; // Start counting after header
-            
-            while (($data = fgetcsv($handle)) !== FALSE) {
-                $results['total']++;
-                $rowNumber++;
+            try {
+                // Skip empty rows
+                if (empty(array_filter($data))) {
+                    continue;
+                }
+
+                // Check if we have enough columns
+                if (count($data) < $expectedColumns) {
+                    throw new \Exception("Row has insufficient columns. Expected {$expectedColumns}, got " . count($data));
+                }
+
+                // Map all 35 CSV columns to database fields
+                $cleanedData = $this->cleanImportData([
+                    // Basic Information (1-12)
+                    'prefix' => $data[0] ?? null,
+                    'is_high_profile' => $data[1] ?? false,
+                    'scope' => $data[2] ?? null,
+                    'first_name' => $data[3] ?? null,
+                    'last_name' => $data[4] ?? null,
+                    'gender' => $data[5] ?? null,
+                    'position_1' => $data[6] ?? null,
+                    'organization_1' => $data[7] ?? null,
+                    'organization_type_1' => $data[8] ?? null,
+                    'status_1' => $data[9] ?? null,
+                    'address' => $data[10] ?? null,
+                    'phone_number' => $data[11] ?? null,
+                    
+                    // Personal Details (13-20)
+                    'sector' => $data[12] ?? null,
+                    'middle_name' => $data[13] ?? null,
+                    'mother_name' => $data[14] ?? null,
+                    'dob' => $data[15] ?? null,
+                    'office_phone' => $data[16] ?? null,
+                    'extension_number' => $data[17] ?? null,
+                    'home_phone' => $data[18] ?? null,
+                    'email' => $data[19] ?? null,
+                    
+                    // Secondary Position (20-24)
+                    'position_2' => $data[20] ?? null,
+                    'organization_2' => $data[21] ?? null,
+                    'organization_type_2' => $data[22] ?? null,
+                    'status_2' => $data[23] ?? null,
+                    
+                    // Identification (24-31)
+                    'identification_id' => $data[24] ?? null,
+                    'register_number' => $data[25] ?? null,
+                    'marital_status' => $data[26] ?? null,
+                    'employment_status' => $data[27] ?? null,
+                    'passport_number' => $data[28] ?? null,
+                    'register_place' => $data[29] ?? null,
+                    'type' => $data[30] ?? null,
+                    'default_cop_id' => $data[31] ?? null,
+                    
+                    // Note: created_at, updated_at, deleted_at (columns 32-34) are auto-generated
+                ]);
                 
-                try {
-                    // Skip empty rows
-                    if (empty(array_filter($data))) {
-                        continue;
+                // Validate required fields - ONLY first_name and last_name are required
+                $requiredFields = ['first_name', 'last_name'];
+                
+                // Check required fields
+                $missingFields = [];
+                foreach ($requiredFields as $field) {
+                    if (empty($cleanedData[$field]) && $cleanedData[$field] !== '0') {
+                        $missingFields[] = $field;
                     }
+                }
+                
+                if (!empty($missingFields)) {
+                    throw new \Exception("Missing required fields: " . implode(', ', $missingFields));
+                }
 
-                    // Check if we have enough columns
-                    if (count($data) < $expectedColumns) {
-                        throw new \Exception("Row has insufficient columns. Expected {$expectedColumns}, got " . count($data));
-                    }
+                // Set default values for other fields if they're empty
+                if (empty($cleanedData['is_high_profile']) && $cleanedData['is_high_profile'] !== false) {
+                    $cleanedData['is_high_profile'] = false;
+                }
+                
+                if (empty($cleanedData['scope'])) {
+                    $cleanedData['scope'] = 'National'; // Default scope
+                }
+                
+                if (empty($cleanedData['gender'])) {
+                    $cleanedData['gender'] = 'Other'; // Default gender
+                }
+                
+                if (empty($cleanedData['position_1'])) {
+                    $cleanedData['position_1'] = 'Not Specified';
+                }
+                
+                if (empty($cleanedData['organization_1'])) {
+                    $cleanedData['organization_1'] = 'Not Specified';
+                }
+                
+                if (empty($cleanedData['organization_type_1'])) {
+                    $cleanedData['organization_type_1'] = 'Private Sector'; // Default organization type
+                }
+                
+                if (empty($cleanedData['status_1'])) {
+                    $cleanedData['status_1'] = 'Active';
+                }
+                
+                if (empty($cleanedData['address'])) {
+                    $cleanedData['address'] = 'Not Provided';
+                }
+                
+                if (empty($cleanedData['phone_number'])) {
+                    $cleanedData['phone_number'] = 'Not Provided';
+                }
 
-                    // Map all 35 CSV columns to database fields
-                    $cleanedData = $this->cleanImportData([
-                        // Basic Information (1-12)
-                        'prefix' => $data[0] ?? null,
-                        'is_high_profile' => $data[1] ?? false,
-                        'scope' => $data[2] ?? null,
-                        'first_name' => $data[3] ?? null,
-                        'last_name' => $data[4] ?? null,
-                        'gender' => $data[5] ?? null,
-                        'position_1' => $data[6] ?? null,
-                        'organization_1' => $data[7] ?? null,
-                        'organization_type_1' => $data[8] ?? null,
-                        'status_1' => $data[9] ?? null,
-                        'address' => $data[10] ?? null,
-                        'phone_number' => $data[11] ?? null,
-                        
-                        // Personal Details (13-20)
-                        'sector' => $data[12] ?? null,
-                        'middle_name' => $data[13] ?? null,
-                        'mother_name' => $data[14] ?? null,
-                        'dob' => $data[15] ?? null,
-                        'office_phone' => $data[16] ?? null,
-                        'extension_number' => $data[17] ?? null,
-                        'home_phone' => $data[18] ?? null,
-                        'email' => $data[19] ?? null,
-                        
-                        // Secondary Position (20-24)
-                        'position_2' => $data[20] ?? null,
-                        'organization_2' => $data[21] ?? null,
-                        'organization_type_2' => $data[22] ?? null,
-                        'status_2' => $data[23] ?? null,
-                        
-                        // Identification (24-31)
-                        'identification_id' => $data[24] ?? null,
-                        'register_number' => $data[25] ?? null,
-                        'marital_status' => $data[26] ?? null,
-                        'employment_status' => $data[27] ?? null,
-                        'passport_number' => $data[28] ?? null,
-                        'register_place' => $data[29] ?? null,
-                        'type' => $data[30] ?? null, // No default, will be null if not provided
-                        'default_cop_id' => $data[31] ?? null,
-                        
-                        // Note: created_at, updated_at, deleted_at (columns 32-34) are auto-generated
-                    ]);
-                    
-                    // Validate required fields
-                    $requiredFields = [
-                        'first_name', 'last_name', 'gender', 'position_1', 
-                        'organization_1', 'organization_type_1', 'status_1',
-                        'address', 'phone_number', 'scope', 'is_high_profile'
-                    ];
-                    
-                    // Check required fields
-                    $missingFields = [];
-                    foreach ($requiredFields as $field) {
-                        if ($field === 'is_high_profile') {
-                            // Boolean field - check if it's set (can be false)
-                            if (!isset($cleanedData[$field])) {
-                                $missingFields[] = $field;
-                            }
-                        } elseif (empty($cleanedData[$field]) && $cleanedData[$field] !== '0') {
-                            $missingFields[] = $field;
-                        }
+                // Validate is_high_profile - ensure it's boolean
+                $cleanedData['is_high_profile'] = filter_var($cleanedData['is_high_profile'], FILTER_VALIDATE_BOOLEAN);
+                
+                // Validate scope (only if provided, otherwise default already set)
+                $allowedScopes = ['International', 'Regional', 'National', 'Local'];
+                if (!in_array($cleanedData['scope'], $allowedScopes)) {
+                    throw new \Exception("Invalid scope '{$cleanedData['scope']}'. Must be one of: " . implode(', ', $allowedScopes));
+                }
+                
+                // Validate gender (only if provided, otherwise default already set)
+                $allowedGenders = ['Male', 'Female', 'Other'];
+                if (!in_array($cleanedData['gender'], $allowedGenders)) {
+                    throw new \Exception("Invalid gender '{$cleanedData['gender']}'. Must be one of: " . implode(', ', $allowedGenders));
+                }
+                
+                // Validate organization_type_1 (only if provided, otherwise default already set)
+                $allowedOrgTypes = ['Public Sector', 'Private Sector', 'Academia', 'UN', 'INGOs', 'Civil Society', 'NGOs', 'Activist'];
+                if (!in_array($cleanedData['organization_type_1'], $allowedOrgTypes)) {
+                    throw new \Exception("Invalid organization type '{$cleanedData['organization_type_1']}'. Must be one of: " . implode(', ', $allowedOrgTypes));
+                }
+                
+                // Validate organization_type_2 if provided
+                if (!empty($cleanedData['organization_type_2'])) {
+                    if (!in_array($cleanedData['organization_type_2'], $allowedOrgTypes)) {
+                        throw new \Exception("Invalid organization type 2 '{$cleanedData['organization_type_2']}'. Must be one of: " . implode(', ', $allowedOrgTypes));
                     }
-                    
-                    if (!empty($missingFields)) {
-                        throw new \Exception("Missing required fields: " . implode(', ', $missingFields));
+                }
+                
+                // Validate type if provided (only Stakeholder or Beneficiary allowed)
+                if (!empty($cleanedData['type'])) {
+                    $allowedTypes = ['Stakeholder', 'Beneficiary'];
+                    if (!in_array($cleanedData['type'], $allowedTypes)) {
+                        throw new \Exception("Invalid type '{$cleanedData['type']}'. Must be one of: " . implode(', ', $allowedTypes));
                     }
+                }
 
-                    // Validate is_high_profile - ensure it's boolean
-                    $cleanedData['is_high_profile'] = filter_var($cleanedData['is_high_profile'], FILTER_VALIDATE_BOOLEAN);
-                    
-                    // Validate scope
-                    $allowedScopes = ['International', 'Regional', 'National', 'Local'];
-                    if (!in_array($cleanedData['scope'], $allowedScopes)) {
-                        throw new \Exception("Invalid scope '{$cleanedData['scope']}'. Must be one of: " . implode(', ', $allowedScopes));
+                // Validate default_cop_id if provided
+                if (!empty($cleanedData['default_cop_id'])) {
+                    $copExists = Cop::where('cop_id', $cleanedData['default_cop_id'])->exists();
+                    if (!$copExists) {
+                        throw new \Exception("Invalid default_cop_id: " . $cleanedData['default_cop_id'] . " does not exist");
                     }
-                    
-                    // Validate gender
-                    $allowedGenders = ['Male', 'Female', 'Other'];
-                    if (!in_array($cleanedData['gender'], $allowedGenders)) {
-                        throw new \Exception("Invalid gender '{$cleanedData['gender']}'. Must be one of: " . implode(', ', $allowedGenders));
-                    }
-                    
-                    // Validate organization_type_1
-                    $allowedOrgTypes = ['Public Sector', 'Private Sector', 'Academia', 'UN', 'INGOs', 'Civil Society', 'NGOs', 'Activist'];
-                    if (!in_array($cleanedData['organization_type_1'], $allowedOrgTypes)) {
-                        throw new \Exception("Invalid organization type '{$cleanedData['organization_type_1']}'. Must be one of: " . implode(', ', $allowedOrgTypes));
-                    }
-                    
-                    // Validate organization_type_2 if provided
-                    if (!empty($cleanedData['organization_type_2'])) {
-                        if (!in_array($cleanedData['organization_type_2'], $allowedOrgTypes)) {
-                            throw new \Exception("Invalid organization type 2 '{$cleanedData['organization_type_2']}'. Must be one of: " . implode(', ', $allowedOrgTypes));
-                        }
-                    }
-                    
-                    // Validate type if provided (only Stakeholder or Beneficiary allowed)
-                    if (!empty($cleanedData['type'])) {
-                        $allowedTypes = ['Stakeholder', 'Beneficiary'];
-                        if (!in_array($cleanedData['type'], $allowedTypes)) {
-                            throw new \Exception("Invalid type '{$cleanedData['type']}'. Must be one of: " . implode(', ', $allowedTypes));
-                        }
-                    }
+                }
 
-                    // Validate default_cop_id if provided (now UUID)
-                    if (!empty($cleanedData['default_cop_id'])) {
-                        $copExists = Cop::where('cop_id', $cleanedData['default_cop_id'])->exists();
-                        if (!$copExists) {
-                            throw new \Exception("Invalid default_cop_id: " . $cleanedData['default_cop_id'] . " does not exist");
-                        }
+                // Validate email if provided (must be unique)
+                if (!empty($cleanedData['email'])) {
+                    $existingUser = User::where('email', $cleanedData['email'])->first();
+                    if ($existingUser) {
+                        throw new \Exception("Email '{$cleanedData['email']}' already exists for user ID: {$existingUser->user_id}");
                     }
+                }
 
-                    // Validate email if provided (must be unique)
-                    if (!empty($cleanedData['email'])) {
-                        $existingUser = User::where('email', $cleanedData['email'])->first();
-                        if ($existingUser) {
-                            throw new \Exception("Email '{$cleanedData['email']}' already exists for user ID: {$existingUser->user_id}");
-                        }
+                // Validate passport_number if provided (must be unique)
+                if (!empty($cleanedData['passport_number'])) {
+                    $existingUser = User::where('passport_number', $cleanedData['passport_number'])->first();
+                    if ($existingUser) {
+                        throw new \Exception("Passport number '{$cleanedData['passport_number']}' already exists for user ID: {$existingUser->user_id}");
                     }
+                }
 
-                    // Validate passport_number if provided (must be unique)
-                    if (!empty($cleanedData['passport_number'])) {
-                        $existingUser = User::where('passport_number', $cleanedData['passport_number'])->first();
-                        if ($existingUser) {
-                            throw new \Exception("Passport number '{$cleanedData['passport_number']}' already exists for user ID: {$existingUser->user_id}");
-                        }
+                // Validate identification_id if provided (must be unique)
+                if (!empty($cleanedData['identification_id'])) {
+                    $existingUser = User::where('identification_id', $cleanedData['identification_id'])->first();
+                    if ($existingUser) {
+                        throw new \Exception("Identification ID '{$cleanedData['identification_id']}' already exists for user ID: {$existingUser->user_id}");
                     }
+                }
 
-                    // Validate identification_id if provided (must be unique)
-                    if (!empty($cleanedData['identification_id'])) {
-                        $existingUser = User::where('identification_id', $cleanedData['identification_id'])->first();
-                        if ($existingUser) {
-                            throw new \Exception("Identification ID '{$cleanedData['identification_id']}' already exists for user ID: {$existingUser->user_id}");
-                        }
-                    }
-
-                    // Check for duplicate by name/phone combination (optional but recommended)
+                // Check for duplicate by name/phone combination (optional but recommended) - only if phone is provided
+                if (!empty($cleanedData['phone_number']) && $cleanedData['phone_number'] !== 'Not Provided') {
                     $existingUser = User::where('first_name', $cleanedData['first_name'])
                         ->where('last_name', $cleanedData['last_name'])
                         ->where('phone_number', $cleanedData['phone_number'])
@@ -1045,38 +1074,39 @@ class UserController extends Controller
                     if ($existingUser) {
                         throw new \Exception("User already exists with same name and phone (ID: {$existingUser->user_id})");
                     }
-
-                    // Create the user
-                    $user = User::create($cleanedData);
-                    
-                    if ($user) {
-                        $results['successful']++;
-                        Log::info("Successfully imported user: {$user->first_name} {$user->last_name} (ID: {$user->user_id})");
-                    } else {
-                        throw new \Exception('Failed to create user record');
-                    }
-                    
-                } catch (\Exception $e) {
-                    $results['failed']++;
-                    $errorMessage = "Row {$rowNumber}: " . $e->getMessage();
-                    $results['errors'][] = $errorMessage;
-                    Log::error($errorMessage);
-                    
-                    // Continue with next row instead of stopping
-                    continue;
                 }
-            }
-            
-            fclose($handle);
-            
-        } catch (\Exception $e) {
-            Log::error('Import failed: ' . $e->getMessage());
-            return redirect()->route('users.import.form')
-                ->with('error', 'Failed to process file: ' . $e->getMessage());
-        }
 
-        return $this->handleImportResults($results);
+                // Create the user
+                $user = User::create($cleanedData);
+                
+                if ($user) {
+                    $results['successful']++;
+                    Log::info("Successfully imported user: {$user->first_name} {$user->last_name} (ID: {$user->user_id})");
+                } else {
+                    throw new \Exception('Failed to create user record');
+                }
+                
+            } catch (\Exception $e) {
+                $results['failed']++;
+                $errorMessage = "Row {$rowNumber}: " . $e->getMessage();
+                $results['errors'][] = $errorMessage;
+                Log::error($errorMessage);
+                
+                // Continue with next row instead of stopping
+                continue;
+            }
+        }
+        
+        fclose($handle);
+        
+    } catch (\Exception $e) {
+        Log::error('Import failed: ' . $e->getMessage());
+        return redirect()->route('users.import.form')
+            ->with('error', 'Failed to process file: ' . $e->getMessage());
     }
+
+    return $this->handleImportResults($results);
+}
 
     /**
      * Clean import data - UPDATED for cop_id handling

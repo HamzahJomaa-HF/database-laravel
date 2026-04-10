@@ -415,6 +415,15 @@
                             </a>
                         </li>
                         @endif
+                        {{-- Import Activities --}}
+@if($hasFullAccess || $employee->hasPermission('Activities'))
+<li class="nav-item">
+    <a class="nav-link {{ request()->routeIs('activities.import') ? 'active' : '' }}" 
+       href="{{ route('activities.import') }}">
+        <i class="bi bi-cloud-upload me-2"></i> Import Activities
+    </a>
+</li>
+@endif
                         {{-- Export Activities --}}
                 @if($hasFullAccess || $employee->hasPermission('Activities'))
                 <li class="nav-item">
@@ -463,7 +472,15 @@
                             </a>
                         </li>
                         @endif
-                        
+                        {{-- Import Activity Users --}}
+@if($hasFullAccess || $employee->hasPermission('ActivityUsers'))
+<li class="nav-item">
+    <a class="nav-link {{ request()->routeIs('activity-users.import.form') ? 'active' : '' }}" 
+       href="{{ route('activity-users.import.form') }}">
+        <i class="bi bi-cloud-upload me-2"></i> Import Activity Users
+    </a>
+</li>
+@endif
                         {{-- Export Activity Users --}}
                         @if($hasFullAccess || $employee->hasPermission('ActivityUsers'))
                         <li class="nav-item">

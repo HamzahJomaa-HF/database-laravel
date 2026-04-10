@@ -1180,5 +1180,144 @@ public function export(Request $request)
         return back()->with('error', 'Error exporting activities: ' . $e->getMessage());
     }
 }
+/**
+ * Show the bulk import form
+ */
+public function showImportForm()
+{
+    return view('activities.import');
+}
+
+/**
+ * Import activities from Excel file
+ */
+public function import(Request $request)
+{
+    try {
+        // Validate the request
+        $request->validate([
+            'excel_file' => 'required|file|mimes:xlsx,xls,csv|max:10240', // Max 10MB
+        ]);
+
+        DB::beginTransaction();
+
+        // Create the import instance
+        $import = new \App\Imports\BulkImportActivities();
+        
+        // Import the file
+        Excel::import($import, $request->file('excel_file'));
+        
+        // Get import results
+        $importedCount = $import->getImportedCount();
+        $failedRows = $import->getFailedRows();
+
+        DB::commit();
+
+        $message = "Successfully imported {$importedCount} activities.";
+        
+        if (!empty($failedRows)) {
+            $message .= " Failed rows: " . count($failedRows);
+            
+            // Log failed rows for debugging
+            Log::warning('Import failed rows', ['failed_rows' => $failedRows]);
+            
+            // Store failed rows in session for display
+            session()->flash('import_failed_rows', $failedRows);
+        }
+
+        return redirect()->route('activities.index')
+            ->with('success', $message);
+
+    } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+        DB::rollBack();
+        
+        $failures = $e->failures();
+        $errorMessages = [];
+        
+        foreach ($failures as $failure) {
+            $errorMessages[] = "Row {$failure->row()}: " . implode(', ', $failure->errors());
+        }
+        
+        return back()
+            ->withInput()
+            ->with('error', 'Validation errors in Excel file:<br>' . implode('<br>', $errorMessages));
+            
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Error importing activities: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString(),
+            'file' => $request->file('excel_file')?->getClientOriginalName()
+        ]);
+
+        return back()
+            ->withInput()
+            ->with('error', 'Error importing activities: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Download Excel template for bulk import
+ */
+public function downloadTemplate()
+{
+    try {
+        // Create a simple template with headers
+        $headers = [
+            'activity_title_en',
+            'activity_title_ar',
+            'activity_type',
+            'start_date',
+            'end_date',
+            'venue',
+            'content_network',
+            'maximum_capacity',
+            'operational_support',
+            'projects',
+            'portfolios',
+            'rp_activities',
+            'focal_points'
+        ];
+        
+        // Create sample data
+        $sampleData = [
+            [
+                'Sample Activity EN',
+                'نشاط تجريبي AR',
+                'Workshop',
+                '2026-04-01',
+                '2026-04-02',
+                'Main Hall',
+                'Internal',
+                '50',
+                'IT,Finance',
+                'proj-1,proj-2',
+                'port-1,port-2',
+                'rp-act-1,rp-act-2',
+                'emp-1,emp-2'
+            ]
+        ];
+        
+        // Use Maatwebsite Excel to create and download
+        return Excel::download(new class($headers, $sampleData) implements \Maatwebsite\Excel\Concerns\FromArray {
+            protected $headers;
+            protected $data;
+            
+            public function __construct($headers, $data)
+            {
+                $this->headers = $headers;
+                $this->data = $data;
+            }
+            
+            public function array(): array
+            {
+                return array_merge([$this->headers], $this->data);
+            }
+        }, 'activities_import_template.xlsx');
+        
+    } catch (\Exception $e) {
+        Log::error('Error generating template: ' . $e->getMessage());
+        return back()->with('error', 'Error generating template: ' . $e->getMessage());
+    }
+}
 
 }

@@ -45,7 +45,17 @@ use Illuminate\Support\Facades\DB;
 | Here is where you can register web routes for your application.
 |
 */
+// //activities import routes
+// Route::get('activities/import', [ActivityController::class, 'showImportForm'])->name('activities.import');
+// Route::post('activities/import', [ActivityController::class, 'import'])->name('activities.import.store');
+// Route::get('activities/import/template', [ActivityController::class, 'downloadTemplate'])->name('activities.import.template');
 
+// // Activity User Import Routes
+// Route::prefix('activity-users')->group(function () {
+//     Route::get('import', [ActivityUserController::class, 'importForm'])->name('activity-users.import.form');
+//     Route::post('import', [ActivityUserController::class, 'import'])->name('activity-users.import.process');
+//     Route::get('download-template', [ActivityUserController::class, 'downloadTemplate'])->name('activity-users.download-template');
+// });
 
 Route::get('/', function () {
     return view('welcome'); // or dashboard
@@ -306,59 +316,69 @@ Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
         });
 
 
-
-    // ------------------------------------------------------------------------
-    // ACTIVITIES MODULE
-    // ------------------------------------------------------------------------
-    Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
-        ->get('/activities/export', [ActivityController::class, 'export'])->name('activities.export');
-    Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
-        ->prefix('activities')->name('activities.')->group(function () {
-            Route::get('/', [ActivityController::class, 'index'])->name('index');
-            Route::middleware(['hasPermission:activities.create,activities.manage,activities.full'])
-                ->get('/create', [ActivityController::class, 'create'])->name('create');
-            Route::middleware(['hasPermission:activities.create,activities.manage,activities.full'])
-                ->post('/', [ActivityController::class, 'store'])->name('store');
-            Route::get('/{activity}', [ActivityController::class, 'show'])->name('show');
-            Route::middleware(['hasPermission:activities.edit,activities.manage,activities.full'])
-                ->get('/{activity}/edit', [ActivityController::class, 'edit'])->name('edit');
-            Route::middleware(['hasPermission:activities.edit,activities.manage,activities.full'])
-                ->put('/{activity}', [ActivityController::class, 'update'])->name('update');
-
-            Route::middleware(['hasPermission:activities.delete,activities.manage,activities.full'])
-            ->delete('/bulk/destroy', [ActivityController::class, 'bulkDestroy'])
-            ->name('bulk.destroy');  
+// ------------------------------------------------------------------------
+// ACTIVITIES MODULE
+// ------------------------------------------------------------------------
+Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
+    ->prefix('activities')->name('activities.')->group(function () {
+        
+        // IMPORT ROUTES - MUST BE BEFORE OTHER ROUTES
+        Route::middleware(['hasPermission:activities.manage,activities.full'])
+            ->get('/import', [ActivityController::class, 'showImportForm'])->name('import');
+        
+        Route::middleware(['hasPermission:activities.manage,activities.full'])
+            ->post('/import', [ActivityController::class, 'import'])->name('import.store');
+        
+        Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
+            ->get('/import/template', [ActivityController::class, 'downloadTemplate'])->name('import.template');
+        
+        // Export route
+        Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
+            ->get('/export', [ActivityController::class, 'export'])->name('export');
+        
+        // Regular CRUD routes
+        Route::get('/', [ActivityController::class, 'index'])->name('index');
+        Route::middleware(['hasPermission:activities.create,activities.manage,activities.full'])
+            ->get('/create', [ActivityController::class, 'create'])->name('create');
+        Route::middleware(['hasPermission:activities.create,activities.manage,activities.full'])
+            ->post('/', [ActivityController::class, 'store'])->name('store');
+        Route::get('/{activity}', [ActivityController::class, 'show'])->name('show');
+        Route::middleware(['hasPermission:activities.edit,activities.manage,activities.full'])
+            ->get('/{activity}/edit', [ActivityController::class, 'edit'])->name('edit');
+        Route::middleware(['hasPermission:activities.edit,activities.manage,activities.full'])
+            ->put('/{activity}', [ActivityController::class, 'update'])->name('update');
 
         Route::middleware(['hasPermission:activities.delete,activities.manage,activities.full'])
-            ->delete('/{activity}', [ActivityController::class, 'destroy'])
-            ->name('destroy');
+            ->delete('/bulk/destroy', [ActivityController::class, 'bulkDestroy'])->name('bulk.destroy');  
+
+        Route::middleware(['hasPermission:activities.delete,activities.manage,activities.full'])
+            ->delete('/{activity}', [ActivityController::class, 'destroy'])->name('destroy');
             
-            Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
-                ->prefix('{parentActivity}/children')->name('children.')->group(function () {
-                    Route::get('/', [ActivityController::class, 'indexChildren'])->name('index');
-                    Route::middleware(['hasPermission:activities.create,activities.manage,activities.full'])
-                        ->get('/create', [ActivityController::class, 'createChild'])->name('create');
-                    Route::middleware(['hasPermission:activities.create,activities.manage,activities.full'])
-                        ->post('/', [ActivityController::class, 'storeChild'])->name('store');
-                });
-            
-            // AJAX routes for activities
-            Route::prefix('ajax')->group(function () {
-                Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
-                    ->get('/get-rp-activities', [ActivityController::class, 'getRPActivities'])->name('get-rp-activities');
-                Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
-                    ->get('/rp-actions', [ActivityController::class, 'getRPActionsWithActivities'])->name('get-rp-actions-with-activities');
-                Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
-                    ->get('/get-projects-by-program', [ActivityController::class, 'getProjectsByProgram'])->name('get-projects-by-program');
-                Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
-                    ->get('/get-action-plans', [ActivityController::class, 'getActionPlans'])->name('get-action-plans');
-                Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
-                    ->get('/get-components-by-action-plan', [ActivityController::class, 'getComponentsByActionPlan'])->name('get-components-by-action-plan');
-                Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
-                    ->get('/get-rp-components', [ActivityController::class, 'getRPComponents'])->name('get-rp-components');
+        Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
+            ->prefix('{parentActivity}/children')->name('children.')->group(function () {
+                Route::get('/', [ActivityController::class, 'indexChildren'])->name('index');
+                Route::middleware(['hasPermission:activities.create,activities.manage,activities.full'])
+                    ->get('/create', [ActivityController::class, 'createChild'])->name('create');
+                Route::middleware(['hasPermission:activities.create,activities.manage,activities.full'])
+                    ->post('/', [ActivityController::class, 'storeChild'])->name('store');
             });
+        
+        // AJAX routes for activities
+        Route::prefix('ajax')->group(function () {
+            Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
+                ->get('/get-rp-activities', [ActivityController::class, 'getRPActivities'])->name('get-rp-activities');
+            Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
+                ->get('/rp-actions', [ActivityController::class, 'getRPActionsWithActivities'])->name('get-rp-actions-with-activities');
+            Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
+                ->get('/get-projects-by-program', [ActivityController::class, 'getProjectsByProgram'])->name('get-projects-by-program');
+            Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
+                ->get('/get-action-plans', [ActivityController::class, 'getActionPlans'])->name('get-action-plans');
+            Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
+                ->get('/get-components-by-action-plan', [ActivityController::class, 'getComponentsByActionPlan'])->name('get-components-by-action-plan');
+            Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
+                ->get('/get-rp-components', [ActivityController::class, 'getRPComponents'])->name('get-rp-components');
         });
-    
+    });
     // ------------------------------------------------------------------------
     // ACTION PLANS MODULE
     // ------------------------------------------------------------------------
@@ -436,42 +456,51 @@ Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
     
 
 
-
 // ------------------------------------------------------------------------
-    // ACTIVITY USERS MODULE 
-    // ------------------------------------------------------------------------
-    Route::middleware(['hasPermission:ActivityUsers.view,ActivityUsers.manage,ActivityUsers.full'])->prefix('activity-users')->name('activity-users.')->group(function () {
-        
-        // View routes (index, show, export)
-        Route::get('/', [ActivityUserController::class, 'index'])->name('index');
-        Route::get('/export/csv', [ActivityUserController::class, 'export'])->name('export');
-        
-        // Create routes
-        Route::middleware(['hasPermission:ActivityUsers.create,ActivityUsers.manage,ActivityUsers.full'])
-            ->get('/create', [ActivityUserController::class, 'create'])->name('create');
-        Route::middleware(['hasPermission:ActivityUsers.create,ActivityUsers.manage,ActivityUsers.full'])
-            ->post('/', [ActivityUserController::class, 'store'])->name('store');
-        
-        // Edit/Update routes
-        Route::middleware(['hasPermission:ActivityUsers.edit,ActivityUsers.manage,ActivityUsers.full'])
-            ->get('/{id}/edit', [ActivityUserController::class, 'edit'])->name('edit');
-        Route::middleware(['hasPermission:ActivityUsers.edit,ActivityUsers.manage,ActivityUsers.full'])
-            ->put('/{id}', [ActivityUserController::class, 'update'])->name('update');
-        
-        // Delete routes (single and bulk)
-        Route::middleware(['hasPermission:ActivityUsers.delete,ActivityUsers.manage,ActivityUsers.full'])
-            ->delete('/{id}', [ActivityUserController::class, 'destroy'])->name('destroy');
-        Route::middleware(['hasPermission:ActivityUsers.delete,ActivityUsers.manage,ActivityUsers.full'])
-            ->delete('/bulk/destroy', [ActivityUserController::class, 'bulkDestroy'])->name('bulk.destroy');
-        
-        // Trash/Restore routes (for soft deletes)
-        Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
-            ->get('/trash/list', [ActivityUserController::class, 'trash'])->name('trash');
-        Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
-            ->post('/{id}/restore', [ActivityUserController::class, 'restore'])->name('restore');
-        Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
-            ->delete('/{id}/force-delete', [ActivityUserController::class, 'forceDelete'])->name('force-delete');
-    });
+// ACTIVITY USERS MODULE 
+// ------------------------------------------------------------------------
+Route::middleware(['hasPermission:ActivityUsers.view,ActivityUsers.manage,ActivityUsers.full'])->prefix('activity-users')->name('activity-users.')->group(function () {
+    
+    // IMPORT ROUTES - MUST BE BEFORE OTHER ROUTES
+    Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+        ->get('/import', [ActivityUserController::class, 'importForm'])->name('import.form');
+    
+    Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+        ->post('/import', [ActivityUserController::class, 'import'])->name('import.process');
+    
+    Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+        ->get('/download-template', [ActivityUserController::class, 'downloadTemplate'])->name('download-template');
+    
+    // View routes (index, show, export)
+    Route::get('/', [ActivityUserController::class, 'index'])->name('index');
+    Route::get('/export/csv', [ActivityUserController::class, 'export'])->name('export');
+    
+    // Create routes
+    Route::middleware(['hasPermission:ActivityUsers.create,ActivityUsers.manage,ActivityUsers.full'])
+        ->get('/create', [ActivityUserController::class, 'create'])->name('create');
+    Route::middleware(['hasPermission:ActivityUsers.create,ActivityUsers.manage,ActivityUsers.full'])
+        ->post('/', [ActivityUserController::class, 'store'])->name('store');
+    
+    // Edit/Update routes
+    Route::middleware(['hasPermission:ActivityUsers.edit,ActivityUsers.manage,ActivityUsers.full'])
+        ->get('/{id}/edit', [ActivityUserController::class, 'edit'])->name('edit');
+    Route::middleware(['hasPermission:ActivityUsers.edit,ActivityUsers.manage,ActivityUsers.full'])
+        ->put('/{id}', [ActivityUserController::class, 'update'])->name('update');
+    
+    // Delete routes (single and bulk)
+    Route::middleware(['hasPermission:ActivityUsers.delete,ActivityUsers.manage,ActivityUsers.full'])
+        ->delete('/{id}', [ActivityUserController::class, 'destroy'])->name('destroy');
+    Route::middleware(['hasPermission:ActivityUsers.delete,ActivityUsers.manage,ActivityUsers.full'])
+        ->delete('/bulk/destroy', [ActivityUserController::class, 'bulkDestroy'])->name('bulk.destroy');
+    
+    // Trash/Restore routes (for soft deletes)
+    Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+        ->get('/trash/list', [ActivityUserController::class, 'trash'])->name('trash');
+    Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+        ->post('/{id}/restore', [ActivityUserController::class, 'restore'])->name('restore');
+    Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+        ->delete('/{id}/force-delete', [ActivityUserController::class, 'forceDelete'])->name('force-delete');
+});
 
 
 
