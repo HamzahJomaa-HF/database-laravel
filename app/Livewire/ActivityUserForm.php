@@ -77,7 +77,7 @@ class ActivityUserForm extends Component
                 'avatar' => $user->avatar,
                 'passport_number' => $user->passport_number,
                 'identification_id' => $user->identification_id,
-                'type' => ucfirst($user->type ?? 'Unknown'),
+                'type' => ucfirst($this->activityUser->type ?? 'Unknown'),
                 'phone_number' => $user->phone_number,
                 'dob' => $user->dob ? date('d M Y', strtotime($user->dob)) : null,
                 'first_name' => $user->first_name,
@@ -130,7 +130,7 @@ class ActivityUserForm extends Component
                   ->orWhere('email', 'ilike', "%{$this->userSearch}%")
                   ->orWhere('phone_number', 'ilike', "%{$this->userSearch}%")
                   ->orWhere('passport_number', 'ilike', "%{$this->userSearch}%")
-                  ->orWhere('identification_id', 'ilike', "%{$this->userSearch}%"); // Added
+                  ->orWhere('identification_id', 'ilike', "%{$this->userSearch}%");
         })
         ->orderBy('first_name')
         ->limit(10)
@@ -140,23 +140,8 @@ class ActivityUserForm extends Component
                          ($user->middle_name ? $user->middle_name . ' ' : '') . 
                          $user->last_name);
             
-            // Determine badge class and icon based on user type
-            $typeBadgeClass = 'bg-secondary';
-            $typeIcon = 'fa-user';
-            
-            if ($user->type == 'beneficiary') {
-                $typeBadgeClass = 'bg-success';
-                $typeIcon = 'fa-hand-holding-heart';
-            } elseif ($user->type == 'stakeholder') {
-                $typeBadgeClass = 'bg-primary';
-                $typeIcon = 'fa-building';
-            } elseif ($user->type == 'trainer') {
-                $typeBadgeClass = 'bg-warning text-dark';
-                $typeIcon = 'fa-chalkboard-teacher';
-            } elseif ($user->type == 'staff') {
-                $typeBadgeClass = 'bg-info';
-                $typeIcon = 'fa-user-tie';
-            }
+            // REMOVED: user type badge mapping - type now comes from activity_users
+            // We don't show type in search results anymore since type is per-activity
             
             return [
                 'id' => $user->user_id,
@@ -168,10 +153,7 @@ class ActivityUserForm extends Component
                 'phone_number' => $user->phone_number,
                 'dob' => $user->dob ? date('d M Y', strtotime($user->dob)) : null,
                 'passport_number' => $user->passport_number,
-                'identification_id' => $user->identification_id, // Added
-                'type' => ucfirst($user->type ?? 'Unknown'),
-                'type_badge_class' => $typeBadgeClass,
-                'type_icon' => $typeIcon,
+                'identification_id' => $user->identification_id,
                 'avatar' => $user->avatar
             ];
         })
@@ -242,8 +224,8 @@ class ActivityUserForm extends Component
             'phone_number' => $user->phone_number,
             'dob' => $user->dob ? date('d M Y', strtotime($user->dob)) : null,
             'passport_number' => $user->passport_number,
-            'identification_id' => $user->identification_id, // Added
-            'type' => ucfirst($user->type ?? 'Unknown'),
+            'identification_id' => $user->identification_id,
+            'type' => ucfirst($this->type ?? 'Not Set'), // Show current activity type
             'avatar' => $user->avatar
         ];
         $this->userSearch = '';

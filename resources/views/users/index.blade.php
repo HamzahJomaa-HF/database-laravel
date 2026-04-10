@@ -275,9 +275,7 @@
                                     {{-- Status & Role --}}
                                     <td>
                                         <div class="d-flex flex-column gap-1">
-                                            <span class="badge {{ $user->type == 'Beneficiary' ? 'bg-success' : 'bg-primary' }}">
-                                                {{ $user->type ?? 'Stakeholder' }}
-                                            </span>
+                                            
                                             <span class="small text-muted">
                                                 {{ $user->employment_status ?? 'Not specified' }}
                                             </span>

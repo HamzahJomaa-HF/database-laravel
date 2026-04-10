@@ -838,25 +838,24 @@
 </td>
 
 
-
-                                <td>
-                                    @if($activityUser->user && $activityUser->user->type)
-                                        @php
-                                            $typeClass = match($activityUser->user->type) {
-                                                'Beneficiary' => 'bg-success',
-                                                'Stakeholder' => 'bg-primary',
-                                                'trainer' => 'bg-warning text-dark',
-                                                'staff' => 'bg-info',
-                                                default => 'bg-secondary'
-                                            };
-                                        @endphp
-                                        <span class="badge {{ $typeClass }}">
-                                            {{ ucfirst($activityUser->user->type) }}
-                                        </span>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                </td>
+<td>
+    @if($activityUser->type)
+        @php
+            $typeClass = match($activityUser->type) {
+                'Beneficiary' => 'bg-success',
+                'Stakeholder' => 'bg-primary',
+                'trainer' => 'bg-warning text-dark',
+                'staff' => 'bg-info',
+                default => 'bg-secondary'
+            };
+        @endphp
+        <span class="badge {{ $typeClass }}">
+            {{ ucfirst($activityUser->type) }}
+        </span>
+    @else
+        <span class="text-muted">-</span>
+    @endif
+</td>
                                 <td>
                                     @if($activityUser->invited)
                                         <span class="badge bg-info">Yes</span>

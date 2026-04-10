@@ -268,9 +268,9 @@
                                 <div class="row">
                                     <div class="col-md-6">
                                         <label for="type" class="form-label fw-semibold">
-                                            User Type <span class="text-danger">*</span>
+                                            User Type <span class="text-danger"></span>
                                         </label>
-                                        <select name="type" id="type" class="form-control form-select @error('type') is-invalid @enderror" required>
+                                        <select name="type" id="type" class="form-control form-select @error('type') is-invalid @enderror">
                                             <option value="">Select User Type</option>
                                             <option value="Stakeholder" {{ old('type', $user->type) == 'Stakeholder' ? 'selected' : '' }}>Stakeholder</option>
                                             <option value="Beneficiary" {{ old('type', $user->type) == 'Beneficiary' ? 'selected' : '' }}>Beneficiary</option>

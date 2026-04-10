@@ -71,9 +71,6 @@
                                                 @endif
                                                 {{ $user['last_name'] }}
                                             </strong>
-                                            <span class="badge {{ $user['type_badge_class'] }}" style="font-size: 0.8rem; padding: 5px 10px;">
-                                                <i class="fas {{ $user['type_icon'] }}"></i> {{ $user['type'] }}
-                                            </span>
                                         </div>
                                         
                                         <div class="d-flex flex-column gap-2">
@@ -107,9 +104,7 @@
                                         <div>
                                             <strong class="text-primary">{{ $selectedUserDisplay['full_name'] }}</strong>
                                             <br>
-                                            <span class="badge {{ $selectedUserDisplay['type'] == 'Beneficiary' ? 'bg-success' : 'bg-primary' }} mb-2">
-                                                {{ $selectedUserDisplay['type'] }}
-                                            </span>
+                                            
                                             <div class="mt-2">
                                                 @if($selectedUserDisplay['email'])
                                                     <small class="d-block text-muted"><i class="fas fa-envelope"></i> {{ $selectedUserDisplay['email'] }}</small>
@@ -270,6 +265,24 @@
                                 <option value="{{ $cop->cop_id }}">{{ $cop->cop_name }}</option>
                             @endforeach
                         </select>
+                    </div>
+                </div>
+                
+                {{-- User Type Selection (Stakeholder/Beneficiary) - Saved in activity_users table --}}
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="type">User Type <span class="text-danger">*</span></label>
+                        <select wire:model="type" id="type" class="form-control" required>
+                            <option value="">-- Select User Type --</option>
+                            <option value="Stakeholder">Stakeholder</option>
+                            <option value="Beneficiary">Beneficiary</option>
+                        </select>
+                        <small class="form-text text-muted">
+                            <i class="fas fa-info-circle"></i> This type will be stored in the <strong>activity_users</strong> table
+                        </small>
+                        @error('type') 
+                            <span class="text-danger small">{{ $message }}</span> 
+                        @enderror
                     </div>
                 </div>
             </div>
