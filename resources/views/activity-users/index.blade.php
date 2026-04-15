@@ -914,53 +914,102 @@
         </div>
 
         <!-- Pagination -->
-        @if($activityUsers->hasPages())
-        <div class="pagination-container">
-            <div class="pagination-numbers">
-                @if($activityUsers->onFirstPage())
-                    <button class="pagination-nav-button" disabled>
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                @else
-                    <a href="{{ $activityUsers->previousPageUrl() }}" class="pagination-nav-button">
-                        <i class="fas fa-chevron-left"></i>
-                    </a>
-                @endif
-                
-                @foreach(range(1, min(5, $activityUsers->lastPage())) as $page)
-                    <a href="{{ $activityUsers->url($page) }}" 
-                       class="pagination-button {{ $activityUsers->currentPage() == $page ? 'active' : '' }}">
-                        {{ $page }}
-                    </a>
-                @endforeach
-                
-                @if($activityUsers->hasMorePages())
-                    <a href="{{ $activityUsers->nextPageUrl() }}" class="pagination-nav-button">
-                        <i class="fas fa-chevron-right"></i>
-                    </a>
-                @else
-                    <button class="pagination-nav-button" disabled>
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                @endif
-            </div>
+@if($activityUsers->hasPages())
+<div class="pagination-container">
+    <div class="pagination-info">
+        Showing {{ $activityUsers->firstItem() }} to {{ $activityUsers->lastItem() }} of {{ $activityUsers->total() }} entries
+    </div>
+    
+    <div class="pagination-numbers">
+        {{-- First Page --}}
+        @if($activityUsers->onFirstPage())
+            <button class="pagination-nav-button" disabled title="First Page">
+                <i class="fas fa-angle-double-left"></i>
+            </button>
+        @else
+            <a href="{{ $activityUsers->appends(request()->query())->url(1) }}" class="pagination-nav-button" title="First Page">
+                <i class="fas fa-angle-double-left"></i>
+            </a>
+        @endif
+        
+        {{-- Previous Page --}}
+        @if($activityUsers->onFirstPage())
+            <button class="pagination-nav-button" disabled title="Previous Page">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+        @else
+            <a href="{{ $activityUsers->appends(request()->query())->previousPageUrl() }}" class="pagination-nav-button" title="Previous Page">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+        @endif
+        
+        {{-- Page Numbers with dynamic range --}}
+        @php
+            $currentPage = $activityUsers->currentPage();
+            $lastPage = $activityUsers->lastPage();
+            $start = max(1, $currentPage - 2);
+            $end = min($lastPage, $currentPage + 2);
             
-            <div class="pagination-info">
-                Showing {{ $activityUsers->firstItem() }} to {{ $activityUsers->lastItem() }} of {{ $activityUsers->total() }} entries
-            </div>
+            // Add first page with ellipsis if needed
+            if ($start > 1) {
+                echo '<a href="' . $activityUsers->appends(request()->query())->url(1) . '" class="pagination-button">1</a>';
+                if ($start > 2) {
+                    echo '<span class="pagination-ellipsis">...</span>';
+                }
+            }
             
-            <div>
-                <select class="filter-select" onchange="changePerPage(this.value)">
-                    <option value="10" {{ $activityUsers->perPage() == 10 ? 'selected' : '' }}>10</option>
-                    <option value="25" {{ $activityUsers->perPage() == 25 ? 'selected' : '' }}>25</option>
-                    <option value="50" {{ $activityUsers->perPage() == 50 ? 'selected' : '' }}>50</option>
-                    <option value="100" {{ $activityUsers->perPage() == 100 ? 'selected' : '' }}>100</option>
-                </select>
-            </div>
-        </div>
+            // Page numbers
+            for ($i = $start; $i <= $end; $i++) {
+                if ($i == $currentPage) {
+                    echo '<span class="pagination-button active">' . $i . '</span>';
+                } else {
+                    echo '<a href="' . $activityUsers->appends(request()->query())->url($i) . '" class="pagination-button">' . $i . '</a>';
+                }
+            }
+            
+            // Add last page with ellipsis if needed
+            if ($end < $lastPage) {
+                if ($end < $lastPage - 1) {
+                    echo '<span class="pagination-ellipsis">...</span>';
+                }
+                echo '<a href="' . $activityUsers->appends(request()->query())->url($lastPage) . '" class="pagination-button">' . $lastPage . '</a>';
+            }
+        @endphp
+        
+        {{-- Next Page --}}
+        @if($activityUsers->hasMorePages())
+            <a href="{{ $activityUsers->appends(request()->query())->nextPageUrl() }}" class="pagination-nav-button" title="Next Page">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        @else
+            <button class="pagination-nav-button" disabled title="Next Page">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        @endif
+        
+        {{-- Last Page --}}
+        @if($activityUsers->hasMorePages())
+            <a href="{{ $activityUsers->appends(request()->query())->url($activityUsers->lastPage()) }}" class="pagination-nav-button" title="Last Page">
+                <i class="fas fa-angle-double-right"></i>
+            </a>
+        @else
+            <button class="pagination-nav-button" disabled title="Last Page">
+                <i class="fas fa-angle-double-right"></i>
+            </button>
         @endif
     </div>
+    
+    <div class="pagination-perpage">
+        <label class="text-muted small me-2">Rows per page:</label>
+        <select class="filter-select" onchange="changePerPage(this.value)">
+            <option value="10" {{ $activityUsers->perPage() == 10 ? 'selected' : '' }}>10</option>
+            <option value="25" {{ $activityUsers->perPage() == 25 ? 'selected' : '' }}>25</option>
+            <option value="50" {{ $activityUsers->perPage() == 50 ? 'selected' : '' }}>50</option>
+            <option value="100" {{ $activityUsers->perPage() == 100 ? 'selected' : '' }}>100</option>
+        </select>
+    </div>
 </div>
+@endif
 
 {{-- Bulk Delete Confirmation Modal --}}
 <div class="modal fade" id="bulkDeleteModal" tabindex="-1" aria-hidden="true">
@@ -1042,11 +1091,12 @@
             window.location.href = '{{ route("activity-users.index") }}';
         }
         
-        function changePerPage(value) {
-            const params = new URLSearchParams(window.location.search);
-            params.set('per_page', value);
-            window.location.href = '{{ route("activity-users.index") }}?' + params.toString();
-        }
+       function changePerPage(value) {
+    const params = new URLSearchParams(window.location.search);
+    params.set('per_page', value);
+    // Preserve all existing filter parameters
+    window.location.href = '{{ route("activity-users.index") }}?' + params.toString();
+}
         
         // Notification function (for AJAX responses)
         function showNotification(type, message) {

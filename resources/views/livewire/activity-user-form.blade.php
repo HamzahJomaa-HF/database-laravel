@@ -277,9 +277,7 @@
                             <option value="Stakeholder">Stakeholder</option>
                             <option value="Beneficiary">Beneficiary</option>
                         </select>
-                        <small class="form-text text-muted">
-                            <i class="fas fa-info-circle"></i> This type will be stored in the <strong>activity_users</strong> table
-                        </small>
+                        
                         @error('type') 
                             <span class="text-danger small">{{ $message }}</span> 
                         @enderror

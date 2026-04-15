@@ -595,49 +595,47 @@
 
                     @php
                         // Allowed keys
-                        $allowedSupports = config('operational_support', [
-                            'logistics',
-                            'media',
-                            'public_relations',
-                            'none',
-                        ]);
-
-                        // Get operational support from activity
-$operationalSupport = [];
-
-if (!empty($activity->operational_support)) {
-
-    if (is_array($activity->operational_support)) {
-        // Already an array
-        $operationalSupport = $activity->operational_support;
-
-    } elseif (is_string($activity->operational_support)) {
-        // JSON string — decode it
-        $decoded = json_decode($activity->operational_support, true);
-
-        if (is_array($decoded)) {
-            $operationalSupport = $decoded;
-        }
-    }
-}
-
-                        // If form was submitted with errors, use old input
-                        if (old('operational_support')) {
-                            $operationalSupport = old('operational_support', []);
-                        }
-
-                        // Labels for display
-                        $labels = [
+                        $allowedSupports = [
                             'logistics' => 'Logistics',
                             'media' => 'Media',
                             'public_relations' => 'Public Relations',
                             'field_support' => 'Facilitation & Field Support',
                             'none' => 'None',
                         ];
+
+                        // CORRECT TRANSFORMATION: Convert indexed array to associative array
+                        $operationalSupport = [];
+
+                        if (!empty($activity->operational_support)) {
+                            // Decode if it's a string
+                            $data = is_string($activity->operational_support) 
+                                ? json_decode($activity->operational_support, true) 
+                                : $activity->operational_support;
+                            
+                            if (is_array($data)) {
+                                // Check if it's an indexed array (sequential numeric keys)
+                                $isIndexed = array_keys($data) === range(0, count($data) - 1);
+                                
+                                if ($isIndexed) {
+                                    // Transform ['logistics', 'media'] to ['logistics' => true, 'media' => true]
+                                    foreach ($data as $value) {
+                                        $operationalSupport[trim($value)] = true;
+                                    }
+                                } else {
+                                    // Already associative array
+                                    $operationalSupport = $data;
+                                }
+                            }
+                        }
+
+                        // If form was submitted with errors, use old input
+                        if (old('operational_support')) {
+                            $operationalSupport = old('operational_support', []);
+                        }
                     @endphp
 
                     <div class="row">
-                        @foreach($allowedSupports as $key)
+                        @foreach($allowedSupports as $key => $label)
                             <div class="col-md-6 col-lg-3 mb-2">
                                 <div class="form-check">
                                     <input
@@ -646,10 +644,10 @@ if (!empty($activity->operational_support)) {
                                         name="operational_support[{{ $key }}]"
                                         id="support_{{ $key }}"
                                         value="1"
-                                        {{ !empty($operationalSupport[$key]) ? 'checked' : '' }}
+                                        {{ isset($operationalSupport[$key]) && $operationalSupport[$key] ? 'checked' : '' }}
                                     >
                                     <label class="form-check-label" for="support_{{ $key }}">
-                                        {{ $labels[$key] ?? ucfirst(str_replace('_', ' ', $key)) }}
+                                        {{ $label }}
                                     </label>
                                 </div>
                             </div>
@@ -659,15 +657,11 @@ if (!empty($activity->operational_support)) {
                     @error('operational_support')
                         <div class="invalid-feedback d-block">{{ $message }}</div>
                     @enderror
-                    @error('operational_support.*')
-                        <div class="invalid-feedback d-block">{{ $message }}</div>
-                    @enderror
                 </div>
             </div>
         </div>
     </div>
 </div>
-
                         {{-- ======================== --}}
                         {{-- SECTION 9: ACTION BUTTONS --}}
                         {{-- ======================== --}}

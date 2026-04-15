@@ -33,12 +33,8 @@
                             <li><strong>content_network</strong> - Content network (optional)</li>
                             <li><strong>maximum_capacity</strong> - Maximum capacity (optional)</li>
                             <li><strong>operational_support</strong> - Comma-separated values (optional)</li>
-                            <li><strong>projects</strong> - Comma-separated project IDs (optional)</li>
-                            <li><strong>portfolios</strong> - Comma-separated portfolio IDs (optional)</li>
-                            <li><strong>rp_activities</strong> - Comma-separated RP activity IDs (optional)</li>
-                            <li><strong>focal_points</strong> - Comma-separated employee IDs (optional)</li>
+                            
                         </ul>
-                        <p><a href="{{ route('activities.import.template') }}" class="btn btn-sm btn-primary">Download Template</a></p>
                     </div>
 
                     <form action="{{ route('activities.import.store') }}" method="POST" enctype="multipart/form-data">

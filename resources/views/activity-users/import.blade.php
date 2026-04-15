@@ -208,9 +208,7 @@
                             <div class="form-text mt-2">
                                 <i class="bi bi-file-excel me-1"></i>
                                 Supported formats: CSV, Excel (.xlsx, .xls)<br>
-                                <a href="{{ route('activity-users.download-template') }}" class="btn btn-sm btn-outline-primary mt-2">
-                                    <i class="bi bi-download me-1"></i> Download Template
-                                </a>
+                                
                             </div>
                         </div>
 

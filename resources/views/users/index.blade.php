@@ -60,8 +60,7 @@
         </div> {{-- Close card --}}
     </div> {{-- Close col --}}
 </div> {{-- Close row --}}
-
-    {{-- Filters Section --}}
+  {{-- Filters Section --}}
     <div class="row mb-4">
         <div class="col-12">
             <div class="card shadow-sm border-0">
@@ -85,7 +84,7 @@
                     <div class="card-body p-4">
                         <form method="GET">
                             <div class="row g-3">
-                                {{-- Name --}}
+                                {{-- Name Search (first_name, middle_name, last_name) --}}
                                 <div class="col-md-3">
                                     <label for="inlineFormFilterBy" class="form-label fw-semibold">Name Search</label>
                                     <input type="text" 
@@ -93,7 +92,30 @@
                                            value="{{ request('name') }}"
                                            class="form-control" 
                                            id="inlineFormFilterBy"
-                                           placeholder="Type a name">
+                                           placeholder="Search by first, middle, or last name">
+                                    <small class="text-muted">Search in first, middle, or last name</small>
+                                </div>
+
+                                {{-- Identification ID --}}
+                                <div class="col-md-3">
+                                    <label for="inlineFormIdentification" class="form-label fw-semibold">Identification ID</label>
+                                    <input type="text" 
+                                           name="identification_id" 
+                                           value="{{ request('identification_id') }}"
+                                           class="form-control" 
+                                           id="inlineFormIdentification" 
+                                           placeholder="Search by ID number">
+                                </div>
+
+                                {{-- Passport Number --}}
+                                <div class="col-md-3">
+                                    <label for="inlineFormPassport" class="form-label fw-semibold">Passport Number</label>
+                                    <input type="text" 
+                                           name="passport_number" 
+                                           value="{{ request('passport_number') }}"
+                                           class="form-control" 
+                                           id="inlineFormPassport" 
+                                           placeholder="Search by passport number">
                                 </div>
 
                                 {{-- Phone --}}
@@ -107,8 +129,7 @@
                                            placeholder="Phone number">
                                 </div>
 
-                                
-
+                                {{-- Employment Status --}}
                                 <div class="col-md-3">
                                     <label for="inlineFormEmployment" class="form-label fw-semibold">Status</label>
                                     <select id="inlineFormEmployment" name="employment_status" class="form-control">
@@ -143,7 +164,8 @@
                                     @php
                                     $filters = [
                                         'name' => ['icon' => 'bi-person', 'label' => 'Name'],
-                                        'type' => ['icon' => 'bi-person-badge', 'label' => 'Role'],
+                                        'identification_id' => ['icon' => 'bi-card-text', 'label' => 'ID Number'],
+                                        'passport_number' => ['icon' => 'bi-passport', 'label' => 'Passport'],
                                         'phone_number' => ['icon' => 'bi-telephone', 'label' => 'Phone'],
                                         'employment_status' => ['icon' => 'bi-briefcase', 'label' => 'Status']
                                     ];

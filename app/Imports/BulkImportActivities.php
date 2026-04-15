@@ -45,6 +45,18 @@ class BulkImportActivities implements ToModel, WithHeadingRow, WithValidation, W
                 throw new \Exception("Invalid start_date format: {$row['start_date']}");
             }
             
+            // ============================================
+            // FIX: Process operational_support FIRST
+            // ============================================
+            $operationalSupportArray = [];
+            if (!empty($row['operational_support'])) {
+                // Split by comma, trim each value, remove empty values
+                $values = explode(',', $row['operational_support']);
+                $operationalSupportArray = array_map('trim', $values);
+                $operationalSupportArray = array_filter($operationalSupportArray);
+                $operationalSupportArray = array_values($operationalSupportArray); // Re-index
+            }
+            
             // Prepare activity data
             $activityData = [
                 'activity_id' => (string) Str::uuid(),
@@ -56,15 +68,10 @@ class BulkImportActivities implements ToModel, WithHeadingRow, WithValidation, W
                 'venue' => $row['venue'] ?? null,
                 'content_network' => $row['content_network'] ?? null,
                 'maximum_capacity' => $row['maximum_capacity'] ?? null,
-                'operational_support' => $row['operational_support'] ?? null,
+                'operational_support' => !empty($operationalSupportArray) ? json_encode($operationalSupportArray) : null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
-
-            // Handle operational_support as JSON if provided
-            if (!empty($activityData['operational_support'])) {
-                $activityData['operational_support'] = json_encode(explode(',', $activityData['operational_support']));
-            }
 
             // Create the activity
             $activity = Activity::create($activityData);
@@ -216,7 +223,7 @@ class BulkImportActivities implements ToModel, WithHeadingRow, WithValidation, W
         // Try to find by external_id first (most likely)
         $project = DB::table('projects')
             ->where('external_id', $code)
-            ->orWhere('project_id', $code) // in case UUID is provided
+            ->orWhere('project_id', $code)
             ->orWhere('name', 'like', "%{$code}%")
             ->whereNull('deleted_at')
             ->first();
@@ -237,10 +244,9 @@ class BulkImportActivities implements ToModel, WithHeadingRow, WithValidation, W
             return $this->portfolioCache[$code];
         }
         
-        // Try to find by external_id or name
         $portfolio = DB::table('portfolios')
             ->where('external_id', $code)
-            ->orWhere('portfolio_id', $code) // in case UUID is provided
+            ->orWhere('portfolio_id', $code)
             ->orWhere('name', 'like', "%{$code}%")
             ->whereNull('deleted_at')
             ->first();
@@ -261,10 +267,9 @@ class BulkImportActivities implements ToModel, WithHeadingRow, WithValidation, W
             return $this->rpActivityCache[$code];
         }
         
-        // Try to find by code or name
         $rpActivity = DB::table('rp_activities')
             ->where('code', $code)
-            ->orWhere('rp_activities_id', $code) // in case UUID is provided
+            ->orWhere('rp_activities_id', $code)
             ->orWhere('name', 'like', "%{$code}%")
             ->whereNull('deleted_at')
             ->first();
@@ -285,14 +290,13 @@ class BulkImportActivities implements ToModel, WithHeadingRow, WithValidation, W
         }
         
         try {
-            // Try different date formats
             $formats = [
-                'Y-m-d',           // 2026-04-15
-                'm/d/Y',           // 4/15/2026
-                'd/m/Y',           // 15/4/2026
-                'Y/m/d',           // 2026/4/15
-                'Y-m-d H:i:s',     // 2026-04-15 14:30:00
-                'm/d/Y H:i:s',     // 4/15/2026 14:30:00
+                'Y-m-d',
+                'm/d/Y',
+                'd/m/Y',
+                'Y/m/d',
+                'Y-m-d H:i:s',
+                'm/d/Y H:i:s',
             ];
             
             foreach ($formats as $format) {
@@ -306,7 +310,6 @@ class BulkImportActivities implements ToModel, WithHeadingRow, WithValidation, W
                 }
             }
             
-            // Try default Carbon parse
             return Carbon::parse($date);
             
         } catch (\Exception $e) {
