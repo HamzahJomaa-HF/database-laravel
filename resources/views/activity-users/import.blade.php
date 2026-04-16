@@ -237,16 +237,14 @@
                        {{-- ── User Type Default (saved in activity_users) ── --}}
                         <div class="mb-4">
                             <label for="default_user_type" class="form-label fw-semibold">
-                                Default User Type (if not specified in file)
+                                User Type 
                             </label>
-                            <select name="default_user_type" id="default_user_type" class="form-control form-select">
+                            <select name="default_user_type" id="default_user_type" class="form-control form-select" required>
                                 <option value="">-- No default type --</option>
                                 <option value="Stakeholder" {{ old('default_user_type') == 'Stakeholder' ? 'selected' : '' }}>Stakeholder</option>
                                 <option value="Beneficiary" {{ old('default_user_type') == 'Beneficiary' ? 'selected' : '' }}>Beneficiary</option>
                             </select>
-                            <small class="form-text text-muted">
-                                <i class="bi bi-info-circle"></i> This type will be saved in the <strong>activity_users</strong> table, not the users table.
-                            </small>
+                            
                         </div>
 
                         {{-- ── Action Buttons ── --}}
