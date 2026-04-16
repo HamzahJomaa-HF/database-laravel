@@ -743,7 +743,36 @@
                             <option value="1" {{ request('invited') === '1' ? 'selected' : '' }}>Invited</option>
                             <option value="0" {{ request('invited') === '0' ? 'selected' : '' }}>Not Invited</option>
                         </select>
-                        
+                        <!-- NEW DATE FILTER -->
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <input type="date" 
+               class="filter-select" 
+               id="startDateFilter" 
+               value="{{ request('start_date') }}"
+               style="min-width: 150px;">
+        <span class="text-muted">to</span>
+        <input type="date" 
+               class="filter-select" 
+               id="endDateFilter" 
+               value="{{ request('end_date') }}"
+               style="min-width: 150px;">
+    </div>
+    <!-- Venue Filter -->
+<select class="filter-select" id="venueFilter">
+    <option value="">All Venues</option>
+    @php
+        // Get unique venues from activities
+        $venues = \App\Models\Activity::whereNotNull('venue')
+                    ->distinct()
+                    ->pluck('venue');
+    @endphp
+    @foreach($venues as $venue)
+        <option value="{{ $venue }}" {{ request('venue') == $venue ? 'selected' : '' }}>
+            {{ $venue }}
+        </option>
+    @endforeach
+</select>
+    
                         <button class="btn-outline" onclick="resetFilters()">
                             <i class="fas fa-redo"></i> Reset
                         </button>
@@ -1083,7 +1112,24 @@
             if (invitedFilter && invitedFilter.value) {
                 params.set('invited', invitedFilter.value);
             }
-            
+            // NEW: Add date filters
+    const startDateFilter = document.getElementById('startDateFilter');
+    const endDateFilter = document.getElementById('endDateFilter');
+    
+    if (startDateFilter && startDateFilter.value) {
+        params.set('start_date', startDateFilter.value);
+    }
+    
+    if (endDateFilter && endDateFilter.value) {
+        params.set('end_date', endDateFilter.value);
+    }
+    // Add venue filter
+const venueFilter = document.getElementById('venueFilter');
+if (venueFilter && venueFilter.value) {
+    params.set('venue', venueFilter.value);
+}
+
+    
             window.location.href = '{{ route("activity-users.index") }}?' + params.toString();
         }
         
@@ -1175,6 +1221,11 @@
             if (invitedFilter) {
                 invitedFilter.addEventListener('change', applyFilters);
             }
+            // Venue filter event
+const venueFilter = document.getElementById('venueFilter');
+if (venueFilter) {
+    venueFilter.addEventListener('change', applyFilters);
+}
             
             // Auto-initialize toasts
             var toastElList = [].slice.call(document.querySelectorAll('.toast'));

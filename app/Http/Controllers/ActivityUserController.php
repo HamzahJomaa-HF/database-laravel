@@ -27,6 +27,12 @@ class ActivityUserController extends Controller
         if ($request->filled('activity_id')) {
             $query->where('activity_id', $request->activity_id);
         }
+        if($request->filled('venue')) {
+            $venue = $request->venue;
+            $query->whereHas('activity', function ($activityQuery) use ($venue) {
+                $activityQuery->where('venue', $venue);
+            });
+        }
 
         // Filter by user if provided
         if ($request->filled('user_id')) {

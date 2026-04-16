@@ -26,7 +26,7 @@
             // Check specific module access with simpler logic
             $canAccessUsers = $employee->hasPermission('Users') || $hasFullAccess;
             $canAccessEmployees = $employee->hasPermission('Employees') || $hasFullAccess;
-            $canAccessRoles = $employee->hasPermission('Employees') || $hasFullAccess;
+            $canAccessRoles = $employee->hasPermission('Roles') || $hasFullAccess;
             $canAccessPrograms = $employee->hasPermission('Programs') || $hasFullAccess;
             $canAccessProjects = $employee->hasPermission('Projects') || $hasFullAccess;
             $canAccessActivities = $employee->hasPermission('Activities') || $hasFullAccess;
@@ -36,7 +36,13 @@
             $canAccessPortfolios = $employee->hasPermission('Portfolios') || $hasFullAccess;
             $canAccessCOPs = $employee->hasPermission('COPs') || $hasFullAccess;
             $canAccessModuleAccess = $hasFullAccess; // Only full access for module access
-            $canAccessActivityUsers = $employee->hasPermission('ActivityUsers') || $hasFullAccess; // NEW
+            $canAccessActivityUsers = $employee->hasPermission('ActivityUsers') || $hasFullAccess;
+            
+            // Helper function to check specific permission levels
+            $hasModulePermission = function($module, $level) use ($employee, $hasFullAccess) {
+                if ($hasFullAccess) return true;
+                return $employee->hasPermission($module, $level);
+            };
         @endphp
         
         <div class="text-center mb-4 px-3">
@@ -80,8 +86,8 @@
                 </a>
                 <div class="collapse {{ request()->is('employees*') ? 'show' : '' }}" id="employeesDirectoryCollapse">
                     <ul class="nav flex-column sub-menu ms-4">
-                        {{-- All Employees --}}
-                        @if($hasFullAccess || $employee->hasPermission('Employees'))
+                        {{-- All Employees - requires VIEW or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('Employees', 'view') || $employee->hasPermission('Employees', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('employees.index') ? 'active' : '' }}" 
                                href="{{ route('employees.index') }}">
@@ -90,8 +96,8 @@
                         </li>
                         @endif
                         
-                        {{-- Add New Employee --}}
-                        @if($hasFullAccess || $employee->hasPermission('Employees'))
+                        {{-- Add New Employee - requires CREATE or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('Employees', 'create') || $employee->hasPermission('Employees', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('employees.create') ? 'active' : '' }}" 
                                href="{{ route('employees.create') }}">
@@ -118,8 +124,8 @@
                 </a>
                 <div class="collapse {{ request()->is('roles*') ? 'show' : '' }}" id="rolesDirectoryCollapse">
                     <ul class="nav flex-column sub-menu ms-4">
-                        {{-- All Roles --}}
-                        @if($hasFullAccess || $employee->hasPermission('Employees'))
+                        {{-- All Roles - requires VIEW or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('Roles', 'view') || $employee->hasPermission('Roles', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('roles.index') ? 'active' : '' }}" 
                                href="{{ route('roles.index') }}">
@@ -128,8 +134,8 @@
                         </li>
                         @endif
                         
-                        {{-- Create Role --}}
-                        @if($hasFullAccess || $employee->hasPermission('Employees'))
+                        {{-- Create Role - requires CREATE or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('Roles', 'create') || $employee->hasPermission('Roles', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('roles.create') ? 'active' : '' }}" 
                                href="{{ route('roles.create') }}">
@@ -156,8 +162,8 @@
                 </a>
                 <div class="collapse {{ request()->is('users*') ? 'show' : '' }}" id="userDirectoryCollapse">
                     <ul class="nav flex-column sub-menu ms-4">
-                        {{-- User Management --}}
-                        @if($hasFullAccess || $employee->hasPermission('Users'))
+                        {{-- User Management - requires VIEW or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('Users', 'view') || $employee->hasPermission('Users', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('users.index') ? 'active' : '' }}" 
                                href="{{ route('users.index') }}">
@@ -166,8 +172,8 @@
                         </li>
                         @endif
                         
-                        {{-- Add New User --}}
-                        @if($hasFullAccess || $employee->hasPermission('Users'))
+                        {{-- Add New User - requires CREATE or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('Users', 'create') || $employee->hasPermission('Users', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('users.create') ? 'active' : '' }}" 
                                href="{{ route('users.create') }}">
@@ -176,8 +182,8 @@
                         </li>
                         @endif
                         
-                        {{-- User Statistics --}}
-                        @if($hasFullAccess || $employee->hasPermission('Users'))
+                        {{-- User Statistics - requires VIEW or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('Users', 'view') || $employee->hasPermission('Users', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('users.statistics') ? 'active' : '' }}" 
                                href="{{ route('users.statistics') }}">
@@ -186,8 +192,8 @@
                         </li>
                         @endif
                         
-                        {{-- Import Users --}}
-                        @if($hasFullAccess || $employee->hasPermission('Users'))
+                        {{-- Import Users - requires CREATE or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('Users', 'create') || $employee->hasPermission('Users', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('users.import.form') ? 'active' : '' }}" 
                                href="{{ route('users.import.form') }}">
@@ -196,8 +202,8 @@
                         </li>
                         @endif
                         
-                        {{-- Export Users --}}
-                        @if($hasFullAccess || $employee->hasPermission('Users'))
+                        {{-- Export Users - requires VIEW or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('Users', 'view') || $employee->hasPermission('Users', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('users.export.excel') ? 'active' : '' }}" 
                                href="{{ route('users.export.excel') }}">
@@ -224,8 +230,8 @@
                 </a>
                 <div class="collapse {{ request()->is('programs*') ? 'show' : '' }}" id="programsDirectoryCollapse">
                     <ul class="nav flex-column sub-menu ms-4">
-                        {{-- All Programs --}}
-                        @if($hasFullAccess || $employee->hasPermission('Programs'))
+                        {{-- All Programs - requires VIEW or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('Programs', 'view') || $employee->hasPermission('Programs', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('programs.index') ? 'active' : '' }}" 
                                href="{{ route('programs.index') }}">
@@ -234,8 +240,8 @@
                         </li>
                         @endif
                         
-                        {{-- Create Center --}}
-                        @if($hasFullAccess || $employee->hasPermission('Programs'))
+                        {{-- Create Center - requires CREATE or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('Programs', 'create') || $employee->hasPermission('Programs', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('createCenter') ? 'active' : '' }}" 
                                href="{{ route('createCenter') }}">
@@ -244,8 +250,8 @@
                         </li>
                         @endif
                         
-                        {{-- Create Flagship/Local Program --}}
-                        @if($hasFullAccess || $employee->hasPermission('Programs'))
+                        {{-- Create Flagship/Local Program - requires CREATE or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('Programs', 'create') || $employee->hasPermission('Programs', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('create.flagshiplocal') ? 'active' : '' }}" 
                                href="{{ route('create.flagshiplocal') }}">
@@ -254,8 +260,8 @@
                         </li>
                         @endif
                         
-                        {{-- Create Sub-Program --}}
-                        @if($hasFullAccess || $employee->hasPermission('Programs'))
+                        {{-- Create Sub-Program - requires CREATE or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('Programs', 'create') || $employee->hasPermission('Programs', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('create.subprogram') ? 'active' : '' }}" 
                                href="{{ route('create.subprogram') }}">
@@ -282,8 +288,8 @@
                 </a>
                 <div class="collapse {{ request()->is('projects*') ? 'show' : '' }}" id="projectsDirectoryCollapse">
                     <ul class="nav flex-column sub-menu ms-4">
-                        {{-- All Projects --}}
-                        @if($hasFullAccess || $employee->hasPermission('Projects'))
+                        {{-- All Projects - requires VIEW or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('Projects', 'view') || $employee->hasPermission('Projects', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('projects.index') ? 'active' : '' }}" 
                                href="{{ route('projects.index') }}">
@@ -292,8 +298,8 @@
                         </li>
                         @endif
                         
-                        {{-- Create Project --}}
-                        @if($hasFullAccess || $employee->hasPermission('Projects'))
+                        {{-- Create Project - requires CREATE or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('Projects', 'create') || $employee->hasPermission('Projects', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('projects.create') ? 'active' : '' }}" 
                                href="{{ route('projects.create') }}">
@@ -320,8 +326,8 @@
                 </a>
                 <div class="collapse {{ request()->is('portfolios*') ? 'show' : '' }}" id="portfoliosDirectoryCollapse">
                     <ul class="nav flex-column sub-menu ms-4">
-                        {{-- All Portfolios --}}
-                        @if($hasFullAccess || $employee->hasPermission('Portfolios'))
+                        {{-- All Portfolios - requires VIEW or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('Portfolios', 'view') || $employee->hasPermission('Portfolios', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('portfolios.index') ? 'active' : '' }}" 
                                href="{{ route('portfolios.index') }}">
@@ -330,8 +336,8 @@
                         </li>
                         @endif
                         
-                        {{-- Create Portfolio --}}
-                        @if($hasFullAccess || $employee->hasPermission('Portfolios'))
+                        {{-- Create Portfolio - requires CREATE or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('Portfolios', 'create') || $employee->hasPermission('Portfolios', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('portfolios.create') ? 'active' : '' }}" 
                                href="{{ route('portfolios.create') }}">
@@ -358,8 +364,8 @@
                 </a>
                 <div class="collapse {{ request()->is('cops*') ? 'show' : '' }}" id="copsDirectoryCollapse">
                     <ul class="nav flex-column sub-menu ms-4">
-                        {{-- All COPs --}}
-                        @if($hasFullAccess || $employee->hasPermission('COPs'))
+                        {{-- All COPs - requires VIEW or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('COPs', 'view') || $employee->hasPermission('COPs', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('cops.index') ? 'active' : '' }}" 
                                href="{{ route('cops.index') }}">
@@ -368,8 +374,8 @@
                         </li>
                         @endif
                         
-                        {{-- Create COP --}}
-                        @if($hasFullAccess || $employee->hasPermission('COPs'))
+                        {{-- Create COP - requires CREATE or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('COPs', 'create') || $employee->hasPermission('COPs', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('cops.create') ? 'active' : '' }}" 
                                href="{{ route('cops.create') }}">
@@ -396,8 +402,8 @@
                 </a>
                 <div class="collapse {{ request()->is('activities*') ? 'show' : '' }}" id="activityDirectoryCollapse">
                     <ul class="nav flex-column sub-menu ms-4">
-                        {{-- Activity Management --}}
-                        @if($hasFullAccess || $employee->hasPermission('Activities'))
+                        {{-- All Activities - requires VIEW or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('Activities', 'view') || $employee->hasPermission('Activities', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('activities.index') ? 'active' : '' }}" 
                                href="{{ route('activities.index') }}">
@@ -406,8 +412,8 @@
                         </li>
                         @endif
                         
-                        {{-- Create Activity --}}
-                        @if($hasFullAccess || $employee->hasPermission('Activities'))
+                        {{-- Create Activity - requires CREATE or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('Activities', 'create') || $employee->hasPermission('Activities', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('activities.create') ? 'active' : '' }}" 
                                href="{{ route('activities.create') }}">
@@ -415,32 +421,33 @@
                             </a>
                         </li>
                         @endif
-                        {{-- Import Activities --}}
-@if($hasFullAccess || $employee->hasPermission('Activities'))
-<li class="nav-item">
-    <a class="nav-link {{ request()->routeIs('activities.import') ? 'active' : '' }}" 
-       href="{{ route('activities.import') }}">
-        <i class="bi bi-cloud-upload me-2"></i> Import Activities
-    </a>
-</li>
-@endif
-                        {{-- Export Activities --}}
-                @if($hasFullAccess || $employee->hasPermission('Activities'))
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('activities.export') ? 'active' : '' }}" 
-                       href="{{ route('activities.export') }}">
-                        <i class="bi bi-download me-2"></i> Export
-                    </a>
-                </li>
-                @endif
+                        
+                        {{-- Import Activities - requires CREATE or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('Activities', 'create') || $employee->hasPermission('Activities', 'full'))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('activities.import') ? 'active' : '' }}" 
+                               href="{{ route('activities.import') }}">
+                                <i class="bi bi-cloud-upload me-2"></i> Import Activities
+                            </a>
+                        </li>
+                        @endif
+                        
+                        {{-- Export Activities - requires VIEW or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('Activities', 'view') || $employee->hasPermission('Activities', 'full'))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('activities.export') ? 'active' : '' }}" 
+                               href="{{ route('activities.export') }}">
+                                <i class="bi bi-download me-2"></i> Export
+                            </a>
+                        </li>
+                        @endif
                     </ul>
-                    
                 </div>
             </li>
             @endif
         @endauth
 
-        {{-- NEW: Activity User Directory --}}
+        {{-- Activity User Directory --}}
         @auth('employee')
             @if($hasFullAccess || $canAccessActivityUsers)
             <li class="nav-item">
@@ -453,8 +460,8 @@
                 </a>
                 <div class="collapse {{ request()->is('activity-users*') ? 'show' : '' }}" id="activityUserDirectoryCollapse">
                     <ul class="nav flex-column sub-menu ms-4">
-                        {{-- All Activity Users --}}
-                        @if($hasFullAccess || $employee->hasPermission('ActivityUsers'))
+                        {{-- All Activity Users - requires VIEW or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('ActivityUsers', 'view') || $employee->hasPermission('ActivityUsers', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('activity-users.index') ? 'active' : '' }}" 
                                href="{{ route('activity-users.index') }}">
@@ -463,8 +470,8 @@
                         </li>
                         @endif
                         
-                        {{-- Create Activity User --}}
-                        @if($hasFullAccess || $employee->hasPermission('ActivityUsers'))
+                        {{-- Create Activity User - requires CREATE or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('ActivityUsers', 'create') || $employee->hasPermission('ActivityUsers', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('activity-users.create') ? 'active' : '' }}" 
                                href="{{ route('activity-users.create') }}">
@@ -472,17 +479,19 @@
                             </a>
                         </li>
                         @endif
-                        {{-- Import Activity Users --}}
-@if($hasFullAccess || $employee->hasPermission('ActivityUsers'))
-<li class="nav-item">
-    <a class="nav-link {{ request()->routeIs('activity-users.import.form') ? 'active' : '' }}" 
-       href="{{ route('activity-users.import.form') }}">
-        <i class="bi bi-cloud-upload me-2"></i> Import Activity Users
-    </a>
-</li>
-@endif
-                        {{-- Export Activity Users --}}
-                        @if($hasFullAccess || $employee->hasPermission('ActivityUsers'))
+                        
+                        {{-- Import Activity Users - requires CREATE or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('ActivityUsers', 'create') || $employee->hasPermission('ActivityUsers', 'full'))
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('activity-users.import.form') ? 'active' : '' }}" 
+                               href="{{ route('activity-users.import.form') }}">
+                                <i class="bi bi-cloud-upload me-2"></i> Import Activity Users
+                            </a>
+                        </li>
+                        @endif
+                        
+                        {{-- Export Activity Users - requires VIEW or FULL --}}
+                        @if($hasFullAccess || $employee->hasPermission('ActivityUsers', 'view') || $employee->hasPermission('ActivityUsers', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('activity-users.export') ? 'active' : '' }}" 
                                href="{{ route('activity-users.export') }}">
@@ -509,8 +518,8 @@
                 </a>
                 <div class="collapse {{ request()->is('action-plans*') || request()->is('reporting*') ? 'show' : '' }}" id="actionPlansCollapse">
                     <ul class="nav flex-column sub-menu ms-4">
-                        {{-- Excel Import --}}
-                        @if($hasFullAccess || $employee->hasPermission('Reports'))
+                        {{-- Excel Import - requires CREATE or FULL for Reports --}}
+                        @if($hasFullAccess || $employee->hasPermission('Reports', 'create') || $employee->hasPermission('Reports', 'full'))
                         <div class="sub-header ms-2 mt-2">Excel Operations</div>
                         
                         <li class="nav-item">
@@ -521,8 +530,8 @@
                         </li>
                         @endif
                         
-                        {{-- Action Plan Management --}}
-                        @if($hasFullAccess || $employee->hasPermission('Reports'))
+                        {{-- Action Plan Management - requires VIEW or FULL for Reports --}}
+                        @if($hasFullAccess || $employee->hasPermission('Reports', 'view') || $employee->hasPermission('Reports', 'full'))
                         <div class="sub-header ms-2 mt-2">Action Plans</div>
                         
                         <li class="nav-item">
@@ -538,7 +547,6 @@
             @endif
         @endauth
        
-        
         {{-- Authentication Section --}}
         @auth('employee')
             {{-- Logout --}}
@@ -577,9 +585,9 @@
 
 <style>
     .nav-item > .nav-link {
-    white-space: nowrap;
-    overflow: hidden;
-}
+        white-space: nowrap;
+        overflow: hidden;
+    }
     .nav-header {
         font-size: 0.75rem;
         font-weight: 600;

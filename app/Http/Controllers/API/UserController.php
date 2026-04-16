@@ -24,99 +24,146 @@ class UserController extends Controller
      * Display a listing of the users with professional filtering.
      */
     public function index(Request $request)
-    {
-        $query = User::query();
+{
+    $query = User::query();
 
-        // Add filter logic for new fields
-        if ($request->filled('name')) {
-            $name = $request->name;
+    // =============================================================
+    // SMART NAME SEARCH - Handles "John Smith" correctly
+    // =============================================================
+    if ($request->filled('name')) {
+        $name = trim($request->name);
+        $nameParts = explode(' ', $name);
+        
+        if (count($nameParts) >= 2) {
+            // Multiple words - search first_name + last_name combination
+            $firstName = $nameParts[0];
+            $lastName = end($nameParts);
+            
+            $query->where(function ($q) use ($firstName, $lastName, $name) {
+                $q->where('first_name', 'ilike', "%{$firstName}%")
+                  ->where('last_name', 'ilike', "%{$lastName}%")
+                  ->orWhere('first_name', 'ilike', "%{$name}%")
+                  ->orWhere('last_name', 'ilike', "%{$name}%")
+                  ->orWhere(DB::raw("CONCAT(first_name, ' ', last_name)"), 'ilike', "%{$name}%");
+            });
+        } else {
+            // Single word - search all name fields
             $query->where(function ($q) use ($name) {
-                $q->where('first_name', 'ilike', "%$name%")
-                  ->orWhere('middle_name', 'ilike', "%$name%")
-                  ->orWhere('last_name', 'ilike', "%$name%")
-                  ->orWhere('mother_name', 'ilike', "%$name%");
+                $q->where('first_name', 'ilike', "%{$name}%")
+                  ->orWhere('middle_name', 'ilike', "%{$name}%")
+                  ->orWhere('last_name', 'ilike', "%{$name}%")
+                  ->orWhere(DB::raw("CONCAT(first_name, ' ', last_name)"), 'ilike', "%{$name}%");
             });
         }
-
-        if ($request->filled('gender')) {
-            $query->where('gender', $request->gender);
-        }
-
-        if ($request->filled('scope')) {
-            $query->where('scope', $request->scope);
-        }
-
-        if ($request->filled('default_cop_id')) {
-            $query->where('default_cop_id', $request->default_cop_id);
-        }
-
-        if ($request->filled('sector')) {
-            $query->where('sector', $request->sector);
-        }
-
-        if ($request->filled('is_high_profile')) {
-            $query->where('is_high_profile', filter_var($request->is_high_profile, FILTER_VALIDATE_BOOLEAN));
-        }
-
-        if ($request->filled('organization_1')) {
-            $query->where('organization_1', 'ilike', "%{$request->organization_1}%");
-        }
-
-        if ($request->filled('organization_type_1')) {
-            $query->where('organization_type_1', $request->organization_type_1);
-        }
-
-        if ($request->filled('position_1')) {
-            $query->where('position_1', 'ilike', "%{$request->position_1}%");
-        }
-
-        // CHANGED: mobile_phone to phone_number
-        if ($request->filled('phone_number')) {
-            $query->where('phone_number', 'like', "%{$request->phone_number}%");
-        }
-
-        if ($request->filled('email')) {
-            $query->where('email', 'ilike', "%{$request->email}%");
-        }
-
-        // Keep backward compatible filters
-        if ($request->filled('marital_status')) {
-            $query->where('marital_status', $request->marital_status);
-        }
-
-        if ($request->filled('employment_status')) {
-            $query->where('employment_status', $request->employment_status);
-        }
-
-        if ($request->filled('type')) {
-            $query->where('type', $request->type);
-        }
-
-        // REMOVED: Old phone_number filter since we now use it as the main phone field
-
-        if ($request->filled('dob_from')) {
-            $query->whereDate('dob', '>=', $request->dob_from);
-        }
-
-        if ($request->filled('dob_to')) {
-            $query->whereDate('dob', '<=', $request->dob_to);
-        }
-
-        // Eager load the default CoP relationship
-        $users = $query->with('defaultCop')
-            ->orderBy('last_name', 'asc')
-            ->paginate(20)
-            ->withQueryString();
-
-        // Check if any search/filter was applied
-        $hasSearch = $request->anyFilled([
-            'name', 'gender', 'scope', 'default_cop_id', 'sector', 'is_high_profile',
-            'organization_1', 'organization_type_1', 'position_1', 'phone_number', 'email', // CHANGED: mobile_phone to phone_number
-            'marital_status', 'employment_status', 'type', 'dob_from', 'dob_to'
-        ]);
-
-        return view('users.index', compact('users', 'hasSearch'));
     }
+
+    // =============================================================
+    // SEPARATE NAME FIELDS (exact matching)
+    // =============================================================
+    if ($request->filled('first_name')) {
+        $query->where('first_name', 'ilike', "%{$request->first_name}%");
+    }
+
+    if ($request->filled('middle_name')) {
+        $query->where('middle_name', 'ilike', "%{$request->middle_name}%");
+    }
+
+    if ($request->filled('last_name')) {
+        $query->where('last_name', 'ilike', "%{$request->last_name}%");
+    }
+
+    // =============================================================
+    // IDENTIFICATION & CONTACT FILTERS
+    // =============================================================
+    if ($request->filled('identification_id')) {
+        $query->where('identification_id', 'ilike', "%{$request->identification_id}%");
+    }
+
+    if ($request->filled('passport_number')) {
+        $query->where('passport_number', 'ilike', "%{$request->passport_number}%");
+    }
+
+    if ($request->filled('phone_number')) {
+        $query->where('phone_number', 'like', "%{$request->phone_number}%");
+    }
+
+    if ($request->filled('email')) {
+        $query->where('email', 'ilike', "%{$request->email}%");
+    }
+
+    // =============================================================
+    // DROPDOWN FILTERS (exact match)
+    // =============================================================
+    $exactFilters = ['gender', 'scope', 'default_cop_id', 'organization_type_1', 
+                     'marital_status', 'employment_status', 'type'];
+    foreach ($exactFilters as $filter) {
+        if ($request->filled($filter)) {
+            $query->where($filter, $request->$filter);
+        }
+    }
+
+    // =============================================================
+    // TEXT SEARCH FILTERS (partial match)
+    // =============================================================
+    $partialFilters = ['sector', 'organization_1', 'position_1'];
+    foreach ($partialFilters as $filter) {
+        if ($request->filled($filter)) {
+            $query->where($filter, 'ilike', "%{$request->$filter}%");
+        }
+    }
+
+    // =============================================================
+    // BOOLEAN FILTER
+    // =============================================================
+    if ($request->filled('is_high_profile')) {
+        $query->where('is_high_profile', filter_var($request->is_high_profile, FILTER_VALIDATE_BOOLEAN));
+    }
+
+    // =============================================================
+    // DATE RANGE FILTERS
+    // =============================================================
+    if ($request->filled('dob_from')) {
+        $query->whereDate('dob', '>=', $request->dob_from);
+    }
+
+    if ($request->filled('dob_to')) {
+        $query->whereDate('dob', '<=', $request->dob_to);
+    }
+
+    // =============================================================
+    // ADVANCED SEARCH (searches ALL important fields)
+    // =============================================================
+    if ($request->filled('advanced_search')) {
+        $search = $request->advanced_search;
+        $query->where(function ($q) use ($search) {
+            $q->where('first_name', 'ilike', "%{$search}%")
+              ->orWhere('middle_name', 'ilike', "%{$search}%")
+              ->orWhere('last_name', 'ilike', "%{$search}%")
+              ->orWhere(DB::raw("CONCAT(first_name, ' ', last_name)"), 'ilike', "%{$search}%")
+              ->orWhere('email', 'ilike', "%{$search}%")
+              ->orWhere('phone_number', 'like', "%{$search}%")
+              ->orWhere('identification_id', 'ilike', "%{$search}%")
+              ->orWhere('passport_number', 'ilike', "%{$search}%");
+        });
+    }
+
+    // Get results
+    $users = $query->with('defaultCop')
+        ->orderBy('last_name', 'asc')
+        ->paginate(20)
+        ->withQueryString();
+
+    // Check if any filter was applied
+    $hasSearch = $request->anyFilled([
+        'name', 'first_name', 'middle_name', 'last_name', 'identification_id', 
+        'passport_number', 'phone_number', 'email', 'gender', 'scope', 
+        'default_cop_id', 'sector', 'is_high_profile', 'organization_1', 
+        'organization_type_1', 'position_1', 'marital_status', 'employment_status', 
+        'type', 'dob_from', 'dob_to', 'advanced_search'
+    ]);
+
+    return view('users.index', compact('users', 'hasSearch'));
+}
 
     /**
      * Show the form for creating a new user.
@@ -152,7 +199,6 @@ class UserController extends Controller
             ],
             'status_1' => 'required|string|max:255',
             'address' => 'required|string',
-            // CHANGED: mobile_phone to phone_number
             'phone_number' => 'required|string|max:20',
             
             // Optional fields from new structure
@@ -197,7 +243,7 @@ class UserController extends Controller
             // New required fields
             'prefix', 'is_high_profile', 'scope', 'default_cop_id',
             'first_name', 'last_name', 'gender', 'position_1', 'organization_1',
-            'organization_type_1', 'status_1', 'address', 'phone_number', // CHANGED: mobile_phone to phone_number
+            'organization_type_1', 'status_1', 'address', 'phone_number',
             
             // New optional fields
             'sector', 'middle_name', 'dob', 'office_phone', 'extension_number',
@@ -270,7 +316,6 @@ class UserController extends Controller
             ],
             'status_1' => 'required|string|max:255',
             'address' => 'required|string',
-            // CHANGED: mobile_phone to phone_number
             'phone_number' => 'required|string|max:20',
             
             // Optional fields from new structure
@@ -330,7 +375,7 @@ class UserController extends Controller
             // New required fields
             'prefix', 'is_high_profile', 'scope', 'default_cop_id',
             'first_name', 'last_name', 'gender', 'position_1', 'organization_1',
-            'organization_type_1', 'status_1', 'address', 'phone_number', // CHANGED: mobile_phone to phone_number
+            'organization_type_1', 'status_1', 'address', 'phone_number',
             
             // New optional fields
             'sector', 'middle_name', 'dob', 'office_phone', 'extension_number',
@@ -414,7 +459,6 @@ class UserController extends Controller
             $newThisWeek = User::where('created_at', '>=', now()->subWeek())->count();
             $newThisMonth = User::where('created_at', '>=', now()->subMonth())->count();
             
-            // Calculate weekly growth (for last week vs week before)
             $lastWeekStart = now()->subWeek()->startOfWeek();
             $lastWeekEnd = now()->subWeek()->endOfWeek();
             $twoWeeksAgoStart = now()->subWeeks(2)->startOfWeek();
@@ -426,21 +470,16 @@ class UserController extends Controller
                 round((($lastWeekCount - $twoWeeksAgoCount) / $twoWeeksAgoCount) * 100, 1) : 
                 ($lastWeekCount > 0 ? 100 : 0);
             
-            // Get average daily registrations (last 30 days)
             $avgDailyRegistrations = User::where('created_at', '>=', now()->subDays(30))->count() / 30;
             
-            // Get beneficiary and stakeholder counts
             $beneficiaryCount = User::where('type', 'Beneficiary')->count();
             $stakeholderCount = User::where('type', 'Stakeholder')->count();
             
-            // Get gender counts
             $maleCount = User::where('gender', 'Male')->count();
             $femaleCount = User::where('gender', 'Female')->count();
             
-            // Get today's registrations
             $todayRegistrations = User::whereDate('created_at', today())->count();
             
-            // Calculate average age
             $avgAge = User::whereNotNull('dob')
                 ->get()
                 ->filter(function($user) {
@@ -451,16 +490,13 @@ class UserController extends Controller
                 });
             $avgAge = $avgAge ? round($avgAge) : 0;
             
-            // Get scope distribution counts
             $scopeDistribution = User::groupBy('scope')
                 ->select('scope', DB::raw('COUNT(*) as count'))
                 ->get();
             
-            // Get high profile counts
             $highProfileCount = User::where('is_high_profile', true)->count();
             $regularProfileCount = User::where('is_high_profile', false)->count();
             
-            // Get CoP distribution with CoP names
             $copDistribution = User::with('defaultCop')
                 ->whereNotNull('default_cop_id')
                 ->get()
@@ -469,7 +505,6 @@ class UserController extends Controller
                     return $group->count();
                 });
             
-            // Get distribution by CoP ID for raw data
             $copIdDistribution = User::groupBy('default_cop_id')
                 ->select('default_cop_id', DB::raw('COUNT(*) as count'))
                 ->get();
@@ -487,14 +522,12 @@ class UserController extends Controller
                 'today_registrations' => $todayRegistrations,
                 'avg_age' => $avgAge,
                 
-                // For charts data
                 'scope_distribution' => $scopeDistribution,
                 'high_profile_count' => $highProfileCount,
                 'regular_profile_count' => $regularProfileCount,
                 'cop_distribution' => $copDistribution,
                 'cop_id_distribution' => $copIdDistribution,
                 
-                // Keep existing structure for other parts if needed
                 'gender_distribution' => User::groupBy('gender')
                     ->select('gender', DB::raw('COUNT(*) as count'))
                     ->get(),
@@ -558,6 +591,18 @@ class UserController extends Controller
             $query = User::query();
 
             // Apply filters (same as index method)
+            if ($request->filled('first_name')) {
+                $query->where('first_name', 'ilike', "%{$request->first_name}%");
+            }
+
+            if ($request->filled('middle_name')) {
+                $query->where('middle_name', 'ilike', "%{$request->middle_name}%");
+            }
+
+            if ($request->filled('last_name')) {
+                $query->where('last_name', 'ilike', "%{$request->last_name}%");
+            }
+
             if ($request->filled('name')) {
                 $name = $request->name;
                 $query->where(function ($q) use ($name) {
@@ -566,6 +611,14 @@ class UserController extends Controller
                       ->orWhere('last_name', 'ilike', "%$name%")
                       ->orWhere('mother_name', 'ilike', "%$name%");
                 });
+            }
+
+            if ($request->filled('identification_id')) {
+                $query->where('identification_id', 'ilike', "%{$request->identification_id}%");
+            }
+
+            if ($request->filled('passport_number')) {
+                $query->where('passport_number', 'ilike', "%{$request->passport_number}%");
             }
 
             if ($request->filled('gender')) {
@@ -600,12 +653,14 @@ class UserController extends Controller
                 $query->where('position_1', 'ilike', "%{$request->position_1}%");
             }
 
-            // CHANGED: mobile_phone to phone_number
             if ($request->filled('phone_number')) {
                 $query->where('phone_number', 'like', "%{$request->phone_number}%");
             }
 
-            // Apply existing filters for backward compatibility
+            if ($request->filled('email')) {
+                $query->where('email', 'ilike', "%{$request->email}%");
+            }
+
             if ($request->filled('marital_status')) {
                 $query->where('marital_status', $request->marital_status);
             }
@@ -637,110 +692,38 @@ class UserController extends Controller
             
             $callback = function() use ($users) {
                 $file = fopen('php://output', 'w');
-                
-                // Add BOM for UTF-8
                 fwrite($file, "\xEF\xBB\xBF");
                 
-                // Headers - Required fields first, then optional
                 $headers = [
-                    // Required fields
-                    'User ID',
-                    'First Name',
-                    'Last Name',
-                    'Gender',
-                    'Position 1',
-                    'Organization 1',
-                    'Organization Type 1',
-                    'Status 1',
-                    'Address',
-                    'Phone Number', // CHANGED: Mobile Phone to Phone Number
-                    'Is High Profile',
-                    'Scope',
-                    
-                    // Community of Practice (optional but important)
-                    'Community of Practice (ID)',
-                    'Community of Practice (Name)',
-                    
-                    // Other important optional fields
-                    'Prefix',
-                    'Sector',
-                    'Middle Name',
-                    'Date of Birth',
-                    'Office Phone',
-                    'Extension Number',
-                    'Home Phone',
-                    'Email',
-                    'Position 2',
-                    'Organization 2',
-                    'Organization Type 2',
-                    'Status 2',
-                    
-                    // Existing optional fields
-                    'Mother Name',
-                    'Identification ID',
-                    'Passport Number',
-                    'Register Number',
-                    'Register Place',
-                    'Marital Status',
-                    'Employment Status',
-                    'User Type',
-                    'Created Date',
-                    'Updated Date'
+                    'User ID', 'First Name', 'Last Name', 'Gender', 'Position 1', 'Organization 1',
+                    'Organization Type 1', 'Status 1', 'Address', 'Phone Number', 'Is High Profile', 'Scope',
+                    'Community of Practice (ID)', 'Community of Practice (Name)', 'Prefix', 'Sector',
+                    'Middle Name', 'Date of Birth', 'Office Phone', 'Extension Number', 'Home Phone',
+                    'Email', 'Position 2', 'Organization 2', 'Organization Type 2', 'Status 2',
+                    'Mother Name', 'Identification ID', 'Passport Number', 'Register Number', 'Register Place',
+                    'Marital Status', 'Employment Status', 'User Type', 'Created Date', 'Updated Date'
                 ];
                 
                 fputcsv($file, $headers, ',');
                 
-                // Data rows
                 foreach ($users as $user) {
                     $row = [
-                        // Required fields
-                        $user->user_id,
-                        $user->first_name ?? '',
-                        $user->last_name ?? '',
-                        $user->gender ?? '',
-                        $user->position_1 ?? '',
-                        $user->organization_1 ?? '',
-                        $user->organization_type_1 ?? '',
-                        $user->status_1 ?? '',
-                        $user->address ?? '',
-                        $user->phone_number ?? '', // CHANGED: mobile_phone to phone_number
-                        $user->is_high_profile ? 'Yes' : 'No',
-                        $user->scope ?? '',
-                        
-                        // Community of Practice
-                        $user->default_cop_id ?? '',
-                        $user->defaultCop ? $user->defaultCop->cop_name : '',
-                        
-                        // Other important optional fields
-                        $user->prefix ?? '',
-                        $user->sector ?? '',
-                        $user->middle_name ?? '',
-                        $user->dob ? $user->dob->format('Y-m-d') : '',
-                        $user->office_phone ?? '',
-                        $user->extension_number ?? '',
-                        $user->home_phone ?? '',
-                        $user->email ?? '',
-                        $user->position_2 ?? '',
-                        $user->organization_2 ?? '',
-                        $user->organization_type_2 ?? '',
-                        $user->status_2 ?? '',
-                        
-                        // Existing optional fields
-                        $user->mother_name ?? '',
-                        $user->identification_id ?? '',
-                        $user->passport_number ?? '',
-                        $user->register_number ?? '',
-                        $user->register_place ?? '',
-                        $user->marital_status ?? '',
-                        $user->employment_status ?? '',
-                        $user->type ?? '',
-                        $user->created_at->format('Y-m-d H:i:s'),
-                        $user->updated_at->format('Y-m-d H:i:s')
+                        $user->user_id, $user->first_name ?? '', $user->last_name ?? '', $user->gender ?? '',
+                        $user->position_1 ?? '', $user->organization_1 ?? '', $user->organization_type_1 ?? '',
+                        $user->status_1 ?? '', $user->address ?? '', $user->phone_number ?? '',
+                        $user->is_high_profile ? 'Yes' : 'No', $user->scope ?? '',
+                        $user->default_cop_id ?? '', $user->defaultCop ? $user->defaultCop->cop_name : '',
+                        $user->prefix ?? '', $user->sector ?? '', $user->middle_name ?? '',
+                        $user->dob ? $user->dob->format('Y-m-d') : '', $user->office_phone ?? '',
+                        $user->extension_number ?? '', $user->home_phone ?? '', $user->email ?? '',
+                        $user->position_2 ?? '', $user->organization_2 ?? '', $user->organization_type_2 ?? '',
+                        $user->status_2 ?? '', $user->mother_name ?? '', $user->identification_id ?? '',
+                        $user->passport_number ?? '', $user->register_number ?? '', $user->register_place ?? '',
+                        $user->marital_status ?? '', $user->employment_status ?? '', $user->type ?? '',
+                        $user->created_at->format('Y-m-d H:i:s'), $user->updated_at->format('Y-m-d H:i:s')
                     ];
-                    
                     fputcsv($file, $row, ',');
                 }
-                
                 fclose($file);
             };
             
@@ -755,7 +738,7 @@ class UserController extends Controller
     /**
      * Show import form
      */
-  public function importForm()
+    public function importForm()
     {
         $cops = Cop::orderBy('cop_name')->get();
         return view('users.import', compact('cops'));
@@ -775,48 +758,18 @@ class UserController extends Controller
         
         $callback = function() {
             $file = fopen('php://output', 'w');
-            fwrite($file, "\xEF\xBB\xBF"); // BOM for UTF-8
+            fwrite($file, "\xEF\xBB\xBF");
             
-            // Template headers - 16 columns including default_cop_id
             fputcsv($file, [
-                // Required fields (16 columns total)
-                'prefix',
-                'is_high_profile',
-                'scope',
-                'default_cop_id',
-                'first_name',
-                'last_name',
-                'gender',
-                'position_1',
-                'organization_1',
-                'organization_type_1',
-                'status_1',
-                'address',
-                'phone_number', // CHANGED: mobile_phone to phone_number
-                'register_place',
-                'sector',
-                'email'
+                'prefix', 'is_high_profile', 'scope', 'default_cop_id', 'first_name', 'last_name',
+                'gender', 'position_1', 'organization_1', 'organization_type_1', 'status_1',
+                'address', 'phone_number', 'register_place', 'sector', 'email'
             ], ',');
             
-            // Example data row - 16 columns
             fputcsv($file, [
-                // Required fields
-                'Dr.',
-                'true',
-                'National',
-                '1', // Valid cop_id from your database
-                'John',
-                'Doe',
-                'Male',
-                'Senior Doctor',
-                'Beirut Medical Center',
-                'Public Sector',
-                'Active',
-                'Beirut, Lebanon',
-                '+961 70 123 456', // This will now map to phone_number
-                'Beirut',
-                'Healthcare',
-                'john.doe@example.com'
+                'Dr.', 'true', 'National', '1', 'John', 'Doe', 'Male', 'Senior Doctor',
+                'Beirut Medical Center', 'Public Sector', 'Active', 'Beirut, Lebanon',
+                '+961 70 123 456', 'Beirut', 'Healthcare', 'john.doe@example.com'
             ], ',');
             
             fclose($file);
@@ -826,7 +779,7 @@ class UserController extends Controller
     }
 
     /**
-     * Process imported users - UPDATED for 16-column CSV including default_cop_id
+     * Process imported users
      */
     public function import(Request $request)
     {
@@ -854,13 +807,11 @@ class UserController extends Controller
                 throw new \Exception('Cannot open file');
             }
 
-            // Read and validate header row
             $header = fgetcsv($handle);
-            if (!$header || count($header) < 14) { // At least 14 required columns
+            if (!$header || count($header) < 14) {
                 throw new \Exception('Invalid CSV format. Please use the provided template.');
             }
 
-            
             $rowNumber = 1;
             
             while (($data = fgetcsv($handle)) !== FALSE) {
@@ -868,19 +819,15 @@ class UserController extends Controller
                 $rowNumber++;
                 
                 try {
-                    // Skip empty rows
                     if (empty(array_filter($data))) {
                         continue;
                     }
 
-                    // Ensure we have enough columns
                     if (count($data) < 14) {
                         throw new \Exception('Row has insufficient columns. Expected at least 14, got ' . count($data));
                     }
 
-                    // Map CSV columns to database fields (16 columns expected)
                     $cleanedData = $this->cleanImportData([
-                        // Required fields
                         'prefix' => $data[0] ?? null,
                         'is_high_profile' => $data[1] ?? false,
                         'scope' => $data[2] ?? null,
@@ -893,15 +840,11 @@ class UserController extends Controller
                         'organization_type_1' => $data[9] ?? null,
                         'status_1' => $data[10] ?? null,
                         'address' => $data[11] ?? null,
-                        // CHANGED: mobile_phone to phone_number
                         'phone_number' => $data[12] ?? null,
-                        
-                        // Optional fields (columns 13-15)
                         'register_place' => $data[13] ?? null,
                         'sector' => $data[14] ?? null,
                         'email' => $data[15] ?? null,
                         
-                        // Set defaults for other optional fields
                         'middle_name' => null,
                         'dob' => null,
                         'office_phone' => null,
@@ -920,19 +863,15 @@ class UserController extends Controller
                         'register_number' => null,
                     ]);
                     
-                    // Log cleaned data for debugging
-                    
-                    // Validate required fields
                     $requiredFields = [
                         'is_high_profile', 'scope', 'first_name', 'last_name', 'gender',
                         'position_1', 'organization_1', 'organization_type_1', 'status_1',
-                        'address', 'phone_number' // CHANGED: mobile_phone to phone_number
+                        'address', 'phone_number'
                     ];
                     
                     $missingFields = [];
                     foreach ($requiredFields as $field) {
                         if ($field === 'is_high_profile') {
-                            // Boolean field, just check if it's set
                             if (!isset($cleanedData[$field])) {
                                 $missingFields[] = $field;
                             }
@@ -945,7 +884,6 @@ class UserController extends Controller
                         throw new \Exception("Missing required fields: " . implode(', ', $missingFields));
                     }
 
-                    // Validate default_cop_id if provided
                     if (!empty($cleanedData['default_cop_id'])) {
                         $copExists = Cop::where('cop_id', $cleanedData['default_cop_id'])->exists();
                         if (!$copExists) {
@@ -953,7 +891,6 @@ class UserController extends Controller
                         }
                     }
 
-                    // Create the user
                     $user = User::create($cleanedData);
                     
                     if ($user) {
@@ -972,7 +909,6 @@ class UserController extends Controller
             
             fclose($handle);
             
-            
         } catch (\Exception $e) {
             Log::error('Import failed: ' . $e->getMessage());
             return redirect()->route('users.import.form')
@@ -983,14 +919,13 @@ class UserController extends Controller
     }
 
     /**
-     * Clean import data - UPDATED for cop_id handling
+     * Clean import data
      */
     private function cleanImportData($data)
     {
         $cleaned = [];
         
         foreach ($data as $key => $value) {
-            // Handle null/empty values
             if ($value === null || $value === '') {
                 $cleaned[$key] = null;
                 continue;
@@ -998,12 +933,10 @@ class UserController extends Controller
             
             $cleanValue = is_string($value) ? trim($value) : $value;
             
-            // Convert empty strings to null
             if ($cleanValue === '') {
                 $cleanValue = null;
             }
             
-            // Handle boolean for is_high_profile
             if ($key === 'is_high_profile') {
                 if (is_string($cleanValue)) {
                     $upperValue = strtoupper($cleanValue);
@@ -1012,22 +945,17 @@ class UserController extends Controller
                     } elseif ($upperValue === 'FALSE' || $upperValue === 'NO' || $upperValue === '0' || $upperValue === 'F') {
                         $cleanValue = false;
                     } else {
-                        // Try to convert any other string
                         $cleanValue = filter_var($cleanValue, FILTER_VALIDATE_BOOLEAN);
                         if ($cleanValue === false && $cleanValue !== true) {
-                            // filter_var returns false for non-boolean strings, so we need to check
-                            $cleanValue = false; // Default to false
+                            $cleanValue = false;
                         }
                     }
                 } elseif (is_numeric($cleanValue)) {
                     $cleanValue = (bool) $cleanValue;
                 }
-                
-                // Ensure it's always a boolean
                 $cleanValue = (bool) $cleanValue;
             }
             
-            // Handle default_cop_id - ensure it's an integer if not null
             if ($key === 'default_cop_id' && $cleanValue !== null) {
                 $cleanValue = (int) $cleanValue;
                 if ($cleanValue <= 0) {
@@ -1035,23 +963,16 @@ class UserController extends Controller
                 }
             }
             
-            // Handle scope formatting
             if ($key === 'scope' && $cleanValue) {
                 $original = $cleanValue;
                 $cleanValue = trim($cleanValue);
                 $cleanValue = ucfirst(strtolower($cleanValue));
                 
-                // Fix common typos
                 $scopeMap = [
-                    'int' => 'International',
-                    'internat' => 'International',
-                    'international' => 'International',
-                    'reg' => 'Regional',
-                    'regional' => 'Regional',
-                    'nat' => 'National',
-                    'national' => 'National',
-                    'loc' => 'Local',
-                    'local' => 'Local',
+                    'int' => 'International', 'internat' => 'International', 'international' => 'International',
+                    'reg' => 'Regional', 'regional' => 'Regional',
+                    'nat' => 'National', 'national' => 'National',
+                    'loc' => 'Local', 'local' => 'Local',
                 ];
                 
                 $lowerValue = strtolower($cleanValue);
@@ -1065,30 +986,20 @@ class UserController extends Controller
                 }
             }
             
-            // Handle organization type formatting
             if (in_array($key, ['organization_type_1', 'organization_type_2']) && $cleanValue) {
                 $original = $cleanValue;
                 $cleanValue = trim($cleanValue);
                 $cleanValue = ucwords(strtolower($cleanValue));
                 
-                // Fix common variations
                 $orgMap = [
-                    'public sector' => 'Public Sector',
-                    'public' => 'Public Sector',
-                    'private sector' => 'Private Sector',
-                    'private' => 'Private Sector',
-                    'academia' => 'Academia',
-                    'academic' => 'Academia',
-                    'un' => 'UN',
-                    'united nations' => 'UN',
-                    'ingos' => 'INGOs',
-                    'ingo' => 'INGOs',
-                    'civil society' => 'Civil Society',
-                    'civil' => 'Civil Society',
-                    'ngos' => 'NGOs',
-                    'ngo' => 'NGOs',
-                    'activist' => 'Activist',
-                    'advocacy' => 'Activist',
+                    'public sector' => 'Public Sector', 'public' => 'Public Sector',
+                    'private sector' => 'Private Sector', 'private' => 'Private Sector',
+                    'academia' => 'Academia', 'academic' => 'Academia',
+                    'un' => 'UN', 'united nations' => 'UN',
+                    'ingos' => 'INGOs', 'ingo' => 'INGOs',
+                    'civil society' => 'Civil Society', 'civil' => 'Civil Society',
+                    'ngos' => 'NGOs', 'ngo' => 'NGOs',
+                    'activist' => 'Activist', 'advocacy' => 'Activist',
                 ];
                 
                 $lowerValue = strtolower($cleanValue);
@@ -1103,21 +1014,12 @@ class UserController extends Controller
                 }
             }
             
-            // Handle gender formatting
             if ($key === 'gender' && $cleanValue) {
                 $original = $cleanValue;
                 $cleanValue = trim($cleanValue);
                 $cleanValue = ucfirst(strtolower($cleanValue));
                 
-                // Fix common variations
-                $genderMap = [
-                    'm' => 'Male',
-                    'male' => 'Male',
-                    'f' => 'Female',
-                    'female' => 'Female',
-            
-            
-                ];
+                $genderMap = ['m' => 'Male', 'male' => 'Male', 'f' => 'Female', 'female' => 'Female'];
                 
                 $lowerValue = strtolower($cleanValue);
                 if (isset($genderMap[$lowerValue])) {
@@ -1130,7 +1032,6 @@ class UserController extends Controller
                 }
             }
             
-            // Handle date format
             if ($key === 'dob' && $cleanValue) {
                 try {
                     $cleanValue = trim($cleanValue, '"\' ');
@@ -1141,7 +1042,6 @@ class UserController extends Controller
                 }
             }
             
-            // Handle type formatting
             if ($key === 'type' && $cleanValue) {
                 $cleanValue = ucfirst(strtolower(trim($cleanValue)));
                 $allowedTypes = ['Stakeholder', 'Beneficiary'];
@@ -1150,14 +1050,10 @@ class UserController extends Controller
                 }
             }
             
-            // Handle phone number formatting
-            // CHANGED: Updated array to include phone_number instead of mobile_phone
             if (in_array($key, ['phone_number', 'office_phone', 'home_phone']) && $cleanValue) {
                 $original = $cleanValue;
-                // Remove all non-numeric characters except +
                 $cleanValue = preg_replace('/[^\d+]/', '', $cleanValue);
                 
-                // Format Lebanese numbers
                 if (preg_match('/^(03|70|71|76|78|79|81)(\d{6})$/', $cleanValue, $matches)) {
                     $cleanValue = '+961 ' . $matches[1] . ' ' . substr($matches[2], 0, 3) . ' ' . substr($matches[2], 3, 3);
                 } elseif (preg_match('/^\+?961(3|70|71|76|78|79|81)(\d{6})$/', $cleanValue, $matches)) {
@@ -1203,7 +1099,7 @@ class UserController extends Controller
     }
 
     /**
-     * Get demographic breakdown - UPDATED for cop_id
+     * Get demographic breakdown
      */
     private function getDemographicBreakdown()
     {
@@ -1228,7 +1124,7 @@ class UserController extends Controller
     }
 
     /**
-     * Get registration patterns - UPDATED for cop_id
+     * Get registration patterns
      */
     private function getRegistrationPatterns()
     {
@@ -1246,7 +1142,7 @@ class UserController extends Controller
     }
 
     /**
-     * Get export data - UPDATED for cop_id
+     * Get export data
      */
     private function getExportData()
     {

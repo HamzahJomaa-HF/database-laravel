@@ -3,7 +3,6 @@
 ])
 
 @section('content')
-{{-- <x-guest-layout> --}}
     <x-jet-authentication-card>
         <x-slot name="logo">
             <x-jet-authentication-card-logo />
@@ -32,8 +31,9 @@
 
             <div class="form-group d-flex align-items-center">
                 <div class="flex">
-                    <input class="mr-1" type="checkbox" name="remember" id="remember_me" {{ old('remember') ? 'checked' : '' }}>
-                    <label class="form-check-label text-label" for="remember_me">
+                    {{-- FIX: Use proper name "remember" instead of "remember_me" --}}
+                    <input type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }} class="mr-1">
+                    <label class="form-check-label text-label" for="remember">
                         {{ __('Remember me') }}
                     </label>
                 </div>
@@ -57,5 +57,4 @@
             </div>
         </form>
     </x-jet-authentication-card>
-{{-- </x-guest-layout> --}}
 @endsection
