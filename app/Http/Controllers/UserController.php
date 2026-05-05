@@ -605,9 +605,6 @@ class UserController extends Controller
                 $query->where('employment_status', $request->employment_status);
             }
 
-            if ($request->filled('type')) {
-                $query->where('type', $request->type);
-            }
 
             if ($request->filled('dob_from')) {
                 $query->whereDate('dob', '>=', $request->dob_from);
@@ -674,7 +671,6 @@ class UserController extends Controller
                     'Register Place',
                     'Marital Status',
                     'Employment Status',
-                    'User Type',
                     'Created Date',
                     'Updated Date'
                 ];
@@ -724,7 +720,6 @@ class UserController extends Controller
                         $user->register_place ?? '',
                         $user->marital_status ?? '',
                         $user->employment_status ?? '',
-                        $user->type ?? '',
                         $user->created_at->format('Y-m-d H:i:s'),
                         $user->updated_at->format('Y-m-d H:i:s')
                     ];
@@ -800,7 +795,6 @@ class UserController extends Controller
                 'employment_status',
                 'passport_number',
                 'register_place',
-                'type',
                 'default_cop_id',
                 // Note: created_at, updated_at, deleted_at will be auto-generated
             ], ',');
@@ -837,7 +831,6 @@ class UserController extends Controller
                 'Employed',                        // employment_status
                 'PASS123456',                      // passport_number
                 'Beirut',                          // register_place
-                'Stakeholder',                     // type (example)
                 '123e4567-e89b-12d3-a456-426614174000', // default_cop_id (UUID example)
             ], ',');
             
