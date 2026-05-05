@@ -20,7 +20,6 @@ use App\Models\Portfolio;
 use App\Models\PortfolioActivity;
 use App\Exports\ActivitiesExport;
 use Maatwebsite\Excel\Facades\Excel;
-
 use Illuminate\Support\Str;
 
 class ActivityController extends Controller
@@ -59,32 +58,39 @@ class ActivityController extends Controller
             $query->where('venue', 'like', '%' . $request->venue . '%');
         }
 
+        // Fixed status filter logic
         if ($request->filled('status')) {
-            // Apply status logic based on dates
             $now = now();
-            if ($request->status == 'upcoming') {
-                $query->where('start_date', '>', $now);
-            } elseif ($request->status == 'ongoing') {
-                $query->where('start_date', '<=', $now)
-                    ->where('end_date', '>=', $now);
-            } elseif ($request->status == 'completed') {
-                $query->where('end_date', '<', $now);
-            } elseif ($request->status == 'cancelled') {
-                // Assuming you have an is_cancelled column
-                $query->where('is_cancelled', true);
+            switch ($request->status) {
+                case 'upcoming':
+                    $query->where('start_date', '>', $now);
+                    break;
+                case 'ongoing':
+                    $query->where('start_date', '<=', $now)
+                        ->where('end_date', '>=', $now);
+                    break;
+                case 'completed':
+                    $query->where('end_date', '<', $now);
+                    break;
+                case 'cancelled':
+                    $query->where('is_cancelled', true);
+                    break;
             }
         }
 
         if ($request->filled('start_date_from')) {
-            $query->where('start_date', '>=', $request->start_date_from);
+            $query->whereDate('start_date', '>=', $request->start_date_from);
         }
 
         if ($request->filled('end_date_to')) {
-            $query->where('end_date', '<=', $request->end_date_to);
+            $query->whereDate('end_date', '<=', $request->end_date_to);
         }
 
         // Get paginated results
         $activities = $query->orderBy('start_date', 'desc')->paginate(20);
+
+        // Preserve query parameters for pagination links
+        $activities->appends($request->all());
 
         return view('activities.index', compact('activities', 'hasSearch'));
     }
@@ -92,44 +98,19 @@ class ActivityController extends Controller
     /**
      * Show the form for creating a new activity.
      */
-   public function create()
+    public function create()
     {
-        // ============================================
-        // ACTION PLANS - Same as edit
-        // ============================================
         $actionPlans = ActionPlan::orderBy('title')->get(['action_plan_id', 'title', 'start_date', 'end_date']);
-        
         $portfolios = Portfolio::orderBy('created_at', 'desc')->get(['portfolio_id', 'name', 'description', 'type', 'external_id']);
-
-        // For create, no selected action plan
         $selectedActionPlanIdSingle = null;
-
-        // ============================================
-        // RP COMPONENTS - Initially show all (limited)
-        // ============================================
-        $rpComponents = RpComponent::whereNull('deleted_at')
-            ->orderBy('code')
-            ->get(['rp_components_id', 'code', 'name', 'action_plan_id']);
-
-        // For create, no selected component
+        $rpComponents = RpComponent::whereNull('deleted_at')->orderBy('code')->get(['rp_components_id', 'code', 'name', 'action_plan_id']);
         $selectedComponentIdSingle = null;
         $selectedRpActivityIds = [];
-
-        // ============================================
-        // PROGRAMS - Same as edit
-        // ============================================
-        $programs = Program::whereIn('program_type', ['Center', 'Local Program', 'Flagship'])
-            ->orderBy('name')
-            ->get(['program_id', 'name', 'external_id']);
-
-        // For create, no selected programs/projects
+        $programs = Program::whereIn('program_type', ['Center', 'Local Program', 'Flagship'])->orderBy('name')->get(['program_id', 'name', 'external_id']);
         $selected_program = [];
         $selected_project_ids = [];
-        $projects = collect(); // Empty collection
+        $projects = collect();
 
-        // ============================================
-        // Return view with same variables as edit
-        // ============================================
         return view('activities.create', compact(
             'actionPlans',
             'selectedActionPlanIdSingle',
@@ -148,165 +129,143 @@ class ActivityController extends Controller
      * Store a newly created activity in storage.
      */
     public function store(Request $request)
-{
-   
-    try {
-        DB::beginTransaction();
+    {
+        try {
+            DB::beginTransaction();
 
-        // Validate the request - ADDED 'experts' field
-        $validated = $request->validate([
-            'activity_title_en' => 'required_without:activity_title_ar|string|max:255',
-            'activity_title_ar' => 'nullable|string|max:255|required_without:activity_title_en',
-            'activity_type' => 'required|string|max:100',
-            'projects' => 'nullable|array',
-            'start_date' => 'required|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'venue' => 'nullable|string|max:255',
-            'content_network' => 'nullable|string',
-            'experts' => 'nullable|string', // ADDED experts field
-            'rp_component_id' => 'nullable|exists:rp_components,rp_components_id',
-            'rp_activities' => 'nullable|array',
-            'focal_points' => 'nullable|array',
-            'operational_support' => 'nullable|array',
-            'portfolios.*' => 'exists:portfolios,portfolio_id', 
-            'maximum_capacity' => 'nullable|integer|min:0',
+            $validated = $request->validate([
+                'activity_title_en' => 'required_without:activity_title_ar|string|max:255',
+                'activity_title_ar' => 'nullable|string|max:255|required_without:activity_title_en',
+                'activity_type' => 'required|string|max:100',
+                'projects' => 'nullable|array',
+                'start_date' => 'required|date',
+                'end_date' => 'nullable|date|after_or_equal:start_date',
+                'venue' => 'nullable|string|max:255',
+                'content_network' => 'nullable|string',
+                'experts' => 'nullable|string',
+                'rp_component_id' => 'nullable|exists:rp_components,rp_components_id',
+                'rp_activities' => 'nullable|array',
+                'focal_points' => 'nullable|array',
+                'operational_support' => 'nullable|array',
+                'portfolios.*' => 'exists:portfolios,portfolio_id', 
+                'maximum_capacity' => 'nullable|integer|min:0',
+            ]);
 
-        ]);
+            $rpActivities = $request->input('rp_activities', []);
+            $projects = $request->input('projects', []);
+            $focalPoints = $request->input('focal_points', []);
+            $operationalSupport = $request->input('operational_support', []);
+            $portfolios = $request->input('portfolios', []);
 
-        // Extract arrays from request BEFORE removing them
-        $rpActivities = $request->input('rp_activities', []);
-        $projects = $request->input('projects', []);
-        $focalPoints = $request->input('focal_points', []);
-        $operationalSupport = $request->input('operational_support', []);
-        $portfolios = $request->input('portfolios', []);
-
-        // Convert arrays to JSON (only for columns that exist in activities table)
-        if (isset($validated['operational_support'])) {
-            $validated['operational_support'] = json_encode($validated['operational_support']);
-        }
-
-        // Remove arrays that don't exist in activities table
-        unset($validated['rp_activities'], $validated['projects'], $validated['focal_points'], $validated['portfolios']);
-
-        // Generate a unique activity_id if not provided
-        if (empty($validated['activity_id'])) {
-            $validated['activity_id'] = (string) Str::uuid();
-        }
-
-        // Create the activity and get the created instance
-        $activity = Activity::create($validated);
-
-        // ============================================
-        // Handle Projects (project_activities table)
-        // ============================================
-        if (!empty($projects)) {
-            $projects = array_unique(array_filter($projects)); // remove null/empty and duplicates
-            
-            foreach ($projects as $projectId) {
-                ProjectActivity::create([
-                    'project_activity_id' => (string) Str::uuid(),
-                    'activity_id' => $activity->activity_id,
-                    'project_id' => $projectId,
-                ]);
+            if (isset($validated['operational_support'])) {
+                $validated['operational_support'] = json_encode($validated['operational_support']);
             }
-        }
 
+            unset($validated['rp_activities'], $validated['projects'], $validated['focal_points'], $validated['portfolios']);
 
-        if (!empty($portfolios)) {
-                // (Optional) remove old links for this activity (if editing/refreshing)
-            PortfolioActivity::where('activity_id', $activity->activity_id)->delete();
-            $portfolios = array_unique(array_filter($portfolios)); // remove null/empty and duplicates
-            
-            // Insert new rows
-            foreach ($portfolios as $portfolioId) {
-                PortfolioActivity::create([
-                    'activity_id' => $activity->activity_id,
-                    'portfolio_id' => $portfolioId,
-                ]);
+            if (empty($validated['activity_id'])) {
+                $validated['activity_id'] = (string) Str::uuid();
             }
-        }
 
-        // ============================================
-        // Handle RP Activities mapping (rp_activity_mappings table)
-        // ============================================
-        if (!empty($rpActivities)) {
-            $rpActivities = array_unique(array_filter($rpActivities)); // remove null/empty and duplicates
-            
-            foreach ($rpActivities as $rpActivityId) {
-                DB::table('rp_activity_mappings')->insert([
-                    'rp_activity_mappings_id' => (string) Str::uuid(),
-                    'rp_activities_id' => $rpActivityId,
-                    'activity_id' => $activity->activity_id,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
-        }
+            $activity = Activity::create($validated);
 
-        // ============================================
-        // Handle Focal Points (Using activity_focal_points pivot table)
-        // ============================================
-        if (!empty($focalPoints)) {
-            // First, ensure each employee has an rp_focalpoints record
-            foreach ($focalPoints as $employeeId) {
-                $exists = DB::table('rp_focalpoints')
-                    ->where('employee_id', $employeeId)
-                    ->whereNull('deleted_at')
-                    ->exists();
-                
-                if (!$exists) {
-                    $employee = DB::table('employees')
-                        ->where('employee_id', $employeeId)
-                        ->first();
-                    
-                    if ($employee) {
-                        DB::table('rp_focalpoints')->insert([
-                            'rp_focalpoints_id' => (string) Str::uuid(),
-                            'name' => trim($employee->first_name . ' ' . $employee->last_name),
-                            'type' => 'employee',
-                            'employee_id' => $employeeId,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]);
-                    }
+            // Handle Projects
+            if (!empty($projects)) {
+                $projects = array_unique(array_filter($projects));
+                foreach ($projects as $projectId) {
+                    ProjectActivity::create([
+                        'project_activity_id' => (string) Str::uuid(),
+                        'activity_id' => $activity->activity_id,
+                        'project_id' => $projectId,
+                    ]);
                 }
             }
-            
-            // Get the rp_focalpoints IDs for the selected employees
-            $rpFocalpoints = DB::table('rp_focalpoints')
-                ->whereIn('employee_id', $focalPoints)
-                ->whereNull('deleted_at')
-                ->get();
-            
-            // Create pivot records in activity_focal_points
-            foreach ($rpFocalpoints as $rpFocalpoint) {
-                DB::table('activity_focal_points')->insert([
-                    'activity_focal_point_id' => (string) Str::uuid(),
-                    'activity_id' => $activity->activity_id,
-                    'rp_focalpoints_id' => $rpFocalpoint->rp_focalpoints_id,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+
+            // Handle Portfolios
+            if (!empty($portfolios)) {
+                PortfolioActivity::where('activity_id', $activity->activity_id)->delete();
+                $portfolios = array_unique(array_filter($portfolios));
+                foreach ($portfolios as $portfolioId) {
+                    PortfolioActivity::create([
+                        'activity_id' => $activity->activity_id,
+                        'portfolio_id' => $portfolioId,
+                    ]);
+                }
             }
+
+            // Handle RP Activities
+            if (!empty($rpActivities)) {
+                $rpActivities = array_unique(array_filter($rpActivities));
+                foreach ($rpActivities as $rpActivityId) {
+                    DB::table('rp_activity_mappings')->insert([
+                        'rp_activity_mappings_id' => (string) Str::uuid(),
+                        'rp_activities_id' => $rpActivityId,
+                        'activity_id' => $activity->activity_id,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+
+            // Handle Focal Points
+            if (!empty($focalPoints)) {
+                foreach ($focalPoints as $employeeId) {
+                    $exists = DB::table('rp_focalpoints')
+                        ->where('employee_id', $employeeId)
+                        ->whereNull('deleted_at')
+                        ->exists();
+                    
+                    if (!$exists) {
+                        $employee = DB::table('employees')
+                            ->where('employee_id', $employeeId)
+                            ->first();
+                        
+                        if ($employee) {
+                            DB::table('rp_focalpoints')->insert([
+                                'rp_focalpoints_id' => (string) Str::uuid(),
+                                'name' => trim($employee->first_name . ' ' . $employee->last_name),
+                                'type' => 'employee',
+                                'employee_id' => $employeeId,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
+                    }
+                }
+                
+                $rpFocalpoints = DB::table('rp_focalpoints')
+                    ->whereIn('employee_id', $focalPoints)
+                    ->whereNull('deleted_at')
+                    ->get();
+                
+                foreach ($rpFocalpoints as $rpFocalpoint) {
+                    DB::table('activity_focal_points')->insert([
+                        'activity_focal_point_id' => (string) Str::uuid(),
+                        'activity_id' => $activity->activity_id,
+                        'rp_focalpoints_id' => $rpFocalpoint->rp_focalpoints_id,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            return redirect()->route('activities.index')
+                ->with('success', 'Activity created successfully.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error creating activity: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
+
+            return back()
+                ->withInput()
+                ->with('error', 'Error creating activity: ' . $e->getMessage());
         }
-
-        DB::commit();
-
-        return redirect()->route('activities.index')
-            ->with('success', 'Activity created successfully.');
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Error creating activity: ' . $e->getMessage(), [
-            'trace' => $e->getTraceAsString(),
-            'request' => $request->all()
-        ]);
-
-        return back()
-            ->withInput()
-            ->with('error', 'Error creating activity: ' . $e->getMessage());
     }
-}
 
     /**
      * Display the specified activity.
@@ -319,17 +278,10 @@ class ActivityController extends Controller
     /**
      * Show the form for editing the specified activity.
      */
-    /**
-     * Show the form for editing the specified activity.
-     */
- 
     public function edit($id)
     {
         $activity = Activity::findOrFail($id);
         
-        // DEBUG: Check what's actually in the database
-        
-
         $projects = ProjectActivity::where('project_activities.activity_id', $id)
             ->leftJoin('projects', 'projects.project_id', '=', 'project_activities.project_id')
             ->leftJoin('programs as p', 'p.program_id', '=', 'projects.program_id')
@@ -345,7 +297,6 @@ class ActivityController extends Controller
 
         $selected_portfolios = PortfolioActivity::where('activity_id', $id)
             ->get()->pluck('portfolio_id')->toArray();
-
 
         $rp_activities = RpActivityMapping::where('rp_activity_mappings.activity_id', $id)
             ->leftJoin('rp_activities', 'rp_activities.rp_activities_id', '=', 'rp_activity_mappings.rp_activities_id')
@@ -366,68 +317,45 @@ class ActivityController extends Controller
                 'action_plans.action_plan_id',
             ])->get();
         
-        
-        // ============================================
-        // PROGRAMS (existing code - good format)
-        // ============================================
         $programs = Program::whereIn('program_type', ['Center', 'Local Program', 'Flagship'])
             ->orderBy('name')
             ->get(['program_id', 'name', 'external_id']);
 
-        // GOOD FORMAT: Using pluck() -> unique() -> toArray()
         $selected_program = $projects->pluck('parent_program_id')->unique()->toArray();
         $selected_project_ids = $projects->pluck('project_id')->unique()->toArray();
-                $portfolios = Portfolio::orderBy('created_at', 'desc')->get(['portfolio_id', 'name', 'description', 'type', 'external_id']);
+        $portfolios = Portfolio::orderBy('created_at', 'desc')->get(['portfolio_id', 'name', 'description', 'type', 'external_id']);
 
         $actionPlans = ActionPlan::orderBy('title')->get(['action_plan_id', 'title', 'start_date', 'end_date']);
-
 
         $selected_action_plan_id = $rp_activities->pluck('action_plan_id')->first();
         $selected_component_id = $rp_activities->pluck('rp_components_id')->first();
         $selected_rp_activity_ids = $rp_activities->pluck('rp_activities_id')->unique()->toArray();
         
-        // Get selected action plan from activity (assuming you have action_plan_id column)
         $selectedActionPlanId = $activity->action_plan_id;
         $selectedActionPlanIdSingle = $activity->action_plan_id;
 
-        // ============================================
-        // RP COMPONENTS - Filtered by selected action plan
-        // ============================================
         $rpComponents = [];
-        
         if ($selectedActionPlanId) {
             $rpComponents = RpComponent::where('action_plan_id', $selectedActionPlanId)
                 ->whereNull('deleted_at')
                 ->orderBy('code')
                 ->get(['rp_components_id', 'code', 'name', 'action_plan_id']);
         } else {
-            // If no action plan selected, show all components (limited)
             $rpComponents = RpComponent::whereNull('deleted_at')
                 ->orderBy('code')
                 ->get(['rp_components_id', 'code', 'name', 'action_plan_id']);
         }
 
-        // For component (single selection)
         $selectedComponentIdSingle = $activity->rp_component_id;
-
-        // ============================================
-        // RP ACTIVITIES
-        // ============================================
-        $selectedRpActivityIds = [];
         
-          
-    // ✅ NEW WAY (from rp_activity_mappings table) - CORRECT!
-    $selectedRpActivityIds = DB::table('rp_activity_mappings')
-        ->where('activity_id', $activity->activity_id)
-        ->pluck('rp_activities_id')
-        ->map(function($id) {
-            return (string) $id;
-        })
-        ->toArray();
+        $selectedRpActivityIds = DB::table('rp_activity_mappings')
+            ->where('activity_id', $activity->activity_id)
+            ->pluck('rp_activities_id')
+            ->map(function($id) {
+                return (string) $id;
+            })
+            ->toArray();
         
-        // ============================================
-        // FETCH SELECTED FOCAL POINTS (Employee IDs)
-        // ============================================
         $selectedFocalPoints = DB::table('activity_focal_points')
             ->join('rp_focalpoints', 'rp_focalpoints.rp_focalpoints_id', '=', 'activity_focal_points.rp_focalpoints_id')
             ->where('activity_focal_points.activity_id', $activity->activity_id)
@@ -436,17 +364,13 @@ class ActivityController extends Controller
             ->pluck('rp_focalpoints.employee_id')
             ->toArray();
 
-        // Override with old input if validation fails
         if (old('focal_points')) {
             $selectedFocalPoints = old('focal_points', []);
         }
 
-        // ============================================
-        // Return view
-        // ============================================
         return view('activities.edit', compact(
             'activity',
-            'actionPlans',           // New: Action plans
+            'actionPlans',
             'programs',
             'selected_program',
             'selected_project_ids',
@@ -466,7 +390,7 @@ class ActivityController extends Controller
     public function update(Request $request, $id)
     {
         $activity = Activity::findOrFail($id);
-        // Validate the request - ADDED 'experts' field
+        
         $validated = $request->validate([
             'activity_title_en' => 'required|string|max:255',
             'activity_title_ar' => 'nullable|string|max:255',
@@ -476,127 +400,85 @@ class ActivityController extends Controller
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'venue' => 'nullable|string|max:255',
             'content_network' => 'nullable|string',
-            'experts' => 'nullable|string', // ADDED experts field
-            'action_plan_id' => 'nullable|exists:action_plans,action_plan_id', // NEW
+            'experts' => 'nullable|string',
+            'action_plan_id' => 'nullable|exists:action_plans,action_plan_id',
             'rp_component_id' => 'nullable|exists:rp_components,rp_components_id',
             'rp_activities' => 'nullable|array',
             'focal_points' => 'nullable|array',
             'operational_support' => 'nullable|array',
             'maximum_capacity' => 'nullable|integer|min:0',
             'portfolios.*' => 'exists:portfolios,portfolio_id', 
-            'maximum_capacity' => 'nullable|integer|min:0',
         ]);
         
-        // Extract the specific arrays from the request
-        $extractedData = [
-            'rp_activities' => $request->input('rp_activities', []),
-            'focal_points' => $request->input('focal_points', []),
-            'projects' => $request->input('projects', []),
-        ];
-
-        // Or extract them to separate variables
         $rpActivities = $request->input('rp_activities', []);
         $focalPoints = $request->input('focal_points', []);
         $projects = $request->input('projects', []);
         $portfolios = $request->input('portfolios', []);
 
-        // Remove from validated array if they were included
         unset($validated['rp_activities'], $validated['focal_points'], $validated['projects'], $validated['portfolios']);
 
-        // Handle operational_support
         if (isset($validated['operational_support'])) {
             $validated['operational_support'] = json_encode($validated['operational_support']);
         } else {
             $validated['operational_support'] = null;
         }
 
-        // Handle rp_activities as JSON in the activity table
         if (!empty($rpActivities)) {
             $validated['rp_activities'] = json_encode($rpActivities);
         } else {
             $validated['rp_activities'] = null;
         }
 
-        // Update the activity with ALL validated data including action_plan_id and component and activities
         $activity->update($validated);
 
-        // Get project ids from request (ensure it's an array of ids)
-        $projects = $projects ?? [];
-        $projects = array_values(array_filter($projects)); // remove null/empty
-        $projects = array_unique($projects);               // avoid duplicates
-
-        // Existing project_ids for this activity
-        $existing = ProjectActivity::where('activity_id', $id)
-            ->pluck('project_id')
-            ->toArray();
-
-        // Add new ones
+        // Update projects
+        $projects = array_values(array_filter($projects));
+        $projects = array_unique($projects);
+        $existing = ProjectActivity::where('activity_id', $id)->pluck('project_id')->toArray();
         $toInsert = array_diff($projects, $existing);
         foreach ($toInsert as $projectId) {
             ProjectActivity::create([
+                'project_activity_id' => (string) Str::uuid(),
                 'activity_id' => $id,
                 'project_id'  => $projectId,
             ]);
         }
-
-        // Delete removed ones
         $toDelete = array_diff($existing, $projects);
         if (!empty($toDelete)) {
-            ProjectActivity::where('activity_id', $id)
-                ->whereIn('project_id', $toDelete)
-                ->delete();
+            ProjectActivity::where('activity_id', $id)->whereIn('project_id', $toDelete)->delete();
         }
         
-
+        // Update portfolios
         if (!empty($portfolios)) {
-
-            // Remove existing relations
             PortfolioActivity::where('activity_id', $id)->forceDelete();
-
-            // Clean array (remove nulls and duplicates)
             $portfolios = array_unique(array_filter($portfolios));
-
-            // Insert new rows
             foreach ($portfolios as $portfolioId) {
                 PortfolioActivity::create([
                     'activity_id' => $id,
                     'portfolio_id' => $portfolioId,
                 ]);
             }
-        }else{
-            // If no portfolios selected, remove existing relations
+        } else {
             PortfolioActivity::where('activity_id', $id)->forceDelete();
         }
 
-        // Handle RP Activities mapping in separate table (NEW CODE - similar to projects)
+        // Update RP activities
+        DB::table('rp_activity_mappings')->where('activity_id', $activity->activity_id)->delete();
         if (!empty($rpActivities)) {
-            // First, delete existing mappings for this activity
-            DB::table('rp_activity_mappings')
-                ->where('activity_id', $activity->activity_id)
-                ->delete();
-
-            // Then create new mappings
             foreach ($rpActivities as $rpActivityId) {
                 DB::table('rp_activity_mappings')->insert([
-                    'rp_activity_mappings_id' => (string) \Illuminate\Support\Str::uuid(),
+                    'rp_activity_mappings_id' => (string) Str::uuid(),
                     'rp_activities_id' => $rpActivityId,
                     'activity_id' => $activity->activity_id,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
             }
-        } else {
-            // If no RP activities selected, delete any existing mappings
-            DB::table('rp_activity_mappings')
-                ->where('activity_id', $activity->activity_id)
-                ->delete();
         }
 
-        // ============================================
-        // Handle Focal Points (Using activity_focal_points pivot table)
-        // ============================================
+        // Update focal points
+        DB::table('activity_focal_points')->where('activity_id', $activity->activity_id)->delete();
         if (!empty($focalPoints)) {
-            // First, ensure each employee has an rp_focalpoints record
             foreach ($focalPoints as $employeeId) {
                 $exists = DB::table('rp_focalpoints')
                     ->where('employee_id', $employeeId)
@@ -621,18 +503,11 @@ class ActivityController extends Controller
                 }
             }
             
-            // Get the rp_focalpoints IDs for the selected employees
             $rpFocalpoints = DB::table('rp_focalpoints')
                 ->whereIn('employee_id', $focalPoints)
                 ->whereNull('deleted_at')
                 ->get();
             
-            // First, delete existing focal points for this activity
-            DB::table('activity_focal_points')
-                ->where('activity_id', $activity->activity_id)
-                ->delete();
-            
-            // Then create new pivot records
             foreach ($rpFocalpoints as $rpFocalpoint) {
                 DB::table('activity_focal_points')->insert([
                     'activity_focal_point_id' => (string) Str::uuid(),
@@ -642,11 +517,6 @@ class ActivityController extends Controller
                     'updated_at' => now(),
                 ]);
             }
-        } else {
-            // If no focal points selected, delete all existing ones
-            DB::table('activity_focal_points')
-                ->where('activity_id', $activity->activity_id)
-                ->delete();
         }
 
         return redirect()->route('activities.index')
@@ -659,15 +529,11 @@ class ActivityController extends Controller
     public function destroy($id)
     {
         $activity = Activity::findOrFail($id);
-        
-        // Use soft delete instead of permanent delete
         $activity->delete();
         
         return redirect()->route('activities.index')
             ->with('success', 'Activity deleted successfully.');
     }
-
-    // Add these new AJAX methods to your controller:
 
     /**
      * Get RP Components by Action Plan ID (AJAX endpoint)
@@ -733,10 +599,6 @@ class ActivityController extends Controller
 
     /**
      * Get RP Activities by Component ID (AJAX endpoint)
-     * Using Eloquent relationships from first code
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
      */
     public function getRPActivities(Request $request)
     {
@@ -746,10 +608,7 @@ class ActivityController extends Controller
 
         $componentId = $request->component_id;
 
-
         try {
-
-            // Simple query for testing
             $activities = RpActivity::whereNull('deleted_at')
                 ->orderBy('code')
                 ->get(['rp_activities_id', 'code', 'name', 'rp_actions_id'])
@@ -762,8 +621,6 @@ class ActivityController extends Controller
                         'action_name' => 'Action ' . $activity->rp_actions_id
                     ];
                 });
-
-            
 
             return response()->json([
                 'success' => true,
@@ -793,9 +650,6 @@ class ActivityController extends Controller
     public function getProjectsByProgram(Request $request)
     {
         try {
-
-
-            // Validate request
             $request->validate([
                 'program_id' => 'required|uuid',
             ]);
@@ -808,7 +662,6 @@ class ActivityController extends Controller
                 })
                 ->orderBy('name')
                 ->get();
-
 
             return response()->json([
                 'success' => true,
@@ -833,11 +686,6 @@ class ActivityController extends Controller
 
     /**
      * Get RP Actions grouped by Component ID
-     * Returns actions with their activities as sub-items
-     * From first code
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
      */
     public function getRPActionsWithActivities(Request $request)
     {
@@ -847,17 +695,7 @@ class ActivityController extends Controller
 
         $componentId = $request->component_id;
 
-        
-
         try {
-            // Debug: Check if component exists
-            $componentExists = RpComponent::where('rp_components_id', $componentId)
-                ->whereNull('deleted_at')
-                ->exists();
-                
-            
-
-            // Get the component with its full hierarchy
             $component = RpComponent::with([
                 'programs.units.actions.activities' => function ($query) {
                     $query->whereNull('deleted_at')
@@ -878,7 +716,6 @@ class ActivityController extends Controller
                 ], 404);
             }
 
-            // Structure the data: Group by Action
             $actionsData = [];
 
             foreach ($component->programs as $program) {
@@ -928,14 +765,9 @@ class ActivityController extends Controller
 
     /**
      * Get all RP Components with basic info
-     * From first code
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
      */
     public function getRPComponents(Request $request)
     {
-        
         try {
             $actionPlanId = $request->query('action_plan_id');
             $components = RpComponent::where("action_plan_id", $actionPlanId)
@@ -960,11 +792,6 @@ class ActivityController extends Controller
 
     /**
      * Get RP Component details with hierarchy counts
-     * From first code
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  string  $id
-     * @return \Illuminate\Http\JsonResponse
      */
     public function getRPComponentDetails(Request $request, $id)
     {
@@ -1019,305 +846,204 @@ class ActivityController extends Controller
     }
 
     /**
-     * Test data methods (from first code)
+     * Remove multiple activities in bulk using soft delete.
      */
-    private function getTestActivities()
+    public function bulkDestroy(Request $request)
     {
-        return [
-            [
-                'rp_activities_id' => 'activity-1',
-                'name' => 'Training Session 1',
-                'code' => 'ACT-001',
-                'rp_action_id' => 'action-1',
-                'action_name' => 'Capacity Building Action'
-            ],
-            [
-                'rp_activities_id' => 'activity-2',
-                'name' => 'Workshop 1',
-                'code' => 'ACT-002',
-                'rp_action_id' => 'action-1',
-                'action_name' => 'Capacity Building Action'
-            ],
-            [
-                'rp_activities_id' => 'activity-3',
-                'name' => 'Mentoring Program',
-                'code' => 'ACT-003',
-                'rp_action_id' => 'action-2',
-                'action_name' => 'Professional Development'
-            ]
-        ];
-    }
+        try {
+            DB::beginTransaction();
 
-    private function getTestActionsWithActivities()
-    {
-        return [
-            [
-                'action_id' => 'action-1',
-                'action_name' => 'Capacity Building Action',
-                'action_code' => 'ACT-CAP-001',
-                'activities' => [
-                    [
-                        'rp_activities_id' => 'activity-1',
-                        'name' => 'Training Session 1',
-                        'code' => 'ACT-001',
-                        'rp_action_id' => 'action-1',
-                        'full_name' => 'ACT-001 - Training Session 1'
-                    ],
-                    [
-                        'rp_activities_id' => 'activity-2',
-                        'name' => 'Workshop 1',
-                        'code' => 'ACT-002',
-                        'rp_action_id' => 'action-1',
-                        'full_name' => 'ACT-002 - Workshop 1'
-                    ]
-                ]
-            ],
-            [
-                'action_id' => 'action-2',
-                'action_name' => 'Professional Development',
-                'action_code' => 'ACT-PRO-001',
-                'activities' => [
-                    [
-                        'rp_activities_id' => 'activity-3',
-                        'name' => 'Mentoring Program',
-                        'code' => 'ACT-003',
-                        'rp_action_id' => 'action-2',
-                        'full_name' => 'ACT-003 - Mentoring Program'
-                    ]
-                ]
-            ]
-        ];
-    }
+            $request->validate([
+                'activity_ids' => 'required|string',
+            ]);
 
+            $activityIds = json_decode($request->activity_ids, true);
+
+            if (empty($activityIds) || !is_array($activityIds)) {
+                return back()->with('error', 'No activities selected for deletion.');
+            }
+
+            $existingActivities = Activity::whereIn('activity_id', $activityIds)->count();
+            
+            if ($existingActivities !== count($activityIds)) {
+                return back()->with('error', 'One or more activities not found.');
+            }
+
+            Activity::whereIn('activity_id', $activityIds)->delete();
+            ProjectActivity::whereIn('activity_id', $activityIds)->delete();
+            PortfolioActivity::whereIn('activity_id', $activityIds)->delete();
+            DB::table('rp_activity_mappings')->whereIn('activity_id', $activityIds)->delete();
+            DB::table('activity_focal_points')->whereIn('activity_id', $activityIds)->delete();
+
+            DB::commit();
+
+            return redirect()->route('activities.index')
+                ->with('success', count($activityIds) . ' activities deleted successfully.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error in bulk delete: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'activity_ids' => $request->activity_ids ?? null
+            ]);
+
+            return back()->with('error', 'Error deleting activities: ' . $e->getMessage());
+        }
+    }
 
     /**
- * Remove multiple activities in bulk using soft delete.
- */
-public function bulkDestroy(Request $request)
-{
-    try {
-        DB::beginTransaction();
-
-        // Validate the request
-        $request->validate([
-            'activity_ids' => 'required|string',
-        ]);
-
-        // Decode the JSON array of activity IDs
-        $activityIds = json_decode($request->activity_ids, true);
-
-        if (empty($activityIds) || !is_array($activityIds)) {
-            return back()->with('error', 'No activities selected for deletion.');
+     * Export activities to Excel
+     */
+    public function export(Request $request)
+    {
+        try {
+            $filters = [
+                'title' => $request->title,
+                'activity_type' => $request->activity_type,
+                'venue' => $request->venue,
+                'status' => $request->status,
+                'start_date_from' => $request->start_date_from,
+                'end_date_to' => $request->end_date_to,
+            ];
+            
+            $fileName = 'activities_export_' . date('Y-m-d_His') . '.xlsx';
+            
+            return Excel::download(new ActivitiesExport($filters), $fileName);
+            
+        } catch (\Exception $e) {
+            Log::error('Error exporting activities: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return back()->with('error', 'Error exporting activities: ' . $e->getMessage());
         }
-
-        // Validate that all IDs exist (optional but recommended)
-        $existingActivities = Activity::whereIn('activity_id', $activityIds)->count();
-        
-        if ($existingActivities !== count($activityIds)) {
-            return back()->with('error', 'One or more activities not found.');
-        }
-
-        // Perform soft delete on all selected activities
-        Activity::whereIn('activity_id', $activityIds)->delete();
-
-        // Optional: Also handle related records if needed
-        // Delete related project activities mappings
-        ProjectActivity::whereIn('activity_id', $activityIds)->delete();
-        
-        // Delete related portfolio activities mappings
-        PortfolioActivity::whereIn('activity_id', $activityIds)->delete();
-        
-        // Delete related RP activity mappings
-        DB::table('rp_activity_mappings')
-            ->whereIn('activity_id', $activityIds)
-            ->delete();
-        
-        // Delete related focal points mappings
-        DB::table('activity_focal_points')
-            ->whereIn('activity_id', $activityIds)
-            ->delete();
-
-        DB::commit();
-
-        return redirect()->route('activities.index')
-            ->with('success', count($activityIds) . ' activities deleted successfully.');
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Error in bulk delete: ' . $e->getMessage(), [
-            'trace' => $e->getTraceAsString(),
-            'activity_ids' => $request->activity_ids ?? null
-        ]);
-
-        return back()->with('error', 'Error deleting activities: ' . $e->getMessage());
     }
-}
 
-public function export(Request $request)
-{
-    try {
-        // Get filters from request (same as index method)
-        $filters = [
-            'title' => $request->title,
-            'activity_type' => $request->activity_type,
-            'venue' => $request->venue,
-            'status' => $request->status,
-            'start_date_from' => $request->start_date_from,
-            'end_date_to' => $request->end_date_to,
-        ];
-        
-        // Generate filename with current date
-        $fileName = 'activities_export_' . date('Y-m-d_His') . '.xlsx';
-        
-        // Download the file
-        return Excel::download(new ActivitiesExport($filters), $fileName);
-        
-    } catch (\Exception $e) {
-        Log::error('Error exporting activities: ' . $e->getMessage(), [
-            'trace' => $e->getTraceAsString()
-        ]);
-        
-        return back()->with('error', 'Error exporting activities: ' . $e->getMessage());
+    /**
+     * Show the bulk import form
+     */
+    public function showImportForm()
+    {
+        return view('activities.import');
     }
-}
-/**
- * Show the bulk import form
- */
-public function showImportForm()
-{
-    return view('activities.import');
-}
 
-/**
- * Import activities from Excel file
- */
-public function import(Request $request)
-{
-    try {
-        // Validate the request
-        $request->validate([
-            'excel_file' => 'required|file|mimes:xlsx,xls,csv|max:10240', // Max 10MB
-        ]);
+    /**
+     * Import activities from Excel file
+     */
+    public function import(Request $request)
+    {
+        try {
+            $request->validate([
+                'excel_file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+            ]);
 
-        DB::beginTransaction();
+            DB::beginTransaction();
 
-        // Create the import instance
-        $import = new \App\Imports\BulkImportActivities();
-        
-        // Import the file
-        Excel::import($import, $request->file('excel_file'));
-        
-        // Get import results
-        $importedCount = $import->getImportedCount();
-        $failedRows = $import->getFailedRows();
-
-        DB::commit();
-
-        $message = "Successfully imported {$importedCount} activities.";
-        
-        if (!empty($failedRows)) {
-            $message .= " Failed rows: " . count($failedRows);
+            $import = new \App\Imports\BulkImportActivities();
+            Excel::import($import, $request->file('excel_file'));
             
-            // Log failed rows for debugging
-            Log::warning('Import failed rows', ['failed_rows' => $failedRows]);
+            $importedCount = $import->getImportedCount();
+            $failedRows = $import->getFailedRows();
+
+            DB::commit();
+
+            $message = "Successfully imported {$importedCount} activities.";
             
-            // Store failed rows in session for display
-            session()->flash('import_failed_rows', $failedRows);
-        }
+            if (!empty($failedRows)) {
+                $message .= " Failed rows: " . count($failedRows);
+                Log::warning('Import failed rows', ['failed_rows' => $failedRows]);
+                session()->flash('import_failed_rows', $failedRows);
+            }
 
-        return redirect()->route('activities.index')
-            ->with('success', $message);
+            return redirect()->route('activities.index')
+                ->with('success', $message);
 
-    } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
-        DB::rollBack();
-        
-        $failures = $e->failures();
-        $errorMessages = [];
-        
-        foreach ($failures as $failure) {
-            $errorMessages[] = "Row {$failure->row()}: " . implode(', ', $failure->errors());
-        }
-        
-        return back()
-            ->withInput()
-            ->with('error', 'Validation errors in Excel file:<br>' . implode('<br>', $errorMessages));
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            DB::rollBack();
             
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Error importing activities: ' . $e->getMessage(), [
-            'trace' => $e->getTraceAsString(),
-            'file' => $request->file('excel_file')?->getClientOriginalName()
-        ]);
-
-        return back()
-            ->withInput()
-            ->with('error', 'Error importing activities: ' . $e->getMessage());
-    }
-}
-
-/**
- * Download Excel template for bulk import
- */
-public function downloadTemplate()
-{
-    try {
-        // Create a simple template with headers
-        $headers = [
-            'activity_title_en',
-            'activity_title_ar',
-            'activity_type',
-            'start_date',
-            'end_date',
-            'venue',
-            'content_network',
-            'maximum_capacity',
-            'operational_support',
-            'projects',
-            'portfolios',
-            'rp_activities',
-            'focal_points'
-        ];
-        
-        // Create sample data
-        $sampleData = [
-            [
-                'Sample Activity EN',
-                'نشاط تجريبي AR',
-                'Workshop',
-                '2026-04-01',
-                '2026-04-02',
-                'Main Hall',
-                'Internal',
-                '50',
-                'IT,Finance',
-                'proj-1,proj-2',
-                'port-1,port-2',
-                'rp-act-1,rp-act-2',
-                'emp-1,emp-2'
-            ]
-        ];
-        
-        // Use Maatwebsite Excel to create and download
-        return Excel::download(new class($headers, $sampleData) implements \Maatwebsite\Excel\Concerns\FromArray {
-            protected $headers;
-            protected $data;
+            $failures = $e->failures();
+            $errorMessages = [];
             
-            public function __construct($headers, $data)
-            {
-                $this->headers = $headers;
-                $this->data = $data;
+            foreach ($failures as $failure) {
+                $errorMessages[] = "Row {$failure->row()}: " . implode(', ', $failure->errors());
             }
             
-            public function array(): array
-            {
-                return array_merge([$this->headers], $this->data);
-            }
-        }, 'activities_import_template.xlsx');
-        
-    } catch (\Exception $e) {
-        Log::error('Error generating template: ' . $e->getMessage());
-        return back()->with('error', 'Error generating template: ' . $e->getMessage());
-    }
-}
+            return back()
+                ->withInput()
+                ->with('error', 'Validation errors in Excel file:<br>' . implode('<br>', $errorMessages));
+                
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error importing activities: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'file' => $request->file('excel_file')?->getClientOriginalName()
+            ]);
 
+            return back()
+                ->withInput()
+                ->with('error', 'Error importing activities: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Download Excel template for bulk import
+     */
+    public function downloadTemplate()
+    {
+        try {
+            $headers = [
+                'activity_title_en',
+                'activity_title_ar',
+                'activity_type',
+                'start_date',
+                'end_date',
+                'venue',
+                'content_network',
+                'maximum_capacity',
+                'operational_support',
+                'projects',
+                'portfolios',
+                'rp_activities',
+                'focal_points'
+            ];
+            
+            $sampleData = [
+                [
+                    'Sample Activity EN',
+                    'نشاط تجريبي AR',
+                    'Workshop',
+                    '2026-04-01',
+                    '2026-04-02',
+                    'Main Hall',
+                    'Internal',
+                    '50',
+                    'IT,Finance',
+                    'proj-1,proj-2',
+                    'port-1,port-2',
+                    'rp-act-1,rp-act-2',
+                    'emp-1,emp-2'
+                ]
+            ];
+            
+            return Excel::download(new class($headers, $sampleData) implements \Maatwebsite\Excel\Concerns\FromArray {
+                protected $headers;
+                protected $data;
+                
+                public function __construct($headers, $data)
+                {
+                    $this->headers = $headers;
+                    $this->data = $data;
+                }
+                
+                public function array(): array
+                {
+                    return array_merge([$this->headers], $this->data);
+                }
+            }, 'activities_import_template.xlsx');
+            
+        } catch (\Exception $e) {
+            Log::error('Error generating template: ' . $e->getMessage());
+            return back()->with('error', 'Error generating template: ' . $e->getMessage());
+        }
+    }
 }

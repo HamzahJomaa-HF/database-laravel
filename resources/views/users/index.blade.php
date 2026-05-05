@@ -140,7 +140,17 @@
                                         <option value="Retired" {{ request('employment_status') == 'Retired' ? 'selected' : '' }}>Retired</option>
                                     </select>
                                 </div>
-
+{{-- Register Place (NEW) --}}
+                                <div class="col-md-3">
+                                    <label for="inlineFormRegisterPlace" class="form-label fw-semibold">Register Place</label>
+                                    <input type="text" 
+                                           name="register_place" 
+                                           value="{{ request('register_place') }}"
+                                           class="form-control" 
+                                           id="inlineFormRegisterPlace" 
+                                           placeholder="Search by register place">
+                                    <small class="text-muted">Search by place of registration</small>
+                                </div>
                                 {{-- Action Buttons --}}
                                 <div class="col-12 mt-3">
                                     <div class="d-flex gap-2">
