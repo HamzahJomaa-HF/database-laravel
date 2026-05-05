@@ -19,8 +19,6 @@ use App\Http\Controllers\ActivityUserController;
 
 use Illuminate\Support\Facades\DB;
 
-
-
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -36,34 +34,9 @@ use Illuminate\Support\Facades\DB;
 // PUBLIC ROUTES - Accessible WITHOUT authentication
 // ============================================================================
 
-
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application.
-|
-*/
-// //activities import routes
-// Route::get('activities/import', [ActivityController::class, 'showImportForm'])->name('activities.import');
-// Route::post('activities/import', [ActivityController::class, 'import'])->name('activities.import.store');
-// Route::get('activities/import/template', [ActivityController::class, 'downloadTemplate'])->name('activities.import.template');
-
-// // Activity User Import Routes
-// Route::prefix('activity-users')->group(function () {
-//     Route::get('import', [ActivityUserController::class, 'importForm'])->name('activity-users.import.form');
-//     Route::post('import', [ActivityUserController::class, 'import'])->name('activity-users.import.process');
-//     Route::get('download-template', [ActivityUserController::class, 'downloadTemplate'])->name('activity-users.download-template');
-// });
-
 Route::get('/', function () {
-    return view('welcome'); // or dashboard
+    return view('welcome');
 })->middleware('auth')->name('home');
-
-
-// routes/web.php (Shorter Version)
-
 
 // ============================================================================
 // AUTHENTICATION ROUTES
@@ -82,127 +55,129 @@ Route::middleware(['auth:employee'])->group(function () {
     // ------------------------------------------------------------------------
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
+   // ============================================================================
+// PROGRAMS/CENTERS MANAGEMENT ROUTES WITH PERMISSIONS
+// ============================================================================
 
+// CREATE ROUTES - Require create or manage or full permissions
+Route::middleware(['hasPermission:programs.create,programs.manage,programs.full'])
+    ->group(function () {
+        Route::get('/center/create', [ProgramController::class, 'createCenter'])->name('createCenter');
+        Route::get('/program/create', [ProgramController::class, 'createFlagshipLocal'])->name('create.flagshiplocal');
+        Route::get('/subprogram/create', [ProgramController::class, 'createSubprogram'])->name('create.subprogram');
+    });
 
+// STORE ROUTES (POST) - Require create or manage or full permissions
+Route::middleware(['hasPermission:programs.create,programs.manage,programs.full'])
+    ->group(function () {
+        Route::post('/center/create', [ProgramController::class, 'storeCenter'])->name('storeCenter');
+        Route::post('/program/create', [ProgramController::class, 'storeFlagshipLocal'])->name('storeFlagshipLocal');
+        Route::post('/subprogram/create', [ProgramController::class, 'storeSubprogram'])->name('storeSubprogram');
+    });
 
+// EDIT ROUTES - Require edit or manage or full permissions
+Route::middleware(['hasPermission:programs.edit,programs.manage,programs.full'])
+    ->group(function () {
+        Route::get('/center/{id}/edit', [ProgramController::class, 'editCenter'])->name('editCenter');
+        Route::put('/center/{id}/update', [ProgramController::class, 'updateCenter'])->name('updateCenter');
+        Route::get('/program/{id}/edit', [ProgramController::class, 'editFlagshipLocal'])->name('edit.flagshiplocal');
+        Route::put('/program/{id}/update', [ProgramController::class, 'updateFlagshipLocal'])->name('update.flagshiplocal');
+        Route::get('/subprogram/{id}/edit', [ProgramController::class, 'editSubprogram'])->name('edit.subprogram');
+        Route::put('/subprogram/{id}/update', [ProgramController::class, 'updateSubprogram'])->name('update.subprogram');
+    });
 
-
-
-
- // ============================================================================
-    // PROGRAMS/CENTERS MANAGEMENT ROUTES - MOVED INSIDE AUTH
-    // ============================================================================
+// Programs/Centers Management Routes
+Route::prefix('programs')->name('programs.')->group(function () {
+    // View all programs - Requires view, manage, or full
+    Route::middleware(['hasPermission:programs.view,programs.manage,programs.full'])
+        ->get('/', [ProgramController::class, 'index'])->name('index');
     
-    // CREATE ROUTES
-    Route::get('/center/create', [ProgramController::class, 'createCenter'])->name('createCenter');
-    Route::get('/program/create', [ProgramController::class, 'createFlagshipLocal'])->name('create.flagshiplocal');
-    Route::get('/subprogram/create', [ProgramController::class, 'createSubprogram'])->name('create.subprogram');
+    // Delete program - Requires delete, manage, or full
+    Route::middleware(['hasPermission:programs.delete,programs.manage,programs.full'])
+        ->delete('/{id}', [ProgramController::class, 'destroy'])->name('destroy');
+});
 
-    // STORE ROUTES (POST)
-    Route::post('/center/create', [ProgramController::class, 'storeCenter'])->name('storeCenter');
-    Route::post('/program/create', [ProgramController::class, 'storeFlagshipLocal'])->name('storeFlagshipLocal');
-    Route::post('/subprogram/create', [ProgramController::class, 'storeSubprogram'])->name('storeSubprogram');
+// Centers specific routes
+Route::prefix('centers')->name('centers.')->group(function () {
+    // View centers - Requires view, manage, or full
+    Route::middleware(['hasPermission:programs.view,programs.manage,programs.full'])
+        ->get('/', [ProgramController::class, 'index'])->name('index')
+        ->defaults('type', 'Center');
+    
+    // Create center - Requires create, manage, or full
+    Route::middleware(['hasPermission:programs.create,programs.manage,programs.full'])
+        ->get('/create', [ProgramController::class, 'create'])->name('create')
+        ->defaults('type', 'Center');
+});
 
-    // EDIT ROUTES 
-    Route::get('/center/{id}/edit', [ProgramController::class, 'editCenter'])->name('editCenter');
-    Route::put('/center/{id}/update', [ProgramController::class, 'updateCenter'])->name('updateCenter');
-
-    Route::get('/program/{id}/edit', [ProgramController::class, 'editFlagshipLocal'])->name('edit.flagshiplocal');
-    Route::put('/program/{id}/update', [ProgramController::class, 'updateFlagshipLocal'])->name('update.flagshiplocal');
-
-    Route::get('/subprogram/{id}/edit', [ProgramController::class, 'editSubprogram'])->name('edit.subprogram');
-    Route::put('/subprogram/{id}/update', [ProgramController::class, 'updateSubprogram'])->name('update.subprogram');
-
-    // Programs/Centers Management Routes (prefix group) - NOW INSIDE AUTH
-    Route::prefix('programs')->name('programs.')->group(function () {
-        // Display all programs
-        Route::get('/', [ProgramController::class, 'index'])->name('index');
-        
-        // DELETE ROUTE
-        Route::delete('/{id}', [ProgramController::class, 'destroy'])->name('destroy');
-    });
-
-    // If you want a specific route for centers only
-    Route::prefix('centers')->name('centers.')->group(function () {
-        Route::get('/', [ProgramController::class, 'index'])->name('index')
-            ->defaults('type', 'Center');
-        
-        Route::get('/create', [ProgramController::class, 'create'])->name('create')
-            ->defaults('type', 'Center');
-    });
-
-    // If you want a specific route for sub-programs
-    Route::prefix('sub-programs')->name('sub-programs.')->group(function () {
-        Route::get('/', [ProgramController::class, 'index'])->name('index')
-            ->defaults('program_type', 'Sub-Program');
-    });
-
-
-
-
-
-
-
-
+// Sub-programs specific routes
+Route::prefix('sub-programs')->name('sub-programs.')->group(function () {
+    // View sub-programs - Requires view, manage, or full
+    Route::middleware(['hasPermission:programs.view,programs.manage,programs.full'])
+        ->get('/', [ProgramController::class, 'index'])->name('index')
+        ->defaults('program_type', 'Sub-Program');
+});
 
     // ------------------------------------------------------------------------
-// EMPLOYEES MANAGEMENT
-// ------------------------------------------------------------------------
-Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
-    ->prefix('employees')->name('employees.')->group(function () {
-        Route::get('/', [EmployeeController::class, 'index'])->name('index');
-        Route::middleware(['hasPermission:Users.create,Users.manage,Users.full'])
-            ->get('/create', [EmployeeController::class, 'create'])->name('create');
-        Route::middleware(['hasPermission:Users.create,Users.manage,Users.full'])
-            ->post('/', [EmployeeController::class, 'store'])->name('store');
-        Route::get('/{employee}', [EmployeeController::class, 'show'])->name('show');
-        Route::middleware(['hasPermission:Users.edit,Users.manage,Users.full'])
-            ->get('/{employee}/edit', [EmployeeController::class, 'edit'])->name('edit');
-        Route::middleware(['hasPermission:Users.edit,Users.manage,Users.full'])
-            ->put('/{employee}', [EmployeeController::class, 'update'])->name('update');
-        Route::middleware(['hasPermission:Users.delete,Users.manage,Users.full'])
-            ->delete('/{employee}', [EmployeeController::class, 'destroy'])->name('destroy');
-        Route::middleware(['hasPermission:Users.manage,Users.full'])
-            ->put('/{employee}/activate', [EmployeeController::class, 'activate'])->name('activate');
-        Route::middleware(['hasPermission:Users.manage,Users.full'])
-            ->put('/{employee}/deactivate', [EmployeeController::class, 'deactivate'])->name('deactivate');
-        Route::middleware(['hasPermission:Users.manage,Users.full'])
-            ->put('/{employee}/restore', [EmployeeController::class, 'restore'])->name('restore');
-        Route::middleware(['hasPermission:Users.manage,Users.full'])
-            ->delete('/{employee}/force-delete', [EmployeeController::class, 'forceDelete'])->name('force-delete');
-        Route::middleware(['hasPermission:Users.manage,Users.full'])
-            ->put('/{employee}/toggle-status', [EmployeeController::class, 'toggleStatus'])->name('toggle-status');
-        Route::get('/trashed', [EmployeeController::class, 'trashed'])->name('trashed');
-        
-        // Utility routes
-        Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
-            ->get('/search', [EmployeeController::class, 'search'])->name('search');
-        Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
-            ->get('/export', [EmployeeController::class, 'export'])->name('export');
-        Route::middleware(['hasPermission:Users.manage,Users.full'])
-            ->post('/import', [EmployeeController::class, 'import'])->name('import');
-    });
-  // ------------------------------------------------------------------------
+    // EMPLOYEES MANAGEMENT
+    // ------------------------------------------------------------------------
+    Route::middleware(['hasPermission:Employees.view,Employees.manage,Employees.full'])
+        ->prefix('employees')->name('employees.')->group(function () {
+            Route::get('/', [EmployeeController::class, 'index'])->name('index');
+            Route::middleware(['hasPermission:Employees.create,Employees.manage,Employees.full'])
+                ->get('/create', [EmployeeController::class, 'create'])->name('create');
+            Route::middleware(['hasPermission:Employees.create,Employees.manage,Employees.full'])
+                ->post('/', [EmployeeController::class, 'store'])->name('store');
+            Route::get('/{employee}', [EmployeeController::class, 'show'])->name('show');
+            Route::middleware(['hasPermission:Employees.edit,Employees.manage,Employees.full'])
+                ->get('/{employee}/edit', [EmployeeController::class, 'edit'])->name('edit');
+            Route::middleware(['hasPermission:Employees.edit,Employees.manage,Employees.full'])
+                ->put('/{employee}', [EmployeeController::class, 'update'])->name('update');
+            Route::middleware(['hasPermission:Employees.delete,Employees.manage,Employees.full'])
+                ->delete('/{employee}', [EmployeeController::class, 'destroy'])->name('destroy');
+            Route::middleware(['hasPermission:Employees.manage,Employees.full'])
+                ->put('/{employee}/activate', [EmployeeController::class, 'activate'])->name('activate');
+            Route::middleware(['hasPermission:Employees.manage,Employees.full'])
+                ->put('/{employee}/deactivate', [EmployeeController::class, 'deactivate'])->name('deactivate');
+            Route::middleware(['hasPermission:Employees.manage,Employees.full'])
+                ->put('/{employee}/restore', [EmployeeController::class, 'restore'])->name('restore');
+            Route::middleware(['hasPermission:Employees.manage,Employees.full'])
+                ->delete('/{employee}/force-delete', [EmployeeController::class, 'forceDelete'])->name('force-delete');
+            Route::middleware(['hasPermission:Employees.manage,Employees.full'])
+                ->put('/{employee}/toggle-status', [EmployeeController::class, 'toggleStatus'])->name('toggle-status');
+            Route::get('/trashed', [EmployeeController::class, 'trashed'])->name('trashed');
+            
+            // Utility routes
+            Route::middleware(['hasPermission:Employees.view,Employees.manage,Employees.full'])
+                ->get('/search', [EmployeeController::class, 'search'])->name('search');
+            // CHANGED: Export now requires manage or full only (removed view)
+            Route::middleware(['hasPermission:Employees.manage,Employees.full'])
+                ->get('/export', [EmployeeController::class, 'export'])->name('export');
+            Route::middleware(['hasPermission:Employees.manage,Employees.full'])
+                ->post('/import', [EmployeeController::class, 'import'])->name('import');
+        });
+
+    // ------------------------------------------------------------------------
     // ROLES MANAGEMENT
     // ------------------------------------------------------------------------
-    Route::middleware(['hasPermission:Users.manage,Users.full']) // Using Users module
+    Route::middleware(['hasPermission:Roles.manage,Roles.full'])
         ->prefix('roles')->name('roles.')->group(function () {
             Route::get('/', [RoleController::class, 'index'])->name('index');
-            Route::middleware(['hasPermission:Users.manage,Users.full'])
+            Route::middleware(['hasPermission:Roles.manage,Roles.full'])
                 ->get('/create', [RoleController::class, 'create'])->name('create');
-            Route::middleware(['hasPermission:Users.manage,Users.full'])
+            Route::middleware(['hasPermission:Roles.manage,Roles.full'])
                 ->post('/', [RoleController::class, 'store'])->name('store');
-            Route::middleware(['hasPermission:Users.manage,Users.full'])
+            Route::middleware(['hasPermission:Roles.manage,Roles.full'])
                 ->get('/{role}', [RoleController::class, 'show'])->name('show');
-            Route::middleware(['hasPermission:Users.manage,Users.full'])
+            Route::middleware(['hasPermission:Roles.manage,Roles.full'])
                 ->get('/{role}/edit', [RoleController::class, 'edit'])->name('edit');
-            Route::middleware(['hasPermission:Users.manage,Users.full'])
+            Route::middleware(['hasPermission:Roles.manage,Roles.full'])
                 ->put('/{role}', [RoleController::class, 'update'])->name('update');
-            Route::middleware(['hasPermission:Users.manage,Users.full'])
+            Route::middleware(['hasPermission:Roles.manage,Roles.full'])
                 ->delete('/{role}', [RoleController::class, 'destroy'])->name('destroy');
-            Route::middleware(['hasPermission:Users.manage,Users.full'])
+            Route::middleware(['hasPermission:Roles.manage,Roles.full'])
                 ->get('/{role}/permissions', [RoleController::class, 'permissions'])->name('permissions');
-            Route::middleware(['hasPermission:Users.manage,Users.full'])
+            Route::middleware(['hasPermission:Roles.manage,Roles.full'])
                 ->post('/{role}/permissions', [RoleController::class, 'updatePermissions'])->name('permissions.update');
         });
     
@@ -234,48 +209,49 @@ Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
         });
    
     // ------------------------------------------------------------------------
-// USERS MODULE
-// ------------------------------------------------------------------------
-Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
-    ->prefix('users')->name('users.')->group(function () {
-        Route::get('/', [UserController::class, 'index'])->name('index');
-        
-        // CREATE ROUTES
-        Route::middleware(['hasPermission:Users.create,Users.manage,Users.full'])
-            ->get('/create', [UserController::class, 'create'])->name('create');
-        Route::middleware(['hasPermission:Users.create,Users.manage,Users.full'])
-            ->post('/', [UserController::class, 'store'])->name('store');
-        
-        // IMPORT ROUTES - MUST BE BEFORE {user_id} ROUTES
-        Route::middleware(['hasPermission:Users.manage,Users.full'])
-            ->get('/import', [UserController::class, 'importForm'])->name('import.form'); // SHOW FORM
-        
-        Route::middleware(['hasPermission:Users.manage,Users.full'])
-            ->post('/import', [UserController::class, 'import'])->name('import');
-        
-        Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
-            ->get('/import/template', [UserController::class, 'downloadTemplate'])->name('import.template');
-        
-        // EXPORT & STATISTICS
-        Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
-            ->get('/export', [UserController::class, 'exportExcel'])->name('export.excel');
-        Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
-            ->get('/statistics', [UserController::class, 'statistics'])->name('statistics');
-        
-        Route::middleware(['hasPermission:Users.manage,Users.full'])
-            ->post('/bulk-delete', [UserController::class, 'bulkDestroy'])->name('bulk.destroy');
-        
-        // PARAMETERIZED ROUTES - MUST BE LAST
-        Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
-            ->get('/{user_id}', [UserController::class, 'show'])->name('show');
-        Route::middleware(['hasPermission:Users.edit,Users.manage,Users.full'])
-            ->get('/{user_id}/edit', [UserController::class, 'edit'])->name('edit');
-        Route::middleware(['hasPermission:Users.edit,Users.manage,Users.full'])
-            ->put('/{user_id}', [UserController::class, 'update'])->name('update');
-        Route::middleware(['hasPermission:Users.delete,Users.manage,Users.full'])
-            ->delete('/{user_id}', [UserController::class, 'destroy'])->name('destroy');
-    });
-      // ------------------------------------------------------------------------
+    // USERS MODULE
+    // ------------------------------------------------------------------------
+    Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
+        ->prefix('users')->name('users.')->group(function () {
+            Route::get('/', [UserController::class, 'index'])->name('index');
+            
+            // CREATE ROUTES
+            Route::middleware(['hasPermission:Users.create,Users.manage,Users.full'])
+                ->get('/create', [UserController::class, 'create'])->name('create');
+            Route::middleware(['hasPermission:Users.create,Users.manage,Users.full'])
+                ->post('/', [UserController::class, 'store'])->name('store');
+            
+            // IMPORT ROUTES
+            Route::middleware(['hasPermission:Users.manage,Users.full'])
+                ->get('/import', [UserController::class, 'importForm'])->name('import.form');
+            Route::middleware(['hasPermission:Users.manage,Users.full'])
+                ->post('/import', [UserController::class, 'import'])->name('import');
+            // CHANGED: Import template now requires manage or full only (removed view)
+            Route::middleware(['hasPermission:Users.manage,Users.full'])
+                ->get('/import/template', [UserController::class, 'downloadTemplate'])->name('import.template');
+            
+            // EXPORT & STATISTICS
+            // CHANGED: Export now requires manage or full only (removed view)
+            Route::middleware(['hasPermission:Users.manage,Users.full'])
+                ->get('/export', [UserController::class, 'exportExcel'])->name('export.excel');
+            Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
+                ->get('/statistics', [UserController::class, 'statistics'])->name('statistics');
+            
+            Route::middleware(['hasPermission:Users.manage,Users.full'])
+                ->post('/bulk-delete', [UserController::class, 'bulkDestroy'])->name('bulk.destroy');
+            
+            // PARAMETERIZED ROUTES
+            Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
+                ->get('/{user_id}', [UserController::class, 'show'])->name('show');
+            Route::middleware(['hasPermission:Users.edit,Users.manage,Users.full'])
+                ->get('/{user_id}/edit', [UserController::class, 'edit'])->name('edit');
+            Route::middleware(['hasPermission:Users.edit,Users.manage,Users.full'])
+                ->put('/{user_id}', [UserController::class, 'update'])->name('update');
+            Route::middleware(['hasPermission:Users.delete,Users.manage,Users.full'])
+                ->delete('/{user_id}', [UserController::class, 'destroy'])->name('destroy');
+        });
+    
+    // ------------------------------------------------------------------------
     // PORTFOLIOS MANAGEMENT
     // ------------------------------------------------------------------------
     Route::middleware(['hasPermission:Portfolios.view,Portfolios.manage,Portfolios.full'])
@@ -315,74 +291,71 @@ Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
                 ->delete('/{cop}', [CopController::class, 'destroy'])->name('destroy');
         });
 
-
-// ------------------------------------------------------------------------
-// ACTIVITIES MODULE
-// ------------------------------------------------------------------------
-Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
-    ->prefix('activities')->name('activities.')->group(function () {
-        
-        // IMPORT ROUTES - MUST BE BEFORE OTHER ROUTES
-        Route::middleware(['hasPermission:activities.manage,activities.full'])
-            ->get('/import', [ActivityController::class, 'showImportForm'])->name('import');
-        
-        Route::middleware(['hasPermission:activities.manage,activities.full'])
-            ->post('/import', [ActivityController::class, 'import'])->name('import.store');
-        
-        Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
-            ->get('/import/template', [ActivityController::class, 'downloadTemplate'])->name('import.template');
-        
-        // Export route
-        Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
-            ->get('/export', [ActivityController::class, 'export'])->name('export');
-        
-        // Regular CRUD routes
-        Route::get('/', [ActivityController::class, 'index'])->name('index');
-        Route::middleware(['hasPermission:activities.create,activities.manage,activities.full'])
-            ->get('/create', [ActivityController::class, 'create'])->name('create');
-        Route::middleware(['hasPermission:activities.create,activities.manage,activities.full'])
-            ->post('/', [ActivityController::class, 'store'])->name('store');
-        Route::get('/{activity}', [ActivityController::class, 'show'])->name('show');
-        Route::middleware(['hasPermission:activities.edit,activities.manage,activities.full'])
-            ->get('/{activity}/edit', [ActivityController::class, 'edit'])->name('edit');
-        Route::middleware(['hasPermission:activities.edit,activities.manage,activities.full'])
-            ->put('/{activity}', [ActivityController::class, 'update'])->name('update');
-
-        Route::middleware(['hasPermission:activities.delete,activities.manage,activities.full'])
-            ->delete('/bulk/destroy', [ActivityController::class, 'bulkDestroy'])->name('bulk.destroy');  
-
-        Route::middleware(['hasPermission:activities.delete,activities.manage,activities.full'])
-            ->delete('/{activity}', [ActivityController::class, 'destroy'])->name('destroy');
+    // ------------------------------------------------------------------------
+    // ACTIVITIES MODULE
+    // ------------------------------------------------------------------------
+    Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
+        ->prefix('activities')->name('activities.')->group(function () {
             
-        Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
-            ->prefix('{parentActivity}/children')->name('children.')->group(function () {
-                Route::get('/', [ActivityController::class, 'indexChildren'])->name('index');
-                Route::middleware(['hasPermission:activities.create,activities.manage,activities.full'])
-                    ->get('/create', [ActivityController::class, 'createChild'])->name('create');
-                Route::middleware(['hasPermission:activities.create,activities.manage,activities.full'])
-                    ->post('/', [ActivityController::class, 'storeChild'])->name('store');
+            // IMPORT ROUTES
+            Route::middleware(['hasPermission:activities.manage,activities.full'])
+                ->get('/import', [ActivityController::class, 'showImportForm'])->name('import');
+            Route::middleware(['hasPermission:activities.manage,activities.full'])
+                ->post('/import', [ActivityController::class, 'import'])->name('import.store');
+            // CHANGED: Import template now requires manage or full only (removed view)
+            Route::middleware(['hasPermission:activities.manage,activities.full'])
+                ->get('/import/template', [ActivityController::class, 'downloadTemplate'])->name('import.template');
+            
+            // CHANGED: Export now requires manage or full only (removed view)
+            Route::middleware(['hasPermission:activities.manage,activities.full'])
+                ->get('/export', [ActivityController::class, 'export'])->name('export');
+            
+            // Regular CRUD routes
+            Route::get('/', [ActivityController::class, 'index'])->name('index');
+            Route::middleware(['hasPermission:activities.create,activities.manage,activities.full'])
+                ->get('/create', [ActivityController::class, 'create'])->name('create');
+            Route::middleware(['hasPermission:activities.create,activities.manage,activities.full'])
+                ->post('/', [ActivityController::class, 'store'])->name('store');
+            Route::get('/{activity}', [ActivityController::class, 'show'])->name('show');
+            Route::middleware(['hasPermission:activities.edit,activities.manage,activities.full'])
+                ->get('/{activity}/edit', [ActivityController::class, 'edit'])->name('edit');
+            Route::middleware(['hasPermission:activities.edit,activities.manage,activities.full'])
+                ->put('/{activity}', [ActivityController::class, 'update'])->name('update');
+            Route::middleware(['hasPermission:activities.delete,activities.manage,activities.full'])
+                ->delete('/bulk/destroy', [ActivityController::class, 'bulkDestroy'])->name('bulk.destroy');  
+            Route::middleware(['hasPermission:activities.delete,activities.manage,activities.full'])
+                ->delete('/{activity}', [ActivityController::class, 'destroy'])->name('destroy');
+                
+            Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
+                ->prefix('{parentActivity}/children')->name('children.')->group(function () {
+                    Route::get('/', [ActivityController::class, 'indexChildren'])->name('index');
+                    Route::middleware(['hasPermission:activities.create,activities.manage,activities.full'])
+                        ->get('/create', [ActivityController::class, 'createChild'])->name('create');
+                    Route::middleware(['hasPermission:activities.create,activities.manage,activities.full'])
+                        ->post('/', [ActivityController::class, 'storeChild'])->name('store');
+                });
+            
+            // AJAX routes for activities
+            Route::prefix('ajax')->group(function () {
+                Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
+                    ->get('/get-rp-activities', [ActivityController::class, 'getRPActivities'])->name('get-rp-activities');
+                Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
+                    ->get('/rp-actions', [ActivityController::class, 'getRPActionsWithActivities'])->name('get-rp-actions-with-activities');
+                Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
+                    ->get('/get-projects-by-program', [ActivityController::class, 'getProjectsByProgram'])->name('get-projects-by-program');
+                Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
+                    ->get('/get-action-plans', [ActivityController::class, 'getActionPlans'])->name('get-action-plans');
+                Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
+                    ->get('/get-components-by-action-plan', [ActivityController::class, 'getComponentsByActionPlan'])->name('get-components-by-action-plan');
+                Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
+                    ->get('/get-rp-components', [ActivityController::class, 'getRPComponents'])->name('get-rp-components');
             });
-        
-        // AJAX routes for activities
-        Route::prefix('ajax')->group(function () {
-            Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
-                ->get('/get-rp-activities', [ActivityController::class, 'getRPActivities'])->name('get-rp-activities');
-            Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
-                ->get('/rp-actions', [ActivityController::class, 'getRPActionsWithActivities'])->name('get-rp-actions-with-activities');
-            Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
-                ->get('/get-projects-by-program', [ActivityController::class, 'getProjectsByProgram'])->name('get-projects-by-program');
-            Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
-                ->get('/get-action-plans', [ActivityController::class, 'getActionPlans'])->name('get-action-plans');
-            Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
-                ->get('/get-components-by-action-plan', [ActivityController::class, 'getComponentsByActionPlan'])->name('get-components-by-action-plan');
-            Route::middleware(['hasPermission:activities.view,activities.manage,activities.full'])
-                ->get('/get-rp-components', [ActivityController::class, 'getRPComponents'])->name('get-rp-components');
         });
-    });
+    
     // ------------------------------------------------------------------------
     // ACTION PLANS MODULE
     // ------------------------------------------------------------------------
-    Route::middleware(['hasPermission:Reports.view,Reports.create,Reports.full']) // Using Reports module
+    Route::middleware(['hasPermission:Reports.view,Reports.create,Reports.full'])
         ->prefix('action-plans')->name('action-plans.')->group(function () {
             Route::get('/', [ActionPlanController::class, 'index'])->name('index');
             Route::middleware(['hasPermission:Reports.full'])
@@ -408,8 +381,6 @@ Route::middleware(['hasPermission:activities.view,activities.manage,activities.f
             Route::middleware(['hasPermission:reports.create,reports.full'])
                 ->post('/reporting/import/process', [ReportingImportController::class, 'process'])->name('reporting.import.process');
         });
-    
-   
     
     // ------------------------------------------------------------------------
     // PROGRAMS MODULE
@@ -453,70 +424,53 @@ Route::middleware(['hasPermission:activities.view,activities.manage,activities.f
             Route::get('/{project}/reports', [ProjectController::class, 'reports'])->name('reports');
             Route::get('/{project}/budget', [ProjectController::class, 'budget'])->name('budget');
         });
-    
 
-
-// ------------------------------------------------------------------------
-// ACTIVITY USERS MODULE 
-// ------------------------------------------------------------------------
-Route::middleware(['hasPermission:ActivityUsers.view,ActivityUsers.manage,ActivityUsers.full'])->prefix('activity-users')->name('activity-users.')->group(function () {
-    
-    // IMPORT ROUTES - MUST BE BEFORE OTHER ROUTES
-    Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
-        ->get('/import', [ActivityUserController::class, 'importForm'])->name('import.form');
-    
-    Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
-        ->post('/import', [ActivityUserController::class, 'import'])->name('import.process');
-    
-    Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
-        ->get('/download-template', [ActivityUserController::class, 'downloadTemplate'])->name('download-template');
-    
-    // View routes (index, show, export)
-    Route::get('/', [ActivityUserController::class, 'index'])->name('index');
-    Route::get('/export/csv', [ActivityUserController::class, 'export'])->name('export');
-    
-    // Create routes
-    Route::middleware(['hasPermission:ActivityUsers.create,ActivityUsers.manage,ActivityUsers.full'])
-        ->get('/create', [ActivityUserController::class, 'create'])->name('create');
-    Route::middleware(['hasPermission:ActivityUsers.create,ActivityUsers.manage,ActivityUsers.full'])
-        ->post('/', [ActivityUserController::class, 'store'])->name('store');
-    
-    // Edit/Update routes
-    Route::middleware(['hasPermission:ActivityUsers.edit,ActivityUsers.manage,ActivityUsers.full'])
-        ->get('/{id}/edit', [ActivityUserController::class, 'edit'])->name('edit');
-    Route::middleware(['hasPermission:ActivityUsers.edit,ActivityUsers.manage,ActivityUsers.full'])
-        ->put('/{id}', [ActivityUserController::class, 'update'])->name('update');
-    
-    // Delete routes (single and bulk)
-    Route::middleware(['hasPermission:ActivityUsers.delete,ActivityUsers.manage,ActivityUsers.full'])
-        ->delete('/{id}', [ActivityUserController::class, 'destroy'])->name('destroy');
-    Route::middleware(['hasPermission:ActivityUsers.delete,ActivityUsers.manage,ActivityUsers.full'])
-        ->delete('/bulk/destroy', [ActivityUserController::class, 'bulkDestroy'])->name('bulk.destroy');
-    
-    // Trash/Restore routes (for soft deletes)
-    Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
-        ->get('/trash/list', [ActivityUserController::class, 'trash'])->name('trash');
-    Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
-        ->post('/{id}/restore', [ActivityUserController::class, 'restore'])->name('restore');
-    Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
-        ->delete('/{id}/force-delete', [ActivityUserController::class, 'forceDelete'])->name('force-delete');
-});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    // ------------------------------------------------------------------------
+    // ACTIVITY USERS MODULE 
+    // ------------------------------------------------------------------------
+    Route::middleware(['hasPermission:ActivityUsers.view,ActivityUsers.manage,ActivityUsers.full'])
+        ->prefix('activity-users')->name('activity-users.')->group(function () {
+            
+            // IMPORT ROUTES
+            Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+                ->get('/import', [ActivityUserController::class, 'importForm'])->name('import.form');
+            Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+                ->post('/import', [ActivityUserController::class, 'import'])->name('import.process');
+            Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+                ->get('/download-template', [ActivityUserController::class, 'downloadTemplate'])->name('download-template');
+            
+            // View routes
+            Route::get('/', [ActivityUserController::class, 'index'])->name('index');
+            
+            // CHANGED: Export now has explicit middleware requiring manage or full
+            Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+                ->get('/export/csv', [ActivityUserController::class, 'export'])->name('export');
+            
+            // Create routes
+            Route::middleware(['hasPermission:ActivityUsers.create,ActivityUsers.manage,ActivityUsers.full'])
+                ->get('/create', [ActivityUserController::class, 'create'])->name('create');
+            Route::middleware(['hasPermission:ActivityUsers.create,ActivityUsers.manage,ActivityUsers.full'])
+                ->post('/', [ActivityUserController::class, 'store'])->name('store');
+            
+            // Edit/Update routes
+            Route::middleware(['hasPermission:ActivityUsers.edit,ActivityUsers.manage,ActivityUsers.full'])
+                ->get('/{id}/edit', [ActivityUserController::class, 'edit'])->name('edit');
+            Route::middleware(['hasPermission:ActivityUsers.edit,ActivityUsers.manage,ActivityUsers.full'])
+                ->put('/{id}', [ActivityUserController::class, 'update'])->name('update');
+            
+            // Delete routes
+            Route::middleware(['hasPermission:ActivityUsers.delete,ActivityUsers.manage,ActivityUsers.full'])
+                ->delete('/{id}', [ActivityUserController::class, 'destroy'])->name('destroy');
+            Route::middleware(['hasPermission:ActivityUsers.delete,ActivityUsers.manage,ActivityUsers.full'])
+                ->delete('/bulk/destroy', [ActivityUserController::class, 'bulkDestroy'])->name('bulk.destroy');
+            
+            // Trash/Restore routes
+            Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+                ->get('/trash/list', [ActivityUserController::class, 'trash'])->name('trash');
+            Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+                ->post('/{id}/restore', [ActivityUserController::class, 'restore'])->name('restore');
+            Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+                ->delete('/{id}/force-delete', [ActivityUserController::class, 'forceDelete'])->name('force-delete');
+        });
 
 }); // End of auth middleware group
