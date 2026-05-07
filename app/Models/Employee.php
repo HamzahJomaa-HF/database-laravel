@@ -99,26 +99,25 @@ class Employee extends Authenticatable
         return false;
     }
     
-    // Try to find module in both cases
-    $moduleAccess = $this->role->moduleAccesses
+    // Try to find module accesses, checking different case variations
+    $moduleAccesses = $this->role->moduleAccesses
         ->where('module', $module)
-        ->first();
+        ->count();
     
-    // If not found, try with capitalized version
-    if (!$moduleAccess) {
-        $moduleAccess = $this->role->moduleAccesses
-            ->where('module', ucfirst($module))
-            ->first();
+    if ($moduleAccesses === 0) {
+        $moduleAccesses = $this->role->moduleAccesses
+            ->where('module', ucfirst($module));
+    } else {
+        $moduleAccesses = $this->role->moduleAccesses
+            ->where('module', $module);
     }
     
-    // If still not found, try with lowercase version
-    if (!$moduleAccess) {
-        $moduleAccess = $this->role->moduleAccesses
-            ->where('module', strtolower($module))
-            ->first();
+    if ($moduleAccesses->count() === 0) {
+        $moduleAccesses = $this->role->moduleAccesses
+            ->where('module', strtolower($module));
     }
     
-    if (!$moduleAccess) {
+    if ($moduleAccesses->count() === 0) {
         return false;
     }
     
@@ -127,8 +126,10 @@ class Employee extends Authenticatable
         return true;
     }
     
-    // Check specific access level
-    return $accessLevel === '*' || $moduleAccess->access_level === $accessLevel;
+    // Check if ANY of the module accesses match the required access level
+    return $moduleAccesses->contains(function ($access) use ($accessLevel) {
+        return $accessLevel === '*' || $access->access_level === $accessLevel;
+    });
 }
     // ✅ Check if employee can access module (alias for hasPermission)
     public function canAccessModule($module): bool

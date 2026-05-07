@@ -39,6 +39,7 @@ class ModuleAccessSeeder extends Seeder
                 'edit' => 'Can edit existing users but cannot create or delete',
                 'delete' => 'Can delete users but cannot create or edit',
                 'manage' => 'Can manage all user operations including bulk operations, import, and export',
+                'export' => 'Can export users only',
                 'full' => 'Administrator level access with all permissions'
             ],
             'Activities' => [
@@ -47,6 +48,7 @@ class ModuleAccessSeeder extends Seeder
                 'edit' => 'Can edit existing activities but cannot create or delete',
                 'delete' => 'Can delete activities but cannot create or edit',
                 'manage' => 'Can manage all activity operations including children activities, import, and export',
+                'export' => 'Can export activities only',
                 'full' => 'Administrator level access with all permissions'
             ],
             'Employees' => [
@@ -55,6 +57,7 @@ class ModuleAccessSeeder extends Seeder
                 'edit' => 'Can edit existing employees but cannot create or delete',
                 'delete' => 'Can delete employees but cannot create or edit',
                 'manage' => 'Can manage all employee operations including activation/deactivation, import, and export',
+                'export' => 'Can export employees only',
                 'full' => 'Administrator level access with all permissions'
             ],
             'Roles' => [
@@ -87,6 +90,7 @@ class ModuleAccessSeeder extends Seeder
                 'edit' => 'Can edit existing activity-user assignments but cannot create or delete',
                 'delete' => 'Can delete activity-user assignments but cannot create or edit',
                 'manage' => 'Can manage all activity-user operations including import/export, trash/restore',
+                'export' => 'Can export activity-user assignments only',
                 'full' => 'Administrator level access with all permissions for activity-user management',
             ],
             'module_access' => [
@@ -127,7 +131,7 @@ class ModuleAccessSeeder extends Seeder
             foreach ($accessLevels as $accessLevel => $description) {
                 
                 // Skip if access_level is not in allowed ENUM values
-                $allowedAccessLevels = ['view', 'create', 'edit', 'delete', 'manage', 'full'];
+$allowedAccessLevels = ['view', 'create', 'edit', 'delete', 'manage', 'full', 'export'];
                 if (!in_array($accessLevel, $allowedAccessLevels)) {
                     $this->command->warn("Skipping '{$accessLevel}' for module '{$module}' - not in allowed ENUM values");
                     continue;
