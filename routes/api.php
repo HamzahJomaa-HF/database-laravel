@@ -150,7 +150,7 @@ Route::prefix('answers')->group(function () {
 
 // Portfolios
 Route::prefix('portfolios')->group(function () {
-    // Route::get('/', [PortfolioController::class, 'index']);          // Get all portfolios
+    Route::get('/', [PortfolioController::class, 'index']);          // Get all portfolios
     // Route::post('/', [PortfolioController::class, 'store']);         // Create a new portfolio
     // Route::put('/{id}', [PortfolioController::class, 'update']);     // Update a portfolio
     // Route::delete('/{id}', [PortfolioController::class, 'destroy']); // Delete a portfolio
