@@ -42,7 +42,7 @@ class UserController extends Controller
      *     @OA\Response(response=404, description="User not found")
      * )
      */
-    public function index(Request $request)
+   public function index(Request $request)
     {
         try {
             if ($request->has('id')) {
@@ -50,12 +50,22 @@ class UserController extends Controller
                 if (!$user) {
                     return response()->json(['message' => 'User not found'], 404);
                 }
-                return response()->json($user);
+                // Remove the 'type' field from the response
+                $userData = $user->toArray();
+                unset($userData['type']);
+                return response()->json($userData);
             }
 
             $users = User::all();
+            // Remove the 'type' field from each user in the collection
+            $usersData = $users->map(function ($user) {
+                $userData = $user->toArray();
+                unset($userData['type']);
+                return $userData;
+            });
+            
             return response()->json([
-                'data' => $users,
+                'data' => $usersData,
                 'message' => 'Users retrieved successfully'
             ]);
         } catch (\Exception $e) {
@@ -65,6 +75,7 @@ class UserController extends Controller
             ], 500);
         }
     }
+
 
     /**
      * @OA\Post(
