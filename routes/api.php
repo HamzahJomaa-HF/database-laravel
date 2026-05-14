@@ -49,7 +49,7 @@ Route::get('/activities', [ActivityController::class, 'index']);
 
 // Programs with prefix
 Route::prefix('programs')->group(function () {
-    // Route::get('/', [ProgramController::class, 'index']);
+     Route::get('/', [ProgramController::class, 'index']);
     // Route::post('/', [ProgramController::class, 'store']);
     // Route::put('/{id}', [ProgramController::class, 'update']);
     // Route::delete('/{id}', [ProgramController::class, 'destroy']);
@@ -79,7 +79,7 @@ Route::get('/surveys', [SurveyController::class, 'index']);
 
 // COPs
 Route::prefix('cops')->group(function () {
-    // Route::get('/', [CopController::class, 'index']);
+     Route::get('/', [CopController::class, 'index']);
     // Route::post('/', [CopController::class, 'store']);
     // Route::put('/{id}', [CopController::class, 'update']);
     // Route::delete('/{id}', [CopController::class, 'destroy']);
@@ -178,7 +178,7 @@ Route::prefix('users')->group(function () {
 
 // Diplomas
 Route::prefix('diplomas')->group(function () {
-    // Route::get('/', [DiplomaController::class, 'index']);          
+     Route::get('/', [DiplomaController::class, 'index']);          
     // Route::post('/', [DiplomaController::class, 'store']);        
     // Route::put('/{id}', [DiplomaController::class, 'update']);    
     // Route::delete('/{id}', [DiplomaController::class, 'destroy']);
@@ -186,7 +186,7 @@ Route::prefix('diplomas')->group(function () {
 
 // User Diplomas (pivot table linking users and diplomas)
 Route::prefix('user-diplomas')->group(function () {
-    // Route::get('/', [UserDiplomaController::class, 'index']);          
+     Route::get('/', [UserDiplomaController::class, 'index']);          
     // Route::post('/', [UserDiplomaController::class, 'store']);         
     // Route::put('/{id}', [UserDiplomaController::class, 'update']);     
     // Route::delete('/{id}', [UserDiplomaController::class, 'destroy']); 
