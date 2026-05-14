@@ -7,410 +7,496 @@ use App\Models\User;
 use App\Models\Diploma;
 use App\Models\Nationality;
 use App\Models\Cop;
-
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Carbon\Carbon;
-
-// ADD THIS NEW FORM REQUEST CLASS
 use App\Http\Requests\BulkDeleteUserRequest;
+
+/**
+ * @OA\Info(
+ *      version="1.0.0",
+ *      title="Hariri Foundation API",
+ *      description="API documentation for Users Management",
+ *      @OA\Contact(email="support@haririfoundation.com")
+ * )
+ */
 
 class UserController extends Controller
 {
     /**
-     * Display a listing of the users with professional filtering.
+     * @OA\Get(
+     *     path="/api/users",
+     *     summary="Get all users or a specific user by ID",
+     *     tags={"Users"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="query",
+     *         description="Optional user UUID to fetch a specific user",
+     *         required=false,
+     *         @OA\Schema(type="string", format="uuid")
+     *     ),
+     *     @OA\Response(response=200, description="Users retrieved successfully"),
+     *     @OA\Response(response=404, description="User not found")
+     * )
      */
     public function index(Request $request)
-{
-    $query = User::query();
-
-    // =============================================================
-    // SMART NAME SEARCH - Handles "John Smith" correctly
-    // =============================================================
-    if ($request->filled('name')) {
-        $name = trim($request->name);
-        $nameParts = explode(' ', $name);
-        
-        if (count($nameParts) >= 2) {
-            // Multiple words - search first_name + last_name combination
-            $firstName = $nameParts[0];
-            $lastName = end($nameParts);
-            
-            $query->where(function ($q) use ($firstName, $lastName, $name) {
-                $q->where('first_name', 'ilike', "%{$firstName}%")
-                  ->where('last_name', 'ilike', "%{$lastName}%")
-                  ->orWhere('first_name', 'ilike', "%{$name}%")
-                  ->orWhere('last_name', 'ilike', "%{$name}%")
-                  ->orWhere(DB::raw("CONCAT(first_name, ' ', last_name)"), 'ilike', "%{$name}%");
-            });
-        } else {
-            // Single word - search all name fields
-            $query->where(function ($q) use ($name) {
-                $q->where('first_name', 'ilike', "%{$name}%")
-                  ->orWhere('middle_name', 'ilike', "%{$name}%")
-                  ->orWhere('last_name', 'ilike', "%{$name}%")
-                  ->orWhere(DB::raw("CONCAT(first_name, ' ', last_name)"), 'ilike', "%{$name}%");
-            });
-        }
-    }
-
-    // =============================================================
-    // SEPARATE NAME FIELDS (exact matching)
-    // =============================================================
-    if ($request->filled('first_name')) {
-        $query->where('first_name', 'ilike', "%{$request->first_name}%");
-    }
-
-    if ($request->filled('middle_name')) {
-        $query->where('middle_name', 'ilike', "%{$request->middle_name}%");
-    }
-
-    if ($request->filled('last_name')) {
-        $query->where('last_name', 'ilike', "%{$request->last_name}%");
-    }
-
-    // =============================================================
-    // IDENTIFICATION & CONTACT FILTERS
-    // =============================================================
-    if ($request->filled('identification_id')) {
-        $query->where('identification_id', 'ilike', "%{$request->identification_id}%");
-    }
-
-    if ($request->filled('passport_number')) {
-        $query->where('passport_number', 'ilike', "%{$request->passport_number}%");
-    }
-
-    if ($request->filled('phone_number')) {
-        $query->where('phone_number', 'like', "%{$request->phone_number}%");
-    }
-
-    if ($request->filled('email')) {
-        $query->where('email', 'ilike', "%{$request->email}%");
-    }
-
-    // =============================================================
-    // DROPDOWN FILTERS (exact match)
-    // =============================================================
-    $exactFilters = ['gender', 'scope', 'default_cop_id', 'organization_type_1', 
-                     'marital_status', 'employment_status', 'type'];
-    foreach ($exactFilters as $filter) {
-        if ($request->filled($filter)) {
-            $query->where($filter, $request->$filter);
-        }
-    }
-
-    // =============================================================
-    // TEXT SEARCH FILTERS (partial match)
-    // =============================================================
-    $partialFilters = ['sector', 'organization_1', 'position_1'];
-    foreach ($partialFilters as $filter) {
-        if ($request->filled($filter)) {
-            $query->where($filter, 'ilike', "%{$request->$filter}%");
-        }
-    }
-
-    // =============================================================
-    // BOOLEAN FILTER
-    // =============================================================
-    if ($request->filled('is_high_profile')) {
-        $query->where('is_high_profile', filter_var($request->is_high_profile, FILTER_VALIDATE_BOOLEAN));
-    }
-
-    // =============================================================
-    // DATE RANGE FILTERS
-    // =============================================================
-    if ($request->filled('dob_from')) {
-        $query->whereDate('dob', '>=', $request->dob_from);
-    }
-
-    if ($request->filled('dob_to')) {
-        $query->whereDate('dob', '<=', $request->dob_to);
-    }
-
-    // =============================================================
-    // ADVANCED SEARCH (searches ALL important fields)
-    // =============================================================
-    if ($request->filled('advanced_search')) {
-        $search = $request->advanced_search;
-        $query->where(function ($q) use ($search) {
-            $q->where('first_name', 'ilike', "%{$search}%")
-              ->orWhere('middle_name', 'ilike', "%{$search}%")
-              ->orWhere('last_name', 'ilike', "%{$search}%")
-              ->orWhere(DB::raw("CONCAT(first_name, ' ', last_name)"), 'ilike', "%{$search}%")
-              ->orWhere('email', 'ilike', "%{$search}%")
-              ->orWhere('phone_number', 'like', "%{$search}%")
-              ->orWhere('identification_id', 'ilike', "%{$search}%")
-              ->orWhere('passport_number', 'ilike', "%{$search}%");
-        });
-    }
-
-    // Get results
-    $users = $query->with('defaultCop')
-        ->orderBy('last_name', 'asc')
-        ->paginate(20)
-        ->withQueryString();
-
-    // Check if any filter was applied
-    $hasSearch = $request->anyFilled([
-        'name', 'first_name', 'middle_name', 'last_name', 'identification_id', 
-        'passport_number', 'phone_number', 'email', 'gender', 'scope', 
-        'default_cop_id', 'sector', 'is_high_profile', 'organization_1', 
-        'organization_type_1', 'position_1', 'marital_status', 'employment_status', 
-        'type', 'dob_from', 'dob_to', 'advanced_search'
-    ]);
-
-    return view('users.index', compact('users', 'hasSearch'));
-}
-
-    /**
-     * Show the form for creating a new user.
-     */
-    public function create()
     {
-        $diplomas = Diploma::orderBy('diploma_name')->get();
-        $nationalities = Nationality::orderBy('name')->get();
-        $cops = Cop::orderBy('cop_name')->get();
-        
-        return view('users.create', compact('diplomas', 'nationalities', 'cops'));
+        try {
+            if ($request->has('id')) {
+                $user = User::where('user_id', $request->id)->first();
+                if (!$user) {
+                    return response()->json(['message' => 'User not found'], 404);
+                }
+                return response()->json($user);
+            }
+
+            $users = User::all();
+            return response()->json([
+                'data' => $users,
+                'message' => 'Users retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'An unexpected error occurred',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
-     * Store a newly created user in storage.
+     * @OA\Post(
+     *     path="/api/users",
+     *     summary="Create a new user",
+     *     tags={"Users"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"first_name", "last_name", "gender", "position_1", "organization_1", "organization_type_1", "status_1", "address", "phone_number", "scope", "is_high_profile"},
+     *             @OA\Property(property="prefix", type="string", maxLength=50, example="Dr.", description="Title prefix (Mr., Dr., Prof., etc.)"),
+     *             @OA\Property(property="is_high_profile", type="boolean", example=true, description="Whether the user is a high-profile individual"),
+     *             @OA\Property(property="scope", type="string", enum={"International", "Regional", "National", "Local"}, example="National", description="Scope of influence/operation"),
+     *             @OA\Property(property="default_cop_id", type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000", description="Default Community of Practice ID"),
+     *             @OA\Property(property="first_name", type="string", maxLength=255, example="John", description="First name"),
+     *             @OA\Property(property="middle_name", type="string", maxLength=255, nullable=true, example="William", description="Middle name"),
+     *             @OA\Property(property="last_name", type="string", maxLength=255, example="Doe", description="Last name"),
+     *             @OA\Property(property="gender", type="string", enum={"Male", "Female", "Other"}, example="Male", description="Gender"),
+     *             @OA\Property(property="dob", type="string", format="date", nullable=true, example="1990-01-15", description="Date of birth"),
+     *             @OA\Property(property="position_1", type="string", maxLength=255, example="Senior Director", description="Primary position"),
+     *             @OA\Property(property="organization_1", type="string", maxLength=255, example="Hariri Foundation", description="Primary organization"),
+     *             @OA\Property(property="organization_type_1", type="string", enum={"Public Sector", "Private Sector", "Academia", "UN", "INGOs", "Civil Society", "NGOs", "Activist"}, example="Private Sector", description="Primary organization type"),
+     *             @OA\Property(property="status_1", type="string", maxLength=255, example="Active", description="Primary position status"),
+     *             @OA\Property(property="sector", type="string", maxLength=255, nullable=true, example="Healthcare", description="Sector of work"),
+     *             @OA\Property(property="address", type="string", example="123 Main Street, Beirut, Lebanon", description="Physical address"),
+     *             @OA\Property(property="phone_number", type="string", maxLength=20, example="+961 70 123 456", description="Primary phone number"),
+     *             @OA\Property(property="office_phone", type="string", maxLength=20, nullable=true, example="+961 1 234 567", description="Office phone number"),
+     *             @OA\Property(property="extension_number", type="string", maxLength=20, nullable=true, example="1234", description="Phone extension number"),
+     *             @OA\Property(property="home_phone", type="string", maxLength=20, nullable=true, example="+961 5 678 901", description="Home phone number"),
+     *             @OA\Property(property="email", type="string", format="email", maxLength=255, nullable=true, example="john.doe@example.com", description="Email address"),
+     *             @OA\Property(property="position_2", type="string", maxLength=255, nullable=true, example="Board Member", description="Secondary position"),
+     *             @OA\Property(property="organization_2", type="string", maxLength=255, nullable=true, example="NGO Name", description="Secondary organization"),
+     *             @OA\Property(property="organization_type_2", type="string", enum={"Public Sector", "Private Sector", "Academia", "UN", "INGOs", "Civil Society", "NGOs", "Activist"}, nullable=true, description="Secondary organization type"),
+     *             @OA\Property(property="status_2", type="string", maxLength=255, nullable=true, example="Volunteer", description="Secondary position status"),
+     *             @OA\Property(property="mother_name", type="string", maxLength=255, nullable=true, example="Jane Doe", description="Mother's name"),
+     *             @OA\Property(property="marital_status", type="string", maxLength=50, nullable=true, enum={"Single", "Married", "Divorced", "Widowed"}, example="Married", description="Marital status"),
+     *             @OA\Property(property="employment_status", type="string", maxLength=50, nullable=true, enum={"Full-time", "Part-time", "Contract", "Freelance", "Unemployed", "Retired"}, example="Full-time", description="Employment status"),
+     *             @OA\Property(property="type", type="string", maxLength=50, enum={"Stakeholder", "Employee", "Admin", "Customer", "Partner", "Beneficiary"}, example="Stakeholder", description="User type"),
+     *             @OA\Property(property="identification_id", type="string", maxLength=50, nullable=true, example="ID12345678", description="National identification number"),
+     *             @OA\Property(property="passport_number", type="string", maxLength=50, nullable=true, example="P12345678", description="Passport number"),
+     *             @OA\Property(property="register_number", type="string", maxLength=50, nullable=true, example="REG12345", description="Registration number"),
+     *             @OA\Property(property="register_place", type="string", maxLength=255, nullable=true, example="Beirut", description="Place of registration"),
+     *             @OA\Property(
+     *                 property="diplomas",
+     *                 type="array",
+     *                 nullable=true,
+     *                 @OA\Items(type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000"),
+     *                 description="Array of diploma IDs"
+     *             ),
+     *             @OA\Property(
+     *                 property="nationalities",
+     *                 type="array",
+     *                 nullable=true,
+     *                 @OA\Items(type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000"),
+     *                 description="Array of nationality IDs"
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="User created successfully"),
+     *     @OA\Response(response=400, description="Invalid input data"),
+     *     @OA\Response(response=422, description="Validation failed")
+     * )
      */
     public function store(Request $request)
     {
-        $rules = [
-            // Required fields from new structure
-            'prefix' => 'nullable|string|max:50',
-            'is_high_profile' => 'required|boolean',
-            'scope' => ['required', Rule::in(['International', 'Regional', 'National', 'Local'])],
-            'default_cop_id' => 'nullable|exists:cops,cop_id',
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'gender' => ['required', Rule::in(['Male', 'Female', 'Other'])],
-            'position_1' => 'required|string|max:255',
-            'organization_1' => 'required|string|max:255',
-            'organization_type_1' => [
-                'required',
-                Rule::in(['Public Sector', 'Private Sector', 'Academia', 'UN', 'INGOs', 'Civil Society', 'NGOs', 'Activist'])
-            ],
-            'status_1' => 'required|string|max:255',
-            'address' => 'required|string',
-            'phone_number' => 'required|string|max:20',
-            
-            // Optional fields from new structure
-            'sector' => 'nullable|string|max:255',
-            'middle_name' => 'nullable|string|max:255',
-            'dob' => 'nullable|date',
-            'office_phone' => 'nullable|string|max:20',
-            'extension_number' => 'nullable|string|max:20',
-            'home_phone' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:255|unique:users,email',
-            
-            // Optional secondary position fields
-            'position_2' => 'nullable|string|max:255',
-            'organization_2' => 'nullable|string|max:255',
-            'organization_type_2' => [
-                'nullable',
-                Rule::in(['Public Sector', 'Private Sector', 'Academia', 'UN', 'INGOs', 'Civil Society', 'NGOs', 'Activist'])
-            ],
-            'status_2' => 'nullable|string|max:255',
-            
-            // Keep existing fields for backward compatibility
-            'mother_name' => 'nullable|string|max:255',
-            'marital_status' => 'nullable|string|max:50',
-            'employment_status' => 'nullable|string|max:50',
-            'type' => 'nullable|string|max:50|in:Stakeholder,Employee,Admin,Customer,Partner,Beneficiary',
-            'identification_id' => 'nullable|string|max:50|unique:users,identification_id',
-            'passport_number' => 'nullable|string|max:50|unique:users,passport_number',
-            'register_number' => 'nullable|string|max:50',
-            'register_place' => 'nullable|string|max:255',
-            
-            // Diploma and Nationality fields
-            'diplomas' => 'nullable|array',
-            'diplomas.*' => 'exists:diploma,diploma_id',
-            'nationalities' => 'nullable|array',
-            'nationalities.*' => 'exists:nationality,nationality_id',
-        ];
+        try {
+            $rules = [
+                // Required fields from new structure
+                'prefix' => 'nullable|string|max:50',
+                'is_high_profile' => 'required|boolean',
+                'scope' => ['required', Rule::in(['International', 'Regional', 'National', 'Local'])],
+                'default_cop_id' => 'nullable|exists:cops,cop_id',
+                'first_name' => 'required|string|max:255',
+                'last_name' => 'required|string|max:255',
+                'gender' => ['required', Rule::in(['Male', 'Female', 'Other'])],
+                'position_1' => 'required|string|max:255',
+                'organization_1' => 'required|string|max:255',
+                'organization_type_1' => [
+                    'required',
+                    Rule::in(['Public Sector', 'Private Sector', 'Academia', 'UN', 'INGOs', 'Civil Society', 'NGOs', 'Activist'])
+                ],
+                'status_1' => 'required|string|max:255',
+                'address' => 'required|string',
+                'phone_number' => 'required|string|max:20',
+                
+                // Optional fields from new structure
+                'sector' => 'nullable|string|max:255',
+                'middle_name' => 'nullable|string|max:255',
+                'dob' => 'nullable|date',
+                'office_phone' => 'nullable|string|max:20',
+                'extension_number' => 'nullable|string|max:20',
+                'home_phone' => 'nullable|string|max:20',
+                'email' => 'nullable|email|max:255|unique:users,email',
+                
+                // Optional secondary position fields
+                'position_2' => 'nullable|string|max:255',
+                'organization_2' => 'nullable|string|max:255',
+                'organization_type_2' => [
+                    'nullable',
+                    Rule::in(['Public Sector', 'Private Sector', 'Academia', 'UN', 'INGOs', 'Civil Society', 'NGOs', 'Activist'])
+                ],
+                'status_2' => 'nullable|string|max:255',
+                
+                // Keep existing fields for backward compatibility
+                'mother_name' => 'nullable|string|max:255',
+                'marital_status' => 'nullable|string|max:50',
+                'employment_status' => 'nullable|string|max:50',
+                'type' => 'nullable|string|max:50|in:Stakeholder,Employee,Admin,Customer,Partner,Beneficiary',
+                'identification_id' => 'nullable|string|max:50|unique:users,identification_id',
+                'passport_number' => 'nullable|string|max:50|unique:users,passport_number',
+                'register_number' => 'nullable|string|max:50',
+                'register_place' => 'nullable|string|max:255',
+                
+                // Diploma and Nationality fields
+                'diplomas' => 'nullable|array',
+                'diplomas.*' => 'exists:diploma,diploma_id',
+                'nationalities' => 'nullable|array',
+                'nationalities.*' => 'exists:nationality,nationality_id',
+            ];
 
-        $request->validate($rules);
-        
-        // Prepare user data
-        $userData = $request->only([
-            // New required fields
-            'prefix', 'is_high_profile', 'scope', 'default_cop_id',
-            'first_name', 'last_name', 'gender', 'position_1', 'organization_1',
-            'organization_type_1', 'status_1', 'address', 'phone_number',
+            $validated = $request->validate($rules);
             
-            // New optional fields
-            'sector', 'middle_name', 'dob', 'office_phone', 'extension_number',
-            'home_phone', 'email', 'position_2', 'organization_2', 'organization_type_2', 'status_2',
+            // Prepare user data
+            $userData = $request->only([
+                // New required fields
+                'prefix', 'is_high_profile', 'scope', 'default_cop_id',
+                'first_name', 'last_name', 'gender', 'position_1', 'organization_1',
+                'organization_type_1', 'status_1', 'address', 'phone_number',
+                
+                // New optional fields
+                'sector', 'middle_name', 'dob', 'office_phone', 'extension_number',
+                'home_phone', 'email', 'position_2', 'organization_2', 'organization_type_2', 'status_2',
+                
+                // Existing fields
+                'mother_name', 'marital_status',
+                'employment_status', 'type', 'identification_id', 'passport_number',
+                'register_number', 'register_place'
+            ]);
+
+            // Set default type if not provided
+            if (empty($userData['type'])) {
+                $userData['type'] = 'Stakeholder';
+            }
             
-            // Existing fields
-            'mother_name', 'marital_status',
-            'employment_status', 'type', 'identification_id', 'passport_number',
-            'register_number', 'register_place'
-        ]);
+            // Create user
+            $user = User::create($userData);
+            
+            // Sync diplomas with existing diploma records
+            if ($request->has('diplomas')) {
+                $user->diplomas()->sync($request->diplomas);
+            }
+            
+            // Sync nationalities with existing nationality records
+            if ($request->has('nationalities')) {
+                $user->nationalities()->sync($request->nationalities);
+            }
 
-        // Set default type if not provided
-        if (empty($userData['type'])) {
-            $userData['type'] = 'Stakeholder';
-        }
-        
-        // Create user
-        $user = User::create($userData);
-        
-        // Sync diplomas with existing diploma records
-        if ($request->has('diplomas')) {
-            $user->diplomas()->sync($request->diplomas);
-        }
-        
-        // Sync nationalities with existing nationality records
-        if ($request->has('nationalities')) {
-            $user->nationalities()->sync($request->nationalities);
-        }
+            return response()->json([
+                'data' => $user,
+                'message' => 'User created successfully'
+            ], 201);
 
-        return redirect()->route('users.index')->with('success', 'User created successfully.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'An unexpected error occurred',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
-     * Show the form for editing the specified user.
-     */
-    public function edit($user_id)
-    {
-        $user = User::with(['diplomas', 'nationalities', 'defaultCop'])
-                    ->where('user_id', $user_id)
-                    ->firstOrFail();
-                    
-        $diplomas = Diploma::orderBy('diploma_name')->get();
-        $nationalities = Nationality::orderBy('name')->get();
-        $cops = Cop::orderBy('cop_name')->get();
-        
-        return view('users.edit', compact('user', 'diplomas', 'nationalities', 'cops'));
-    }
-
-    /**
-     * Update the specified user in storage.
+     * @OA\Put(
+     *     path="/api/users/{id}",
+     *     summary="Update an existing user",
+     *     tags={"Users"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="User UUID to update",
+     *         required=true,
+     *         @OA\Schema(type="string", format="uuid")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             @OA\Property(property="prefix", type="string", maxLength=50, example="Dr.", description="Title prefix"),
+     *             @OA\Property(property="is_high_profile", type="boolean", example=true, description="Whether the user is a high-profile individual"),
+     *             @OA\Property(property="scope", type="string", enum={"International", "Regional", "National", "Local"}, example="National", description="Scope of influence/operation"),
+     *             @OA\Property(property="default_cop_id", type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000", description="Default Community of Practice ID"),
+     *             @OA\Property(property="first_name", type="string", maxLength=255, example="John", description="First name"),
+     *             @OA\Property(property="middle_name", type="string", maxLength=255, nullable=true, example="William", description="Middle name"),
+     *             @OA\Property(property="last_name", type="string", maxLength=255, example="Doe", description="Last name"),
+     *             @OA\Property(property="gender", type="string", enum={"Male", "Female", "Other"}, example="Male", description="Gender"),
+     *             @OA\Property(property="dob", type="string", format="date", nullable=true, example="1990-01-15", description="Date of birth"),
+     *             @OA\Property(property="position_1", type="string", maxLength=255, example="Senior Director", description="Primary position"),
+     *             @OA\Property(property="organization_1", type="string", maxLength=255, example="Hariri Foundation", description="Primary organization"),
+     *             @OA\Property(property="organization_type_1", type="string", enum={"Public Sector", "Private Sector", "Academia", "UN", "INGOs", "Civil Society", "NGOs", "Activist"}, example="Private Sector", description="Primary organization type"),
+     *             @OA\Property(property="status_1", type="string", maxLength=255, example="Active", description="Primary position status"),
+     *             @OA\Property(property="sector", type="string", maxLength=255, nullable=true, example="Healthcare", description="Sector of work"),
+     *             @OA\Property(property="address", type="string", example="123 Main Street, Beirut, Lebanon", description="Physical address"),
+     *             @OA\Property(property="phone_number", type="string", maxLength=20, example="+961 70 123 456", description="Primary phone number"),
+     *             @OA\Property(property="office_phone", type="string", maxLength=20, nullable=true, example="+961 1 234 567", description="Office phone number"),
+     *             @OA\Property(property="extension_number", type="string", maxLength=20, nullable=true, example="1234", description="Phone extension number"),
+     *             @OA\Property(property="home_phone", type="string", maxLength=20, nullable=true, example="+961 5 678 901", description="Home phone number"),
+     *             @OA\Property(property="email", type="string", format="email", maxLength=255, nullable=true, example="john.doe@example.com", description="Email address"),
+     *             @OA\Property(property="position_2", type="string", maxLength=255, nullable=true, example="Board Member", description="Secondary position"),
+     *             @OA\Property(property="organization_2", type="string", maxLength=255, nullable=true, example="NGO Name", description="Secondary organization"),
+     *             @OA\Property(property="organization_type_2", type="string", enum={"Public Sector", "Private Sector", "Academia", "UN", "INGOs", "Civil Society", "NGOs", "Activist"}, nullable=true, description="Secondary organization type"),
+     *             @OA\Property(property="status_2", type="string", maxLength=255, nullable=true, example="Volunteer", description="Secondary position status"),
+     *             @OA\Property(property="mother_name", type="string", maxLength=255, nullable=true, example="Jane Doe", description="Mother's name"),
+     *             @OA\Property(property="marital_status", type="string", maxLength=50, nullable=true, enum={"Single", "Married", "Divorced", "Widowed"}, example="Married", description="Marital status"),
+     *             @OA\Property(property="employment_status", type="string", maxLength=50, nullable=true, enum={"Full-time", "Part-time", "Contract", "Freelance", "Unemployed", "Retired"}, example="Full-time", description="Employment status"),
+     *             @OA\Property(property="type", type="string", maxLength=50, enum={"Stakeholder", "Employee", "Admin", "Customer", "Partner", "Beneficiary"}, example="Stakeholder", description="User type"),
+     *             @OA\Property(property="identification_id", type="string", maxLength=50, nullable=true, example="ID12345678", description="National identification number"),
+     *             @OA\Property(property="passport_number", type="string", maxLength=50, nullable=true, example="P12345678", description="Passport number"),
+     *             @OA\Property(property="register_number", type="string", maxLength=50, nullable=true, example="REG12345", description="Registration number"),
+     *             @OA\Property(property="register_place", type="string", maxLength=255, nullable=true, example="Beirut", description="Place of registration"),
+     *             @OA\Property(
+     *                 property="diplomas",
+     *                 type="array",
+     *                 nullable=true,
+     *                 @OA\Items(type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000"),
+     *                 description="Array of diploma IDs"
+     *             ),
+     *             @OA\Property(
+     *                 property="nationalities",
+     *                 type="array",
+     *                 nullable=true,
+     *                 @OA\Items(type="string", format="uuid", example="123e4567-e89b-12d3-a456-426614174000"),
+     *                 description="Array of nationality IDs"
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="User updated successfully"),
+     *     @OA\Response(response=404, description="User not found"),
+     *     @OA\Response(response=422, description="Validation failed")
+     * )
      */
     public function update(Request $request, $user_id)
     {
-        $user = User::where('user_id', $user_id)->firstOrFail();
+        try {
+            $user = User::where('user_id', $user_id)->first();
 
-        $rules = [
-            // Required fields from new structure
-            'prefix' => 'nullable|string|max:50',
-            'is_high_profile' => 'required|boolean',
-            'scope' => ['required', Rule::in(['International', 'Regional', 'National', 'Local'])],
-            'default_cop_id' => 'nullable|exists:cops,cop_id',
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'gender' => ['required', Rule::in(['Male', 'Female', 'Other'])],
-            'position_1' => 'required|string|max:255',
-            'organization_1' => 'required|string|max:255',
-            'organization_type_1' => [
-                'required',
-                Rule::in(['Public Sector', 'Private Sector', 'Academia', 'UN', 'INGOs', 'Civil Society', 'NGOs', 'Activist'])
-            ],
-            'status_1' => 'required|string|max:255',
-            'address' => 'required|string',
-            'phone_number' => 'required|string|max:20',
-            
-            // Optional fields from new structure
-            'sector' => 'nullable|string|max:255',
-            'middle_name' => 'nullable|string|max:255',
-            'dob' => 'nullable|date',
-            'office_phone' => 'nullable|string|max:20',
-            'extension_number' => 'nullable|string|max:20',
-            'home_phone' => 'nullable|string|max:20',
-            'email' => [
-                'nullable',
-                'email',
-                'max:255',
-                Rule::unique('users', 'email')->ignore($user->user_id, 'user_id'),
-            ],
-            
-            // Optional secondary position fields
-            'position_2' => 'nullable|string|max:255',
-            'organization_2' => 'nullable|string|max:255',
-            'organization_type_2' => [
-                'nullable',
-                Rule::in(['Public Sector', 'Private Sector', 'Academia', 'UN', 'INGOs', 'Civil Society', 'NGOs', 'Activist'])
-            ],
-            'status_2' => 'nullable|string|max:255',
-            
-            // Keep existing fields for backward compatibility
-            'mother_name' => 'nullable|string|max:255',
-            'marital_status' => 'nullable|string|max:50',
-            'employment_status' => 'nullable|string|max:50',
-            'type' => 'nullable|string|max:50|in:Stakeholder,Employee,Admin,Customer,Partner,Beneficiary',
-            'identification_id' => [
-                'nullable',
-                'string',
-                'max:50',
-                Rule::unique('users', 'identification_id')->ignore($user->user_id, 'user_id'),
-            ],
-            'passport_number' => [
-                'nullable',
-                'string',
-                'max:50',
-                Rule::unique('users', 'passport_number')->ignore($user->user_id, 'user_id'),
-            ],
-            'register_number' => 'nullable|string|max:50',
-            'register_place' => 'nullable|string|max:255',
-            
-            // Diploma and Nationality fields
-            'diplomas' => 'nullable|array',
-            'diplomas.*' => 'exists:diploma,diploma_id',
-            'nationalities' => 'nullable|array',
-            'nationalities.*' => 'exists:nationality,nationality_id',
-        ];
+            if (!$user) {
+                return response()->json(['message' => 'User not found'], 404);
+            }
 
-        $request->validate($rules);
+            $rules = [
+                // Required fields from new structure
+                'prefix' => 'nullable|string|max:50',
+                'is_high_profile' => 'sometimes|required|boolean',
+                'scope' => ['sometimes', 'required', Rule::in(['International', 'Regional', 'National', 'Local'])],
+                'default_cop_id' => 'nullable|exists:cops,cop_id',
+                'first_name' => 'sometimes|required|string|max:255',
+                'last_name' => 'sometimes|required|string|max:255',
+                'gender' => ['sometimes', 'required', Rule::in(['Male', 'Female', 'Other'])],
+                'position_1' => 'sometimes|required|string|max:255',
+                'organization_1' => 'sometimes|required|string|max:255',
+                'organization_type_1' => [
+                    'sometimes',
+                    'required',
+                    Rule::in(['Public Sector', 'Private Sector', 'Academia', 'UN', 'INGOs', 'Civil Society', 'NGOs', 'Activist'])
+                ],
+                'status_1' => 'sometimes|required|string|max:255',
+                'address' => 'sometimes|required|string',
+                'phone_number' => 'sometimes|required|string|max:20',
+                
+                // Optional fields from new structure
+                'sector' => 'nullable|string|max:255',
+                'middle_name' => 'nullable|string|max:255',
+                'dob' => 'nullable|date',
+                'office_phone' => 'nullable|string|max:20',
+                'extension_number' => 'nullable|string|max:20',
+                'home_phone' => 'nullable|string|max:20',
+                'email' => [
+                    'nullable',
+                    'email',
+                    'max:255',
+                    Rule::unique('users', 'email')->ignore($user->user_id, 'user_id'),
+                ],
+                
+                // Optional secondary position fields
+                'position_2' => 'nullable|string|max:255',
+                'organization_2' => 'nullable|string|max:255',
+                'organization_type_2' => [
+                    'nullable',
+                    Rule::in(['Public Sector', 'Private Sector', 'Academia', 'UN', 'INGOs', 'Civil Society', 'NGOs', 'Activist'])
+                ],
+                'status_2' => 'nullable|string|max:255',
+                
+                // Keep existing fields for backward compatibility
+                'mother_name' => 'nullable|string|max:255',
+                'marital_status' => 'nullable|string|max:50',
+                'employment_status' => 'nullable|string|max:50',
+                'type' => 'nullable|string|max:50|in:Stakeholder,Employee,Admin,Customer,Partner,Beneficiary',
+                'identification_id' => [
+                    'nullable',
+                    'string',
+                    'max:50',
+                    Rule::unique('users', 'identification_id')->ignore($user->user_id, 'user_id'),
+                ],
+                'passport_number' => [
+                    'nullable',
+                    'string',
+                    'max:50',
+                    Rule::unique('users', 'passport_number')->ignore($user->user_id, 'user_id'),
+                ],
+                'register_number' => 'nullable|string|max:50',
+                'register_place' => 'nullable|string|max:255',
+                
+                // Diploma and Nationality fields
+                'diplomas' => 'nullable|array',
+                'diplomas.*' => 'exists:diploma,diploma_id',
+                'nationalities' => 'nullable|array',
+                'nationalities.*' => 'exists:nationality,nationality_id',
+            ];
 
-        // Prepare user data
-        $userData = $request->only([
-            // New required fields
-            'prefix', 'is_high_profile', 'scope', 'default_cop_id',
-            'first_name', 'last_name', 'gender', 'position_1', 'organization_1',
-            'organization_type_1', 'status_1', 'address', 'phone_number',
+            $validated = $request->validate($rules);
+
+            // Prepare user data
+            $userData = $request->only([
+                // New required fields
+                'prefix', 'is_high_profile', 'scope', 'default_cop_id',
+                'first_name', 'last_name', 'gender', 'position_1', 'organization_1',
+                'organization_type_1', 'status_1', 'address', 'phone_number',
+                
+                // New optional fields
+                'sector', 'middle_name', 'dob', 'office_phone', 'extension_number',
+                'home_phone', 'email', 'position_2', 'organization_2', 'organization_type_2', 'status_2',
+                
+                // Existing fields
+                'mother_name', 'marital_status',
+                'employment_status', 'type', 'identification_id', 'passport_number',
+                'register_number', 'register_place'
+            ]);
+
+            $user->update($userData);
             
-            // New optional fields
-            'sector', 'middle_name', 'dob', 'office_phone', 'extension_number',
-            'home_phone', 'email', 'position_2', 'organization_2', 'organization_type_2', 'status_2',
+            // Sync diplomas
+            if ($request->has('diplomas')) {
+                $user->diplomas()->sync($request->diplomas ?? []);
+            }
             
-            // Existing fields
-            'mother_name', 'marital_status',
-            'employment_status', 'type', 'identification_id', 'passport_number',
-            'register_number', 'register_place'
-        ]);
+            // Sync nationalities
+            if ($request->has('nationalities')) {
+                $user->nationalities()->sync($request->nationalities ?? []);
+            }
 
-        $user->update($userData);
-        
-        // Sync diplomas
-        $user->diplomas()->sync($request->diplomas ?? []);
-        
-        // Sync nationalities
-        $user->nationalities()->sync($request->nationalities ?? []);
+            return response()->json([
+                'data' => $user,
+                'message' => 'User updated successfully'
+            ]);
 
-        return redirect()->route('users.index')->with('success', 'User updated successfully.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'An unexpected error occurred',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
-     * Remove the specified user from storage.
+     * @OA\Delete(
+     *     path="/api/users/{id}",
+     *     summary="Delete a user by UUID",
+     *     tags={"Users"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="User UUID to delete",
+     *         required=true,
+     *         @OA\Schema(type="string", format="uuid")
+     *     ),
+     *     @OA\Response(response=200, description="User deleted successfully"),
+     *     @OA\Response(response=404, description="User not found")
+     * )
      */
     public function destroy($user_id)
     {
-        $user = User::where('user_id', $user_id)->firstOrFail();
-        $user->delete();
+        try {
+            $user = User::where('user_id', $user_id)->first();
 
-        return redirect()->route('users.index')->with('success', 'User deleted successfully.');
+            if (!$user) {
+                return response()->json(['message' => 'User not found'], 404);
+            }
+
+            $user->diplomas()->detach();
+            $user->nationalities()->detach();
+            $user->delete();
+
+            return response()->json(['message' => 'User deleted successfully']);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'An unexpected error occurred',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
-     * Bulk delete users
+     * @OA\Post(
+     *     path="/api/users/bulk-delete",
+     *     summary="Bulk delete users",
+     *     tags={"Users"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"user_ids"},
+     *             @OA\Property(
+     *                 property="user_ids",
+     *                 type="array",
+     *                 @OA\Items(type="string", format="uuid"),
+     *                 description="Array of user UUIDs to delete",
+     *                 example={"123e4567-e89b-12d3-a456-426614174000", "987e6543-b21d-43c1-a654-123456789abc"}
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Users deleted successfully"),
+     *     @OA\Response(response=400, description="Invalid input"),
+     *     @OA\Response(response=422, description="Validation failed")
+     * )
      */
     public function bulkDestroy(BulkDeleteUserRequest $request)
     {
@@ -430,746 +516,16 @@ class UserController extends Controller
             
             $count = count($userIds);
             
-            return redirect()->route('users.index')
-                ->with('success', "Successfully deleted {$count} user(s).");
+            return response()->json([
+                'message' => "Successfully deleted {$count} user(s).",
+                'deleted_count' => $count
+            ]);
                 
         } catch (\Exception $e) {
             Log::error('Bulk delete failed: ' . $e->getMessage());
-            return redirect()->route('users.index')
-                ->with('error', 'Failed to delete users: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Failed to delete users: ' . $e->getMessage()
+            ], 500);
         }
-    }
-
-    /**
-     * Display user dashboard
-     */
-    public function dashboard()
-    {
-        $totalUsers = User::count();
-        return view('users.dashboard', compact('totalUsers'));
-    }
-
-    /**
-     * Display user statistics
-     */
-    public function statistics()
-    {
-        try {
-            $totalUsers = User::count();
-            $newThisWeek = User::where('created_at', '>=', now()->subWeek())->count();
-            $newThisMonth = User::where('created_at', '>=', now()->subMonth())->count();
-            
-            $lastWeekStart = now()->subWeek()->startOfWeek();
-            $lastWeekEnd = now()->subWeek()->endOfWeek();
-            $twoWeeksAgoStart = now()->subWeeks(2)->startOfWeek();
-            
-            $lastWeekCount = User::whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])->count();
-            $twoWeeksAgoCount = User::whereBetween('created_at', [$twoWeeksAgoStart, $lastWeekStart])->count();
-            
-            $weeklyGrowth = $twoWeeksAgoCount > 0 ? 
-                round((($lastWeekCount - $twoWeeksAgoCount) / $twoWeeksAgoCount) * 100, 1) : 
-                ($lastWeekCount > 0 ? 100 : 0);
-            
-            $avgDailyRegistrations = User::where('created_at', '>=', now()->subDays(30))->count() / 30;
-            
-            $beneficiaryCount = User::where('type', 'Beneficiary')->count();
-            $stakeholderCount = User::where('type', 'Stakeholder')->count();
-            
-            $maleCount = User::where('gender', 'Male')->count();
-            $femaleCount = User::where('gender', 'Female')->count();
-            
-            $todayRegistrations = User::whereDate('created_at', today())->count();
-            
-            $avgAge = User::whereNotNull('dob')
-                ->get()
-                ->filter(function($user) {
-                    return $user->dob && $user->dob->age > 0;
-                })
-                ->avg(function($user) {
-                    return $user->dob->age;
-                });
-            $avgAge = $avgAge ? round($avgAge) : 0;
-            
-            $scopeDistribution = User::groupBy('scope')
-                ->select('scope', DB::raw('COUNT(*) as count'))
-                ->get();
-            
-            $highProfileCount = User::where('is_high_profile', true)->count();
-            $regularProfileCount = User::where('is_high_profile', false)->count();
-            
-            $copDistribution = User::with('defaultCop')
-                ->whereNotNull('default_cop_id')
-                ->get()
-                ->groupBy('default_cop.cop_name')
-                ->map(function($group) {
-                    return $group->count();
-                });
-            
-            $copIdDistribution = User::groupBy('default_cop_id')
-                ->select('default_cop_id', DB::raw('COUNT(*) as count'))
-                ->get();
-
-            $stats = [
-                'total_users' => $totalUsers,
-                'new_this_week' => $newThisWeek,
-                'new_this_month' => $newThisMonth,
-                'weekly_growth' => $weeklyGrowth,
-                'avg_daily_registrations' => round($avgDailyRegistrations, 1),
-                'beneficiary_count' => $beneficiaryCount,
-                'stakeholder_count' => $stakeholderCount,
-                'male_count' => $maleCount,
-                'female_count' => $femaleCount,
-                'today_registrations' => $todayRegistrations,
-                'avg_age' => $avgAge,
-                
-                'scope_distribution' => $scopeDistribution,
-                'high_profile_count' => $highProfileCount,
-                'regular_profile_count' => $regularProfileCount,
-                'cop_distribution' => $copDistribution,
-                'cop_id_distribution' => $copIdDistribution,
-                
-                'gender_distribution' => User::groupBy('gender')
-                    ->select('gender', DB::raw('COUNT(*) as count'))
-                    ->get(),
-                'scope_distribution_raw' => $scopeDistribution,
-                'organization_type_distribution' => User::groupBy('organization_type_1')
-                    ->select('organization_type_1', DB::raw('COUNT(*) as count'))
-                    ->get(),
-                'sector_distribution' => User::groupBy('sector')
-                    ->select('sector', DB::raw('COUNT(*) as count'))
-                    ->get(),
-                'employment_distribution' => User::groupBy('employment_status')
-                    ->select('employment_status', DB::raw('COUNT(*) as count'))
-                    ->get(),
-                'type_distribution' => User::groupBy('type')
-                    ->select('type', DB::raw('COUNT(*) as count'))
-                    ->get(),
-                'marital_status_distribution' => User::groupBy('marital_status')
-                    ->select('marital_status', DB::raw('COUNT(*) as count'))
-                    ->get(),
-                'registration_trends' => $this->getRegistrationTrends(),
-                'data_health_score' => 75,
-                'user_engagement' => 65,
-                'retention_rate' => 80,
-            ];
-
-            return view('users.statistics', compact('stats'));
-
-        } catch (\Exception $e) {
-            return redirect()->route('users.index')
-                ->with('error', 'Failed to load statistics: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Display user reports
-     */
-    public function reports()
-    {
-        try {
-            $reports = [
-                'detailed_users' => User::with('defaultCop')->orderBy('created_at', 'desc')->get(),
-                'demographic_breakdown' => $this->getDemographicBreakdown(),
-                'registration_patterns' => $this->getRegistrationPatterns(),
-                'export_data' => $this->getExportData(),
-            ];
-
-            return view('users.reports', compact('reports'));
-
-        } catch (\Exception $e) {
-            return redirect()->route('users.index')
-                ->with('error', 'Failed to generate reports: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Export users to CSV
-     */
-    public function exportExcel(Request $request)
-    {
-        try {
-            $query = User::query();
-
-            // Apply filters (same as index method)
-            if ($request->filled('first_name')) {
-                $query->where('first_name', 'ilike', "%{$request->first_name}%");
-            }
-
-            if ($request->filled('middle_name')) {
-                $query->where('middle_name', 'ilike', "%{$request->middle_name}%");
-            }
-
-            if ($request->filled('last_name')) {
-                $query->where('last_name', 'ilike', "%{$request->last_name}%");
-            }
-
-            if ($request->filled('name')) {
-                $name = $request->name;
-                $query->where(function ($q) use ($name) {
-                    $q->where('first_name', 'ilike', "%$name%")
-                      ->orWhere('middle_name', 'ilike', "%$name%")
-                      ->orWhere('last_name', 'ilike', "%$name%")
-                      ->orWhere('mother_name', 'ilike', "%$name%");
-                });
-            }
-
-            if ($request->filled('identification_id')) {
-                $query->where('identification_id', 'ilike', "%{$request->identification_id}%");
-            }
-
-            if ($request->filled('passport_number')) {
-                $query->where('passport_number', 'ilike', "%{$request->passport_number}%");
-            }
-
-            if ($request->filled('gender')) {
-                $query->where('gender', $request->gender);
-            }
-
-            if ($request->filled('scope')) {
-                $query->where('scope', $request->scope);
-            }
-
-            if ($request->filled('default_cop_id')) {
-                $query->where('default_cop_id', $request->default_cop_id);
-            }
-
-            if ($request->filled('sector')) {
-                $query->where('sector', $request->sector);
-            }
-
-            if ($request->filled('is_high_profile')) {
-                $query->where('is_high_profile', filter_var($request->is_high_profile, FILTER_VALIDATE_BOOLEAN));
-            }
-
-            if ($request->filled('organization_1')) {
-                $query->where('organization_1', 'ilike', "%{$request->organization_1}%");
-            }
-
-            if ($request->filled('organization_type_1')) {
-                $query->where('organization_type_1', $request->organization_type_1);
-            }
-
-            if ($request->filled('position_1')) {
-                $query->where('position_1', 'ilike', "%{$request->position_1}%");
-            }
-
-            if ($request->filled('phone_number')) {
-                $query->where('phone_number', 'like', "%{$request->phone_number}%");
-            }
-
-            if ($request->filled('email')) {
-                $query->where('email', 'ilike', "%{$request->email}%");
-            }
-
-            if ($request->filled('marital_status')) {
-                $query->where('marital_status', $request->marital_status);
-            }
-
-            if ($request->filled('employment_status')) {
-                $query->where('employment_status', $request->employment_status);
-            }
-
-            if ($request->filled('type')) {
-                $query->where('type', $request->type);
-            }
-
-            if ($request->filled('dob_from')) {
-                $query->whereDate('dob', '>=', $request->dob_from);
-            }
-
-            if ($request->filled('dob_to')) {
-                $query->whereDate('dob', '<=', $request->dob_to);
-            }
-
-            $users = $query->with('defaultCop')->orderBy('last_name', 'asc')->get();
-            
-            $filename = 'users-export-' . now()->format('Y-m-d-H-i-s') . '.csv';
-            
-            $headers = [
-                'Content-Type' => 'text/csv; charset=utf-8',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-            ];
-            
-            $callback = function() use ($users) {
-                $file = fopen('php://output', 'w');
-                fwrite($file, "\xEF\xBB\xBF");
-                
-                $headers = [
-                    'User ID', 'First Name', 'Last Name', 'Gender', 'Position 1', 'Organization 1',
-                    'Organization Type 1', 'Status 1', 'Address', 'Phone Number', 'Is High Profile', 'Scope',
-                    'Community of Practice (ID)', 'Community of Practice (Name)', 'Prefix', 'Sector',
-                    'Middle Name', 'Date of Birth', 'Office Phone', 'Extension Number', 'Home Phone',
-                    'Email', 'Position 2', 'Organization 2', 'Organization Type 2', 'Status 2',
-                    'Mother Name', 'Identification ID', 'Passport Number', 'Register Number', 'Register Place',
-                    'Marital Status', 'Employment Status', 'User Type', 'Created Date', 'Updated Date'
-                ];
-                
-                fputcsv($file, $headers, ',');
-                
-                foreach ($users as $user) {
-                    $row = [
-                        $user->user_id, $user->first_name ?? '', $user->last_name ?? '', $user->gender ?? '',
-                        $user->position_1 ?? '', $user->organization_1 ?? '', $user->organization_type_1 ?? '',
-                        $user->status_1 ?? '', $user->address ?? '', $user->phone_number ?? '',
-                        $user->is_high_profile ? 'Yes' : 'No', $user->scope ?? '',
-                        $user->default_cop_id ?? '', $user->defaultCop ? $user->defaultCop->cop_name : '',
-                        $user->prefix ?? '', $user->sector ?? '', $user->middle_name ?? '',
-                        $user->dob ? $user->dob->format('Y-m-d') : '', $user->office_phone ?? '',
-                        $user->extension_number ?? '', $user->home_phone ?? '', $user->email ?? '',
-                        $user->position_2 ?? '', $user->organization_2 ?? '', $user->organization_type_2 ?? '',
-                        $user->status_2 ?? '', $user->mother_name ?? '', $user->identification_id ?? '',
-                        $user->passport_number ?? '', $user->register_number ?? '', $user->register_place ?? '',
-                        $user->marital_status ?? '', $user->employment_status ?? '', $user->type ?? '',
-                        $user->created_at->format('Y-m-d H:i:s'), $user->updated_at->format('Y-m-d H:i:s')
-                    ];
-                    fputcsv($file, $row, ',');
-                }
-                fclose($file);
-            };
-            
-            return response()->stream($callback, 200, $headers);
-            
-        } catch (\Exception $e) {
-            return redirect()->route('users.index')
-                ->with('error', 'Failed to export users: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Show import form
-     */
-    public function importForm()
-    {
-        $cops = Cop::orderBy('cop_name')->get();
-        return view('users.import', compact('cops'));
-    }
-
-    /**
-     * Download import template
-     */
-    public function downloadTemplate()
-    {
-        $filename = 'users-import-template-' . now()->format('Y-m-d') . '.csv';
-        
-        $headers = [
-            'Content-Type' => 'text/csv; charset=utf-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-        ];
-        
-        $callback = function() {
-            $file = fopen('php://output', 'w');
-            fwrite($file, "\xEF\xBB\xBF");
-            
-            fputcsv($file, [
-                'prefix', 'is_high_profile', 'scope', 'default_cop_id', 'first_name', 'last_name',
-                'gender', 'position_1', 'organization_1', 'organization_type_1', 'status_1',
-                'address', 'phone_number', 'register_place', 'sector', 'email'
-            ], ',');
-            
-            fputcsv($file, [
-                'Dr.', 'true', 'National', '1', 'John', 'Doe', 'Male', 'Senior Doctor',
-                'Beirut Medical Center', 'Public Sector', 'Active', 'Beirut, Lebanon',
-                '+961 70 123 456', 'Beirut', 'Healthcare', 'john.doe@example.com'
-            ], ',');
-            
-            fclose($file);
-        };
-        
-        return response()->stream($callback, 200, $headers);
-    }
-
-    /**
-     * Process imported users
-     */
-    public function import(Request $request)
-    {
-        $request->validate([
-            'import_file' => 'required|file|mimes:csv,txt'
-        ]);
-
-        $results = [
-            'total' => 0,
-            'successful' => 0,
-            'failed' => 0,
-            'errors' => []
-        ];
-
-        try {
-            $file = $request->file('import_file');
-            
-            if (!$file || !$file->isValid()) {
-                throw new \Exception('File upload failed');
-            }
-
-            $handle = fopen($file->getPathname(), 'r');
-            
-            if (!$handle) {
-                throw new \Exception('Cannot open file');
-            }
-
-            $header = fgetcsv($handle);
-            if (!$header || count($header) < 14) {
-                throw new \Exception('Invalid CSV format. Please use the provided template.');
-            }
-
-            $rowNumber = 1;
-            
-            while (($data = fgetcsv($handle)) !== FALSE) {
-                $results['total']++;
-                $rowNumber++;
-                
-                try {
-                    if (empty(array_filter($data))) {
-                        continue;
-                    }
-
-                    if (count($data) < 14) {
-                        throw new \Exception('Row has insufficient columns. Expected at least 14, got ' . count($data));
-                    }
-
-                    $cleanedData = $this->cleanImportData([
-                        'prefix' => $data[0] ?? null,
-                        'is_high_profile' => $data[1] ?? false,
-                        'scope' => $data[2] ?? null,
-                        'default_cop_id' => $data[3] ?? null,
-                        'first_name' => $data[4] ?? null,
-                        'last_name' => $data[5] ?? null,
-                        'gender' => $data[6] ?? null,
-                        'position_1' => $data[7] ?? null,
-                        'organization_1' => $data[8] ?? null,
-                        'organization_type_1' => $data[9] ?? null,
-                        'status_1' => $data[10] ?? null,
-                        'address' => $data[11] ?? null,
-                        'phone_number' => $data[12] ?? null,
-                        'register_place' => $data[13] ?? null,
-                        'sector' => $data[14] ?? null,
-                        'email' => $data[15] ?? null,
-                        
-                        'middle_name' => null,
-                        'dob' => null,
-                        'office_phone' => null,
-                        'extension_number' => null,
-                        'home_phone' => null,
-                        'position_2' => null,
-                        'organization_2' => null,
-                        'organization_type_2' => null,
-                        'status_2' => null,
-                        'mother_name' => null,
-                        'marital_status' => null,
-                        'employment_status' => null,
-                        'type' => 'Stakeholder',
-                        'identification_id' => null,
-                        'passport_number' => null,
-                        'register_number' => null,
-                    ]);
-                    
-                    $requiredFields = [
-                        'is_high_profile', 'scope', 'first_name', 'last_name', 'gender',
-                        'position_1', 'organization_1', 'organization_type_1', 'status_1',
-                        'address', 'phone_number'
-                    ];
-                    
-                    $missingFields = [];
-                    foreach ($requiredFields as $field) {
-                        if ($field === 'is_high_profile') {
-                            if (!isset($cleanedData[$field])) {
-                                $missingFields[] = $field;
-                            }
-                        } elseif (empty($cleanedData[$field])) {
-                            $missingFields[] = $field;
-                        }
-                    }
-                    
-                    if (!empty($missingFields)) {
-                        throw new \Exception("Missing required fields: " . implode(', ', $missingFields));
-                    }
-
-                    if (!empty($cleanedData['default_cop_id'])) {
-                        $copExists = Cop::where('cop_id', $cleanedData['default_cop_id'])->exists();
-                        if (!$copExists) {
-                            throw new \Exception("Invalid default_cop_id: " . $cleanedData['default_cop_id']);
-                        }
-                    }
-
-                    $user = User::create($cleanedData);
-                    
-                    if ($user) {
-                        $results['successful']++;
-                    } else {
-                        throw new \Exception('Failed to create user record');
-                    }
-                    
-                } catch (\Exception $e) {
-                    $results['failed']++;
-                    $errorMessage = "Row {$rowNumber}: " . $e->getMessage();
-                    $results['errors'][] = $errorMessage;
-                    Log::error($errorMessage);
-                }
-            }
-            
-            fclose($handle);
-            
-        } catch (\Exception $e) {
-            Log::error('Import failed: ' . $e->getMessage());
-            return redirect()->route('users.import.form')
-                ->with('error', 'Failed to process file: ' . $e->getMessage());
-        }
-
-        return $this->handleImportResults($results);
-    }
-
-    /**
-     * Clean import data
-     */
-    private function cleanImportData($data)
-    {
-        $cleaned = [];
-        
-        foreach ($data as $key => $value) {
-            if ($value === null || $value === '') {
-                $cleaned[$key] = null;
-                continue;
-            }
-            
-            $cleanValue = is_string($value) ? trim($value) : $value;
-            
-            if ($cleanValue === '') {
-                $cleanValue = null;
-            }
-            
-            if ($key === 'is_high_profile') {
-                if (is_string($cleanValue)) {
-                    $upperValue = strtoupper($cleanValue);
-                    if ($upperValue === 'TRUE' || $upperValue === 'YES' || $upperValue === '1' || $upperValue === 'T') {
-                        $cleanValue = true;
-                    } elseif ($upperValue === 'FALSE' || $upperValue === 'NO' || $upperValue === '0' || $upperValue === 'F') {
-                        $cleanValue = false;
-                    } else {
-                        $cleanValue = filter_var($cleanValue, FILTER_VALIDATE_BOOLEAN);
-                        if ($cleanValue === false && $cleanValue !== true) {
-                            $cleanValue = false;
-                        }
-                    }
-                } elseif (is_numeric($cleanValue)) {
-                    $cleanValue = (bool) $cleanValue;
-                }
-                $cleanValue = (bool) $cleanValue;
-            }
-            
-            if ($key === 'default_cop_id' && $cleanValue !== null) {
-                $cleanValue = (int) $cleanValue;
-                if ($cleanValue <= 0) {
-                    $cleanValue = null;
-                }
-            }
-            
-            if ($key === 'scope' && $cleanValue) {
-                $original = $cleanValue;
-                $cleanValue = trim($cleanValue);
-                $cleanValue = ucfirst(strtolower($cleanValue));
-                
-                $scopeMap = [
-                    'int' => 'International', 'internat' => 'International', 'international' => 'International',
-                    'reg' => 'Regional', 'regional' => 'Regional',
-                    'nat' => 'National', 'national' => 'National',
-                    'loc' => 'Local', 'local' => 'Local',
-                ];
-                
-                $lowerValue = strtolower($cleanValue);
-                if (isset($scopeMap[$lowerValue])) {
-                    $cleanValue = $scopeMap[$lowerValue];
-                }
-                
-                if (!in_array($cleanValue, ['International', 'Regional', 'National', 'Local'])) {
-                    Log::warning("Invalid scope value '{$original}', defaulting to 'National'");
-                    $cleanValue = 'National';
-                }
-            }
-            
-            if (in_array($key, ['organization_type_1', 'organization_type_2']) && $cleanValue) {
-                $original = $cleanValue;
-                $cleanValue = trim($cleanValue);
-                $cleanValue = ucwords(strtolower($cleanValue));
-                
-                $orgMap = [
-                    'public sector' => 'Public Sector', 'public' => 'Public Sector',
-                    'private sector' => 'Private Sector', 'private' => 'Private Sector',
-                    'academia' => 'Academia', 'academic' => 'Academia',
-                    'un' => 'UN', 'united nations' => 'UN',
-                    'ingos' => 'INGOs', 'ingo' => 'INGOs',
-                    'civil society' => 'Civil Society', 'civil' => 'Civil Society',
-                    'ngos' => 'NGOs', 'ngo' => 'NGOs',
-                    'activist' => 'Activist', 'advocacy' => 'Activist',
-                ];
-                
-                $lowerValue = strtolower($cleanValue);
-                if (isset($orgMap[$lowerValue])) {
-                    $cleanValue = $orgMap[$lowerValue];
-                }
-                
-                $allowedTypes = ['Public Sector', 'Private Sector', 'Academia', 'UN', 'INGOs', 'Civil Society', 'NGOs', 'Activist'];
-                if (!in_array($cleanValue, $allowedTypes)) {
-                    Log::warning("Invalid organization type '{$original}', defaulting to 'Private Sector'");
-                    $cleanValue = 'Private Sector';
-                }
-            }
-            
-            if ($key === 'gender' && $cleanValue) {
-                $original = $cleanValue;
-                $cleanValue = trim($cleanValue);
-                $cleanValue = ucfirst(strtolower($cleanValue));
-                
-                $genderMap = ['m' => 'Male', 'male' => 'Male', 'f' => 'Female', 'female' => 'Female'];
-                
-                $lowerValue = strtolower($cleanValue);
-                if (isset($genderMap[$lowerValue])) {
-                    $cleanValue = $genderMap[$lowerValue];
-                }
-                
-                if (!in_array($cleanValue, ['Male', 'Female'])) {
-                    Log::warning("Invalid gender value '{$original}', defaulting to 'Male'");
-                    $cleanValue = 'Male';
-                }
-            }
-            
-            if ($key === 'dob' && $cleanValue) {
-                try {
-                    $cleanValue = trim($cleanValue, '"\' ');
-                    $cleanValue = Carbon::parse($cleanValue)->format('Y-m-d');
-                } catch (\Exception $e) {
-                    Log::warning("Invalid date format for {$key}: {$cleanValue}");
-                    $cleanValue = null;
-                }
-            }
-            
-            if ($key === 'type' && $cleanValue) {
-                $cleanValue = ucfirst(strtolower(trim($cleanValue)));
-                $allowedTypes = ['Stakeholder', 'Beneficiary'];
-                if (!in_array($cleanValue, $allowedTypes)) {
-                    $cleanValue = 'Stakeholder';
-                }
-            }
-            
-            if (in_array($key, ['phone_number', 'office_phone', 'home_phone']) && $cleanValue) {
-                $original = $cleanValue;
-                $cleanValue = preg_replace('/[^\d+]/', '', $cleanValue);
-                
-                if (preg_match('/^(03|70|71|76|78|79|81)(\d{6})$/', $cleanValue, $matches)) {
-                    $cleanValue = '+961 ' . $matches[1] . ' ' . substr($matches[2], 0, 3) . ' ' . substr($matches[2], 3, 3);
-                } elseif (preg_match('/^\+?961(3|70|71|76|78|79|81)(\d{6})$/', $cleanValue, $matches)) {
-                    $cleanValue = '+961 ' . $matches[1] . ' ' . substr($matches[2], 0, 3) . ' ' . substr($matches[2], 3, 3);
-                } elseif (preg_match('/^(\d{8})$/', $cleanValue) && in_array(substr($cleanValue, 0, 2), ['03', '70', '71', '76', '78', '79', '81'])) {
-                    $cleanValue = '+961 ' . substr($cleanValue, 1, 2) . ' ' . substr($cleanValue, 3, 3) . ' ' . substr($cleanValue, 6, 2);
-                }
-            }
-            
-            $cleaned[$key] = $cleanValue;
-        }
-        
-        return $cleaned;
-    }
-
-    /**
-     * Get registration trends data
-     */
-    private function getRegistrationTrends()
-    {
-        return User::selectRaw('DATE(created_at) as date, COUNT(*) as count')
-            ->where('created_at', '>=', now()->subDays(30))
-            ->groupBy('date')
-            ->orderBy('date', 'asc')
-            ->get();
-    }
-
-    /**
-     * Get average registrations per day
-     */
-    private function getAverageRegistrationsPerDay()
-    {
-        $firstUser = User::orderBy('created_at', 'asc')->first();
-        
-        if (!$firstUser) {
-            return 0;
-        }
-
-        $totalUsers = User::count();
-        $days = now()->diffInDays($firstUser->created_at);
-        
-        return $days > 0 ? round($totalUsers / $days, 2) : $totalUsers;
-    }
-
-    /**
-     * Get demographic breakdown
-     */
-    private function getDemographicBreakdown()
-    {
-        return [
-            'by_gender' => User::groupBy('gender')
-                ->select('gender', DB::raw('COUNT(*) as count'))
-                ->get(),
-            'by_scope' => User::groupBy('scope')
-                ->select('scope', DB::raw('COUNT(*) as count'))
-                ->get(),
-            'by_cop' => User::with('defaultCop')
-                ->whereNotNull('default_cop_id')
-                ->get()
-                ->groupBy('default_cop.cop_name')
-                ->map(function($group) {
-                    return $group->count();
-                }),
-            'by_organization_type' => User::groupBy('organization_type_1')
-                ->select('organization_type_1', DB::raw('COUNT(*) as count'))
-                ->get(),
-        ];
-    }
-
-    /**
-     * Get registration patterns
-     */
-    private function getRegistrationPatterns()
-    {
-        return [
-            'by_type' => User::groupBy('type')
-                ->select('type', DB::raw('COUNT(*) as count'))
-                ->get(),
-            'by_sector' => User::groupBy('sector')
-                ->select('sector', DB::raw('COUNT(*) as count'))
-                ->get(),
-            'by_cop' => User::groupBy('default_cop_id')
-                ->select('default_cop_id', DB::raw('COUNT(*) as count'))
-                ->get(),
-        ];
-    }
-
-    /**
-     * Get export data
-     */
-    private function getExportData()
-    {
-        return User::with('defaultCop')->orderBy('created_at', 'desc')->limit(100)->get();
-    }
-
-    /**
-     * Handle import results and redirect
-     */
-    private function handleImportResults($results)
-    {
-        $message = "Import completed: {$results['successful']} successful, {$results['failed']} failed out of {$results['total']} total records.";
-        
-        if ($results['failed'] > 0) {
-            $errorDetails = implode('<br>', array_slice($results['errors'], 0, 10));
-            if (count($results['errors']) > 10) {
-                $errorDetails .= '<br>... and ' . (count($results['errors']) - 10) . ' more errors';
-            }
-            
-            return redirect()
-                ->route('users.import.form')
-                ->with('warning', $message)
-                ->with('error_details', $errorDetails);
-        }
-        
-        return redirect()
-            ->route('users.index')
-            ->with('success', $message);
     }
 }
