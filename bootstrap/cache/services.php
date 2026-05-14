@@ -35,9 +35,10 @@
     31 => 'NunoMaduro\\Collision\\Adapters\\Laravel\\CollisionServiceProvider',
     32 => 'Termwind\\Laravel\\TermwindServiceProvider',
     33 => 'Rishadblack\\WireTomselect\\WireTomselectServiceProvider',
-    34 => 'App\\Providers\\AppServiceProvider',
-    35 => 'App\\Providers\\RouteServiceProvider',
-    36 => 'App\\Providers\\AppServiceProvider',
+    34 => 'Tymon\\JWTAuth\\Providers\\LaravelServiceProvider',
+    35 => 'App\\Providers\\AppServiceProvider',
+    36 => 'App\\Providers\\RouteServiceProvider',
+    37 => 'App\\Providers\\AppServiceProvider',
   ),
   'eager' => 
   array (
@@ -61,9 +62,10 @@
     17 => 'NunoMaduro\\Collision\\Adapters\\Laravel\\CollisionServiceProvider',
     18 => 'Termwind\\Laravel\\TermwindServiceProvider',
     19 => 'Rishadblack\\WireTomselect\\WireTomselectServiceProvider',
-    20 => 'App\\Providers\\AppServiceProvider',
-    21 => 'App\\Providers\\RouteServiceProvider',
-    22 => 'App\\Providers\\AppServiceProvider',
+    20 => 'Tymon\\JWTAuth\\Providers\\LaravelServiceProvider',
+    21 => 'App\\Providers\\AppServiceProvider',
+    22 => 'App\\Providers\\RouteServiceProvider',
+    23 => 'App\\Providers\\AppServiceProvider',
   ),
   'deferred' => 
   array (
