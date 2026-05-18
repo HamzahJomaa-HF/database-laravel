@@ -5,7 +5,7 @@ on:
 
 env:
   PHP_VERSION: '8.2'
-  APP_DIR: ${{ secrets.APP_DIR }} # e.g. /var/www/hariri-foundation
+  APP_DIR: ${{ secrets.APP_DIR }}
   RELEASE_DIR: ${{ secrets.APP_DIR }}/releases/${{ github.sha }}
 
 jobs:
@@ -20,10 +20,9 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ env.PHP_VERSION }}
-          extensions: mbstring, intl, gd, mysql, pdo_mysql, bcmath, zip
+          extensions: mbstring, intl, gd, mysql, pdo_mysql, bcmath, zip, pgsql, pdo_pgsql
           coverage: none
 
-      # Optional: compile front-end locally so server doesn't need Node
       - name: Setup Node (optional)
         if: ${{ hashFiles('package.json') != '' }}
         uses: actions/setup-node@v4
@@ -99,41 +98,63 @@ jobs:
             fi
             ln -sfn "$SHARED_DIR/.env" "$RELEASE_DIR/.env"
 
-                       cd "$RELEASE_DIR"
+            cd "$RELEASE_DIR"
 
+            # =================================================================
+            # COMPOSER INSTALL (ONCE)
+            # =================================================================
             composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
-            echo "📦 Publishing Livewire assets..."
-            php artisan livewire:publish || true
-      
-            # MANUALLY COPY LIVEWIRE JS FILES
-            echo "📦 Copying Livewire JavaScript files..."
-            mkdir -p public/vendor/livewire
-            cp vendor/livewire/livewire/dist/livewire.min.js public/vendor/livewire/ 2>/dev/null || echo "⚠️ JS file not found"
-            cp vendor/livewire/livewire/dist/livewire.min.js.map public/vendor/livewire/ 2>/dev/null || true
 
-            # 🔥 CRITICAL: Fix permissions so web server can read the files
-            echo "🔧 Setting permissions for Livewire assets..."
-            sudo chown -R www-data:www-data public/vendor
-            sudo chmod -R 755 public/vendor
-            sudo chmod 644 public/vendor/livewire/*.js
+            # =================================================================
+            # SANCTUM MIGRATIONS
+            # =================================================================
+            echo "🔄 Running Sanctum migrations..."
+            php artisan migrate --force
 
+            # =================================================================
+            # KEY GENERATION
+            # =================================================================
             if ! grep -q "^APP_KEY=base64:" "$RELEASE_DIR/.env"; then
               php artisan key:generate --force
               sudo cp "$RELEASE_DIR/.env" "$SHARED_DIR/.env"
             fi
 
+            # =================================================================
+            # LIVE WIRE SETUP
+            # =================================================================
+            echo "📦 Publishing Livewire assets..."
+            php artisan livewire:publish || true
+      
+            echo "📦 Copying Livewire JavaScript files..."
+            mkdir -p public/vendor/livewire
+            cp vendor/livewire/livewire/dist/livewire.min.js public/vendor/livewire/ 2>/dev/null || echo "⚠️ JS file not found"
+            cp vendor/livewire/livewire/dist/livewire.min.js.map public/vendor/livewire/ 2>/dev/null || true
+
+            echo "🔧 Setting permissions for Livewire assets..."
+            sudo chown -R www-data:www-data public/vendor
+            sudo chmod -R 755 public/vendor
+            sudo chmod 644 public/vendor/livewire/*.js
+
+            # =================================================================
+            # LARAVEL OPTIMIZATIONS
+            # =================================================================
             php artisan storage:link || true
             php artisan config:cache
             php artisan route:cache || true
             php artisan view:cache || true
-            php artisan migrate --force
-            # ✅  MODULE ACCESS SEEDER
+
+            # =================================================================
+            # SEEDERS
+            # =================================================================
             echo "Seeding module access data..."
             php artisan db:seed --class=ModuleAccessSeeder --force
 
+            # =================================================================
+            # FINALIZE
+            # =================================================================
             ln -sfn "$RELEASE_DIR" "$APP_DIR/current"
 
-            # only writable dirs need www-data
+            # Only writable dirs need www-data
             sudo chown -R www-data:www-data "$SHARED_DIR/storage" "$SHARED_DIR/bootstrap/cache"
 
             sudo systemctl reload php8.2-fpm || true
