@@ -11,14 +11,40 @@ class CheckAnyPermission
 {
     public function handle(Request $request, Closure $next, ...$permissions): Response
     {
-        $employee = Auth::guard('employee')->user();
-
-        if (!$employee) {
-            return $this->unauthorizedResponse($request, "You must be logged in.");
+        // Try to authenticate via Sanctum first (API token)
+        $user = null;
+        
+        // Check for Bearer token (Sanctum)
+        if ($request->bearerToken()) {
+            $user = Auth::guard('sanctum')->user();
+        }
+        
+        // If no token, try session auth
+        if (!$user && Auth::guard('employee')->check()) {
+            $user = Auth::guard('employee')->user();
+        }
+        
+        // If still no user, return unauthorized
+        if (!$user) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'error' => 'Forbidden',
+                    'message' => 'You must be logged in.'
+                ], 401);
+            }
+            return redirect()->route('login');
         }
 
-        if (!$employee->role) {
-            return $this->unauthorizedResponse($request, "No role assigned to your account.");
+        // For /me endpoint, always allow access
+        if ($request->is('*/employees/me') || $request->is('*/me')) {
+            return $next($request);
+        }
+
+        if (!$user->role) {
+            return response()->json([
+                'error' => 'Forbidden',
+                'message' => 'No role assigned to your account.'
+            ], 403);
         }
 
         // Check if user has ANY of the permissions
@@ -26,33 +52,20 @@ class CheckAnyPermission
             $parts = explode(".", $permission);
 
             if (count($parts) !== 2) {
-                continue; // Skip invalid format
+                continue;
             }
 
             $module = $parts[0];
             $accessLevel = $parts[1];
 
-            // Use the Employee model's hasPermission method
-            if ($employee->hasPermission($module, $accessLevel)) {
+            if ($user->hasPermission($module, $accessLevel)) {
                 return $next($request);
             }
         }
 
-        return $this->unauthorizedResponse(
-            $request,
-            "You do not have any of the required permissions."
-        );
-    }
-
-    private function unauthorizedResponse(Request $request, string $message): Response
-    {
-        if ($request->expectsJson()) {
-            return response()->json([
-                "error" => "Forbidden",
-                "message" => $message
-            ], 403);
-        }
-
-        abort(403, $message);
+        return response()->json([
+            'error' => 'Forbidden',
+            'message' => 'You do not have permission to access this resource.'
+        ], 403);
     }
 }

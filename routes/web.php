@@ -485,4 +485,16 @@ Route::prefix('activity-users')->name('activity-users.')->group(function () {
             ->delete('/{id}/force-delete', [ActivityUserController::class, 'forceDelete'])->name('force-delete');
     });
 });
+// Token management
+    Route::prefix('settings')->name('settings.')->group(function () {
+        Route::get('/api-tokens', [App\Http\Controllers\TokenManagementController::class, 'index'])->name('tokens.index');
+        Route::post('/api-tokens/generate', [App\Http\Controllers\TokenManagementController::class, 'generate'])->name('tokens.generate');
+        Route::delete('/api-tokens/{tokenId}', [App\Http\Controllers\TokenManagementController::class, 'revoke'])->name('tokens.revoke');
+    });
+    
+    // Simple token endpoint for console
+    Route::post('/get-api-token', function () {
+        $token = auth()->user()->createToken('console-token')->plainTextToken;
+        return response()->json(['token' => $token]);
+});
 });

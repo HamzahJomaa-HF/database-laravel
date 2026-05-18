@@ -12,10 +12,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Sanctum\HasApiTokens;
 
 class Employee extends Authenticatable
 {
-    use SoftDeletes, HasFactory, Notifiable;
+       use HasApiTokens, SoftDeletes, HasFactory, Notifiable;
 
     protected $primaryKey = 'employee_id';
     public $incrementing = false;
