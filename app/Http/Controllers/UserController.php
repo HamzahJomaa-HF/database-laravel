@@ -83,6 +83,16 @@ class UserController extends Controller
             $query->where('register_place', 'ilike', "%{$request->register_place}%");
         }
 
+        // NEW: Added person_id filter
+        if ($request->filled('person_id')) {
+            $query->where('person_id', 'ilike', "%{$request->person_id}%");
+        }
+
+        // NEW: Added istimara_id filter
+        if ($request->filled('istimara_id')) {
+            $query->where('istimara_id', 'ilike', "%{$request->istimara_id}%");
+        }
+
         // Keep backward compatible filters
         if ($request->filled('marital_status')) {
             $query->where('marital_status', $request->marital_status);
@@ -115,7 +125,7 @@ class UserController extends Controller
             'name', 'gender', 'scope', 'default_cop_id', 'sector', 'is_high_profile',
             'organization_1', 'organization_type_1', 'position_1', 'phone_number', 'email',
             'marital_status', 'employment_status', 'type', 'dob_from', 'dob_to',
-            'register_place' // ADDED register_place to search detection
+            'register_place', 'person_id', 'istimara_id' // ADDED person_id and istimara_id to search detection
         ]);
 
         return view('users.index', compact('users', 'hasSearch'));
@@ -184,6 +194,10 @@ class UserController extends Controller
             'register_number' => 'nullable|string|max:50',
             'register_place' => 'nullable|string|max:255',
             
+            // NEW: person_id and istimara_id fields
+            'person_id' => 'nullable|string|max:255|unique:users,person_id',
+            'istimara_id' => 'nullable|string|max:255|unique:users,istimara_id',
+            
             // Diploma and Nationality fields
             'diplomas' => 'nullable|array',
             'diplomas.*' => 'exists:diploma,diploma_id',
@@ -207,7 +221,10 @@ class UserController extends Controller
             // Existing fields
             'mother_name', 'marital_status',
             'employment_status', 'type', 'identification_id', 'passport_number',
-            'register_number', 'register_place'
+            'register_number', 'register_place',
+            
+            // NEW: person_id and istimara_id
+            'person_id', 'istimara_id'
         ]);
 
         // REMOVED: Default type setting - type will be null if not provided
@@ -312,6 +329,20 @@ class UserController extends Controller
             'register_number' => 'nullable|string|max:50',
             'register_place' => 'nullable|string|max:255',
             
+            // NEW: person_id and istimara_id fields
+            'person_id' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::unique('users', 'person_id')->ignore($user->user_id, 'user_id'),
+            ],
+            'istimara_id' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::unique('users', 'istimara_id')->ignore($user->user_id, 'user_id'),
+            ],
+            
             // Diploma and Nationality fields
             'diplomas' => 'nullable|array',
             'diplomas.*' => 'exists:diploma,diploma_id',
@@ -335,7 +366,10 @@ class UserController extends Controller
             // Existing fields
             'mother_name', 'marital_status',
             'employment_status', 'type', 'identification_id', 'passport_number',
-            'register_number', 'register_place'
+            'register_number', 'register_place',
+            
+            // NEW: person_id and istimara_id
+            'person_id', 'istimara_id'
         ]);
 
         $user->update($userData);
@@ -600,6 +634,16 @@ class UserController extends Controller
                 $query->where('register_place', 'ilike', "%{$request->register_place}%");
             }
 
+            // NEW: person_id filter for export
+            if ($request->filled('person_id')) {
+                $query->where('person_id', 'ilike', "%{$request->person_id}%");
+            }
+
+            // NEW: istimara_id filter for export
+            if ($request->filled('istimara_id')) {
+                $query->where('istimara_id', 'ilike', "%{$request->istimara_id}%");
+            }
+
             // Apply existing filters for backward compatibility
             if ($request->filled('marital_status')) {
                 $query->where('marital_status', $request->marital_status);
@@ -674,6 +718,11 @@ class UserController extends Controller
                     'Register Place',
                     'Marital Status',
                     'Employment Status',
+                    
+                    // NEW: person_id and istimara_id
+                    'Person ID',
+                    'Istimara ID',
+                    
                     'Created Date',
                     'Updated Date'
                 ];
@@ -723,6 +772,11 @@ class UserController extends Controller
                         $user->register_place ?? '',
                         $user->marital_status ?? '',
                         $user->employment_status ?? '',
+                        
+                        // NEW: person_id and istimara_id
+                        $user->person_id ?? '',
+                        $user->istimara_id ?? '',
+                        
                         $user->created_at->format('Y-m-d H:i:s'),
                         $user->updated_at->format('Y-m-d H:i:s')
                     ];
@@ -766,7 +820,7 @@ class UserController extends Controller
             $file = fopen('php://output', 'w');
             fwrite($file, "\xEF\xBB\xBF"); // BOM for UTF-8
             
-            // Template headers - all 35 columns from your Excel
+            // Template headers - all columns including person_id and istimara_id
             fputcsv($file, [
                 'prefix',
                 'is_high_profile',
@@ -799,6 +853,8 @@ class UserController extends Controller
                 'passport_number',
                 'register_place',
                 'default_cop_id',
+                'person_id',
+                'istimara_id',
                 // Note: created_at, updated_at, deleted_at will be auto-generated
             ], ',');
             
@@ -835,6 +891,8 @@ class UserController extends Controller
                 'PASS123456',                      // passport_number
                 'Beirut',                          // register_place
                 '123e4567-e89b-12d3-a456-426614174000', // default_cop_id (UUID example)
+                'PERSON123456',                    // person_id
+                'ISTIMARA789012',                  // istimara_id
             ], ',');
             
             fclose($file);
@@ -844,7 +902,7 @@ class UserController extends Controller
     }
 
     /**
-     * Process imported users - UPDATED with only first_name and last_name as required
+     * Process imported users - UPDATED with person_id and istimara_id
      */
     public function import(Request $request)
     {
@@ -875,8 +933,8 @@ class UserController extends Controller
             // Skip header row
             $header = fgetcsv($handle);
             
-            // Expected number of columns (35)
-            $expectedColumns = 35;
+            // Expected number of columns (37 with person_id and istimara_id)
+            $expectedColumns = 37;
             
             $rowNumber = 1; // Start counting after header
             
@@ -895,7 +953,7 @@ class UserController extends Controller
                         throw new \Exception("Row has insufficient columns. Expected {$expectedColumns}, got " . count($data));
                     }
 
-                    // Map all 35 CSV columns to database fields
+                    // Map all CSV columns to database fields
                     $cleanedData = $this->cleanImportData([
                         // Basic Information (1-12)
                         'prefix' => $data[0] ?? null,
@@ -937,7 +995,11 @@ class UserController extends Controller
                         'type' => $data[30] ?? null,
                         'default_cop_id' => $data[31] ?? null,
                         
-                        // Note: created_at, updated_at, deleted_at (columns 32-34) are auto-generated
+                        // NEW: person_id and istimara_id (32-33)
+                        'person_id' => $data[32] ?? null,
+                        'istimara_id' => $data[33] ?? null,
+                        
+                        // Note: created_at, updated_at, deleted_at (columns 34-36) are auto-generated
                     ]);
                     
                     // Validate required fields - ONLY first_name and last_name are required
@@ -1020,8 +1082,6 @@ class UserController extends Controller
                         }
                     }
                     
-                    
-
                     // Validate default_cop_id if provided
                     if (!empty($cleanedData['default_cop_id'])) {
                         $copExists = Cop::where('cop_id', $cleanedData['default_cop_id'])->exists();
@@ -1051,6 +1111,22 @@ class UserController extends Controller
                         $existingUser = User::where('identification_id', $cleanedData['identification_id'])->first();
                         if ($existingUser) {
                             throw new \Exception("Identification ID '{$cleanedData['identification_id']}' already exists for user ID: {$existingUser->user_id}");
+                        }
+                    }
+
+                    // NEW: Validate person_id if provided (must be unique)
+                    if (!empty($cleanedData['person_id'])) {
+                        $existingUser = User::where('person_id', $cleanedData['person_id'])->first();
+                        if ($existingUser) {
+                            throw new \Exception("Person ID '{$cleanedData['person_id']}' already exists for user ID: {$existingUser->user_id}");
+                        }
+                    }
+
+                    // NEW: Validate istimara_id if provided (must be unique)
+                    if (!empty($cleanedData['istimara_id'])) {
+                        $existingUser = User::where('istimara_id', $cleanedData['istimara_id'])->first();
+                        if ($existingUser) {
+                            throw new \Exception("Istimara ID '{$cleanedData['istimara_id']}' already exists for user ID: {$existingUser->user_id}");
                         }
                     }
 
@@ -1099,7 +1175,7 @@ class UserController extends Controller
     }
 
     /**
-     * Clean import data - UPDATED for cop_id handling
+     * Clean import data - UPDATED for person_id and istimara_id
      */
     private function cleanImportData($data)
     {
@@ -1257,8 +1333,6 @@ class UserController extends Controller
                 }
             }
             
-           
-            
             // Handle phone number formatting
             if (in_array($key, ['phone_number', 'office_phone', 'home_phone']) && $cleanValue) {
                 $original = $cleanValue;
@@ -1384,4 +1458,4 @@ class UserController extends Controller
             ->route('users.index')
             ->with('success', $message);
     }
-} 
+}

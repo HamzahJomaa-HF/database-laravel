@@ -18,6 +18,10 @@ use App\Http\Controllers\API\UserNationalityController;
 use App\Http\Controllers\API\ProjectPortfolioController;
 
 // ============================================================================
+// PUBLIC API ROUTES (No authentication required - for Microsoft Forms)
+// ============================================================================
+Route::post('/activities', [ActivityController::class, 'store']);
+// ============================================================================
 // TOKEN GENERATION (Uses session auth - for employees to get tokens)
 // ============================================================================
 Route::middleware(['auth:employee'])->post('/tokens/generate', [TokenController::class, 'generate']);
@@ -105,5 +109,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // ========================================================================
     Route::get('/nationalities', [NationalityController::class, 'index']);
     Route::get('/user-nationalities', [UserNationalityController::class, 'index']);
+   
     
 });

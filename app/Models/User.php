@@ -10,54 +10,59 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Model
 {
-     use SoftDeletes;
+    use SoftDeletes;
     use HasFactory, Notifiable;
 
     protected $primaryKey = 'user_id';
     public $incrementing = false;
     protected $keyType = 'string';
 
-   protected $fillable = [
-    // Required Fields
-    'prefix',
-    'is_high_profile',
-    'scope',
-    'default_cop_id',
-    'first_name',
-    'last_name',
-    'gender',
-    'position_1',
-    'organization_1',
-    'organization_type_1',
-    'status_1',
-    'address',
-    'phone_number',
+    protected $fillable = [
+        // Required Fields
+        'prefix',
+        'is_high_profile',
+        'scope',
+        'default_cop_id',
+        'first_name',
+        'last_name',
+        'gender',
+        'position_1',
+        'organization_1',
+        'organization_type_1',
+        'status_1',
+        'address',
+        'phone_number',
+        
+        // Optional Fields
+        'sector',
+        'middle_name',
+        'dob',
+        'office_phone',
+        'extension_number',
+        'home_phone',
+        'email',
+        
+        // Optional Secondary Position Fields
+        'position_2',
+        'organization_2',
+        'organization_type_2',
+        'status_2',
+        
+        // Other fields
+        'identification_id',
+        'mother_name',
+        'register_number',
+        'marital_status',
+        'employment_status',
+        'passport_number',
+        'register_place',
+        'type', // ← ADD THIS (exists in DB)
+        
+        // NEW: person_id and istimara_id
+        'person_id',
+        'istimara_id',
+    ];
     
-    // Optional Fields
-    'sector',
-    'middle_name',
-    'dob',
-    'office_phone',
-    'extension_number',
-    'home_phone',
-    'email',
-    
-    // Optional Secondary Position Fields
-    'position_2',
-    'organization_2',
-    'organization_type_2',
-    'status_2',
-    
-    // Other fields
-    'identification_id',
-    'mother_name',
-    'register_number',
-    'marital_status',
-    'employment_status',
-    'passport_number',
-    'register_place',
-    'type', // ← ADD THIS (exists in DB)
-];
     protected $hidden = [
         'remember_token',
     ];
@@ -133,12 +138,14 @@ class User extends Model
         return $this->belongsToMany(Diploma::class, 'users_diploma', 'user_id', 'diploma_id')
                     ->withTimestamps();
     }
+    
     public function defaultCop()
-{
-    return $this->belongsTo(Cop::class, 'default_cop_id', 'cop_id');
-}
-public function nationalities()
-{
-    return $this->belongsToMany(Nationality::class, 'users_nationality', 'user_id', 'nationality_id');
-}
+    {
+        return $this->belongsTo(Cop::class, 'default_cop_id', 'cop_id');
+    }
+    
+    public function nationalities()
+    {
+        return $this->belongsToMany(Nationality::class, 'users_nationality', 'user_id', 'nationality_id');
+    }
 }

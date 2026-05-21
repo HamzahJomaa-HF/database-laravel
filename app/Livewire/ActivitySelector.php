@@ -89,7 +89,7 @@ class ActivitySelector extends Component
                 $this->showResults = false;
                 
                 // Dispatch browser event for the parent form
-                $this->dispatchBrowserEvent('activity-selected', ['activityId' => $this->selectedActivityId]);
+$this->dispatch('activity-selected', activityId: $this->selectedActivityId);
             }
         } catch (\Exception $e) {
             Log::error('Activity selection error: ' . $e->getMessage());
@@ -107,7 +107,7 @@ class ActivitySelector extends Component
             $this->showResults = false;
             
             // Dispatch browser event for the parent form
-            $this->dispatchBrowserEvent('activity-cleared');
+            $this->dispatch('activity-cleared');
             
             // Also emit a Livewire event
             $this->dispatch('activity-cleared');
