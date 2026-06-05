@@ -16,9 +16,28 @@ use App\Http\Controllers\ModuleAccessController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\CopController;
 use App\Http\Controllers\ActivityUserController;
+use App\Http\Controllers\FinancialController;
 
 use Illuminate\Support\Facades\DB;
 
+use App\Http\Controllers\FinancialImportController;
+
+// IMPORT ROUTES
+Route::get('/financials/import', [FinancialImportController::class, 'showImportForm'])->name('financials.import.form');
+Route::post('/financials/import', [FinancialImportController::class, 'import'])->name('financials.import');
+Route::get('/financials/import/template/{type}', [FinancialImportController::class, 'downloadTemplate'])->name('financials.import.template');
+
+// CRUD ROUTES
+Route::resource('financials', FinancialController::class);
+Route::delete('financials/bulk', [FinancialController::class, 'bulkDestroy'])->name('financials.bulk.destroy');
+Route::put('/financials/{id}/update-details', [FinancialController::class, 'updateDetails'])->name('financials.update.details');
+// =============================================
+// MEDICAL SUBTYPE ROUTES - Medicine & Hospital
+// =============================================
+Route::prefix('financials')->name('financials.')->group(function () {
+    Route::get('/medical/medicine', [FinancialController::class, 'medicineIndex'])->name('medical.medicine');
+    Route::get('/medical/hospital', [FinancialController::class, 'hospitalIndex'])->name('medical.hospital');
+});
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -486,11 +505,11 @@ Route::prefix('activity-users')->name('activity-users.')->group(function () {
     });
 });
 // Token management
-    Route::prefix('settings')->name('settings.')->group(function () {
-        Route::get('/api-tokens', [App\Http\Controllers\TokenManagementController::class, 'index'])->name('tokens.index');
-        Route::post('/api-tokens/generate', [App\Http\Controllers\TokenManagementController::class, 'generate'])->name('tokens.generate');
-        Route::delete('/api-tokens/{tokenId}', [App\Http\Controllers\TokenManagementController::class, 'revoke'])->name('tokens.revoke');
-    });
+    // Route::prefix('settings')->name('settings.')->group(function () {
+    //     Route::get('/api-tokens', [App\Http\Controllers\TokenManagementController::class, 'index'])->name('tokens.index');
+    //     Route::post('/api-tokens/generate', [App\Http\Controllers\TokenManagementController::class, 'generate'])->name('tokens.generate');
+    //     Route::delete('/api-tokens/{tokenId}', [App\Http\Controllers\TokenManagementController::class, 'revoke'])->name('tokens.revoke');
+    // });
     
     // Simple token endpoint for console
     Route::post('/get-api-token', function () {

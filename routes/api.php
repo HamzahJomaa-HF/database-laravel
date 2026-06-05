@@ -24,7 +24,7 @@ Route::post('/activities', [ActivityController::class, 'store']);
 // ============================================================================
 // TOKEN GENERATION (Uses session auth - for employees to get tokens)
 // ============================================================================
-Route::middleware(['auth:employee'])->post('/tokens/generate', [TokenController::class, 'generate']);
+// Route::middleware(['auth:employee'])->post('/tokens/generate', [TokenController::class, 'generate']);
 
 // ============================================================================
 // PROTECTED API ROUTES (Require Sanctum token)
@@ -110,5 +110,4 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/nationalities', [NationalityController::class, 'index']);
     Route::get('/user-nationalities', [UserNationalityController::class, 'index']);
    
-    
 });
