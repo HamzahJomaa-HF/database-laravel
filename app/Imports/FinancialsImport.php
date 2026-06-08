@@ -218,6 +218,19 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
             $financialData['medication_type'] = strtolower(trim($row['medication_type']));
         }
         
+        // Add OMT contact fields to financial_data if they exist in the row
+        if ($this->financialType === 'omt') {
+            if (!empty($row['sender_name'])) {
+                $financialData['sender_name'] = trim($row['sender_name']);
+            }
+            if (!empty($row['receiver_name'])) {
+                $financialData['receiver_name'] = trim($row['receiver_name']);
+            }
+            if (!empty($row['collector_name'])) {
+                $financialData['collector_name'] = trim($row['collector_name']);
+            }
+        }
+        
         Log::info('Built financial_data: ' . json_encode($financialData));
         
         return $financialData;

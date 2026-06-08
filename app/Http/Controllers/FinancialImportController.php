@@ -45,7 +45,11 @@ class FinancialImportController extends Controller
             
             // Type-specific financial headers
             if ($type === 'omt') {
-                $financialHeaders = ['amount', 'payment_status', 'tx_date', 'operational_cost', 'personnel_cost', 'travel_cost', 'equipment_cost', 'supplies_cost', 'notes'];
+                $financialHeaders = [
+                    'amount', 'payment_status', 'tx_date', 'operational_cost', 
+                    'personnel_cost', 'travel_cost', 'equipment_cost', 'supplies_cost', 
+                    'sender_name', 'receiver_name', 'collector_name', 'notes'
+                ];
             } elseif ($type === 'medical') {
                 // Medical headers - includes medication_type to distinguish between medicine and hospital
                 $financialHeaders = [
@@ -75,7 +79,10 @@ class FinancialImportController extends Controller
                         '', '', '', '', 'ID123', 'REG123', 'Single', 'Employed',
                         'PASS123', 'Beirut', 'Beneficiary', 'Bachelor', 'Lebanese'
                     ],
-                    ['50000', 'paid', '2024-01-15', '25000', '15000', '5000', '2000', '3000', 'Sample OMT record']
+                    [
+                        '50000', 'paid', '2024-01-15', '25000', '15000', '5000', '2000', '3000',
+                        'Ahmed Ali', 'Fatima Hassan', 'Omar Hassan', 'Sample OMT record - Sent by Ahmed to Fatima, collected by Omar'
+                    ]
                 );
             } elseif ($type === 'medical') {
                 // Sample for Medicine type
@@ -155,8 +162,8 @@ class FinancialImportController extends Controller
                 $request->financial_type
             );
             
-            // Set to NOT create new users - only find existing ones
-            $import->setCreateNewUsers(false);
+            // Set to create new users if they don't exist
+            $import->setCreateNewUsers(true);
             
             Excel::import($import, $request->file('import_file'));
             
