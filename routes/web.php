@@ -21,6 +21,10 @@ use App\Http\Controllers\FinancialController;
 use Illuminate\Support\Facades\DB;
 
 use App\Http\Controllers\FinancialImportController;
+use App\Http\Controllers\AnalyticsController;
+
+// ANALYTICS DASHBOARD
+Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
 
 // VISUALIZATION
 Route::get('/financials/visualization', [FinancialController::class, 'visualization'])->name('financials.visualization');

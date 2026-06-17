@@ -73,7 +73,18 @@
             </li>
             @endif
         @endauth
-        
+
+        {{-- Analytics --}}
+        @auth('employee')
+            @if($hasFullAccess || $canAccessDashboard)
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('analytics') ? 'active' : '' }}" href="{{ route('analytics.index') }}">
+                    <i class="bi bi-graph-up-arrow me-2"></i> Analytics
+                </a>
+            </li>
+            @endif
+        @endauth
+
         {{-- Employees Directory --}}
         @auth('employee')
             @if($hasFullAccess || $canAccessEmployees)
