@@ -131,11 +131,22 @@
             
             <div class="col-md-3">
                 <label for="mother_name" class="form-label fw-semibold">Mother's Name</label>
-                <input type="text" name="mother_name" id="mother_name" 
-                       class="form-control @error('mother_name') is-invalid @enderror" 
-                       value="{{ old('mother_name', $user->mother_name) }}" 
+                <input type="text" name="mother_name" id="mother_name"
+                       class="form-control @error('mother_name') is-invalid @enderror"
+                       value="{{ old('mother_name', $user->mother_name) }}"
                        placeholder="Mother's Name">
                 @error('mother_name')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="col-md-3">
+                <label for="original_name" class="form-label fw-semibold">Original Name</label>
+                <input type="text" name="original_name" id="original_name"
+                       class="form-control @error('original_name') is-invalid @enderror"
+                       value="{{ old('original_name', $user->original_name) }}"
+                       placeholder="Original Name (e.g. in Arabic)">
+                @error('original_name')
                     <div class="invalid-feedback d-block">{{ $message }}</div>
                 @enderror
             </div>

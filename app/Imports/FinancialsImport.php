@@ -193,13 +193,12 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
                 if (str_contains($column, 'date') || $column === 'correction_date') {
                     $financialData[$column] = $this->parseDate($value);
                 } 
-                // Parse numeric values for financial fields
+                // Parse numeric values for financial fields (removed OMT cost fields)
                 elseif (in_array($column, [
                     'amount', 'medicine_cost', 'assistance_cost_after_pharmacy_discount', 
                     'discount_percentage', 'operation_cost', 'medical_assistance', 
-                    'residual_amount', 'covered_percentage', 'operational_cost', 
-                    'personnel_cost', 'travel_cost', 'equipment_cost', 'supplies_cost', 
-                    'tuition_fees', 'scholarship_percentage', 'student_count', 'patient_count'
+                    'residual_amount', 'covered_percentage', 'tuition_fees', 
+                    'scholarship_percentage', 'student_count', 'patient_count'
                 ])) {
                     $financialData[$column] = $this->parseNumeric($value);
                 }
@@ -228,6 +227,15 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
             }
             if (!empty($row['collector_name'])) {
                 $financialData['collector_name'] = trim($row['collector_name']);
+            }
+            if (!empty($row['omt_number'])) {
+                $financialData['omt_number'] = trim($row['omt_number']);
+            }
+            if (!empty($row['sender_number'])) {
+                $financialData['sender_number'] = trim($row['sender_number']);
+            }
+            if (!empty($row['correction_date'])) {
+                $financialData['correction_date'] = $this->parseDate($row['correction_date']);
             }
         }
         

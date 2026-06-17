@@ -93,6 +93,10 @@ class UserController extends Controller
             $query->where('istimara_id', 'ilike', "%{$request->istimara_id}%");
         }
 
+        if ($request->filled('original_name')) {
+            $query->where('original_name', 'ilike', "%{$request->original_name}%");
+        }
+
         // Keep backward compatible filters
         if ($request->filled('marital_status')) {
             $query->where('marital_status', $request->marital_status);
@@ -125,7 +129,7 @@ class UserController extends Controller
             'name', 'gender', 'scope', 'default_cop_id', 'sector', 'is_high_profile',
             'organization_1', 'organization_type_1', 'position_1', 'phone_number', 'email',
             'marital_status', 'employment_status', 'type', 'dob_from', 'dob_to',
-            'register_place', 'person_id', 'istimara_id' // ADDED person_id and istimara_id to search detection
+            'register_place', 'person_id', 'istimara_id', 'original_name'
         ]);
 
         return view('users.index', compact('users', 'hasSearch'));
@@ -187,17 +191,18 @@ class UserController extends Controller
             
             // Keep existing fields for backward compatibility
             'mother_name' => 'nullable|string|max:255',
+            'original_name' => 'nullable|string|max:255',
             'marital_status' => 'nullable|string|max:50',
             'employment_status' => 'nullable|string|max:50',
             'identification_id' => 'nullable|string|max:50|unique:users,identification_id',
             'passport_number' => 'nullable|string|max:50|unique:users,passport_number',
             'register_number' => 'nullable|string|max:50',
             'register_place' => 'nullable|string|max:255',
-            
-            // NEW: person_id and istimara_id fields
+
+            // person_id and istimara_id fields
             'person_id' => 'nullable|string|max:255|unique:users,person_id',
             'istimara_id' => 'nullable|string|max:255|unique:users,istimara_id',
-            
+
             // Diploma and Nationality fields
             'diplomas' => 'nullable|array',
             'diplomas.*' => 'exists:diploma,diploma_id',
@@ -206,29 +211,29 @@ class UserController extends Controller
         ];
 
         $request->validate($rules);
-        
+
         // Prepare user data
         $userData = $request->only([
             // New required fields
             'prefix', 'is_high_profile', 'scope', 'default_cop_id',
             'first_name', 'last_name', 'gender', 'position_1', 'organization_1',
             'organization_type_1', 'status_1', 'address', 'phone_number',
-            
+
             // New optional fields
             'sector', 'middle_name', 'dob', 'office_phone', 'extension_number',
             'home_phone', 'email', 'position_2', 'organization_2', 'organization_type_2', 'status_2',
-            
+
             // Existing fields
-            'mother_name', 'marital_status',
+            'mother_name', 'original_name', 'marital_status',
             'employment_status', 'type', 'identification_id', 'passport_number',
             'register_number', 'register_place',
-            
-            // NEW: person_id and istimara_id
+
+            // person_id and istimara_id
             'person_id', 'istimara_id'
         ]);
 
         // REMOVED: Default type setting - type will be null if not provided
-        
+
         // Create user
         $user = User::create($userData);
         
@@ -312,6 +317,7 @@ class UserController extends Controller
             
             // Keep existing fields for backward compatibility
             'mother_name' => 'nullable|string|max:255',
+            'original_name' => 'nullable|string|max:255',
             'marital_status' => 'nullable|string|max:50',
             'employment_status' => 'nullable|string|max:50',
             'identification_id' => [
@@ -328,8 +334,8 @@ class UserController extends Controller
             ],
             'register_number' => 'nullable|string|max:50',
             'register_place' => 'nullable|string|max:255',
-            
-            // NEW: person_id and istimara_id fields
+
+            // person_id and istimara_id fields
             'person_id' => [
                 'nullable',
                 'string',
@@ -342,7 +348,7 @@ class UserController extends Controller
                 'max:255',
                 Rule::unique('users', 'istimara_id')->ignore($user->user_id, 'user_id'),
             ],
-            
+
             // Diploma and Nationality fields
             'diplomas' => 'nullable|array',
             'diplomas.*' => 'exists:diploma,diploma_id',
@@ -358,17 +364,17 @@ class UserController extends Controller
             'prefix', 'is_high_profile', 'scope', 'default_cop_id',
             'first_name', 'last_name', 'gender', 'position_1', 'organization_1',
             'organization_type_1', 'status_1', 'address', 'phone_number',
-            
+
             // New optional fields
             'sector', 'middle_name', 'dob', 'office_phone', 'extension_number',
             'home_phone', 'email', 'position_2', 'organization_2', 'organization_type_2', 'status_2',
-            
+
             // Existing fields
-            'mother_name', 'marital_status',
+            'mother_name', 'original_name', 'marital_status',
             'employment_status', 'type', 'identification_id', 'passport_number',
             'register_number', 'register_place',
-            
-            // NEW: person_id and istimara_id
+
+            // person_id and istimara_id
             'person_id', 'istimara_id'
         ]);
 
@@ -644,6 +650,10 @@ class UserController extends Controller
                 $query->where('istimara_id', 'ilike', "%{$request->istimara_id}%");
             }
 
+            if ($request->filled('original_name')) {
+                $query->where('original_name', 'ilike', "%{$request->original_name}%");
+            }
+
             // Apply existing filters for backward compatibility
             if ($request->filled('marital_status')) {
                 $query->where('marital_status', $request->marital_status);
@@ -719,10 +729,11 @@ class UserController extends Controller
                     'Marital Status',
                     'Employment Status',
                     
-                    // NEW: person_id and istimara_id
+                    // person_id, istimara_id, original_name
                     'Person ID',
                     'Istimara ID',
-                    
+                    'Original Name',
+
                     'Created Date',
                     'Updated Date'
                 ];
@@ -773,10 +784,11 @@ class UserController extends Controller
                         $user->marital_status ?? '',
                         $user->employment_status ?? '',
                         
-                        // NEW: person_id and istimara_id
+                        // person_id, istimara_id, original_name
                         $user->person_id ?? '',
                         $user->istimara_id ?? '',
-                        
+                        $user->original_name ?? '',
+
                         $user->created_at->format('Y-m-d H:i:s'),
                         $user->updated_at->format('Y-m-d H:i:s')
                     ];
@@ -855,6 +867,7 @@ class UserController extends Controller
                 'default_cop_id',
                 'person_id',
                 'istimara_id',
+                'original_name',
                 // Note: created_at, updated_at, deleted_at will be auto-generated
             ], ',');
             
@@ -893,6 +906,7 @@ class UserController extends Controller
                 '123e4567-e89b-12d3-a456-426614174000', // default_cop_id (UUID example)
                 'PERSON123456',                    // person_id
                 'ISTIMARA789012',                  // istimara_id
+                'Ahmad Ali',                       // original_name
             ], ',');
             
             fclose($file);
@@ -933,8 +947,8 @@ class UserController extends Controller
             // Skip header row
             $header = fgetcsv($handle);
             
-            // Expected number of columns (37 with person_id and istimara_id)
-            $expectedColumns = 37;
+            // Expected number of columns (38 with original_name)
+            $expectedColumns = 38;
             
             $rowNumber = 1; // Start counting after header
             
@@ -995,11 +1009,12 @@ class UserController extends Controller
                         'type' => $data[30] ?? null,
                         'default_cop_id' => $data[31] ?? null,
                         
-                        // NEW: person_id and istimara_id (32-33)
+                        // person_id, istimara_id, original_name (32-34)
                         'person_id' => $data[32] ?? null,
                         'istimara_id' => $data[33] ?? null,
-                        
-                        // Note: created_at, updated_at, deleted_at (columns 34-36) are auto-generated
+                        'original_name' => $data[34] ?? null,
+
+                        // Note: created_at, updated_at, deleted_at (columns 35-37) are auto-generated
                     ]);
                     
                     // Validate required fields - ONLY first_name and last_name are required

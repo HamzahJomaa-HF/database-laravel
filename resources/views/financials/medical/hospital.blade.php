@@ -559,8 +559,11 @@
                 <i class="fas fa-hospital me-2"></i>Hospital Financial Records
             </h4>
             <div class="action-buttons">
+                <a href="{{ route('financials.visualization') }}" class="btn-outline" style="border-color:#7c3aed;color:#7c3aed;">
+                    <i class="fas fa-chart-pie"></i> Visualization
+                </a>
                 <a href="{{ route('financials.create') }}" class="btn-primary">
-                    <i class="fas fa-plus"></i> Add Hospital Record
+                    <i class="fas fa-plus"></i> Add Record
                 </a>
                 <a href="{{ route('financials.import.form') }}" class="btn-outline">
                     <i class="fas fa-file-import"></i> Import

@@ -45,10 +45,11 @@ class FinancialImportController extends Controller
             
             // Type-specific financial headers
             if ($type === 'omt') {
+                // Updated OMT headers - removed cost fields
                 $financialHeaders = [
-                    'amount', 'payment_status', 'tx_date', 'operational_cost', 
-                    'personnel_cost', 'travel_cost', 'equipment_cost', 'supplies_cost', 
-                    'sender_name', 'receiver_name', 'collector_name', 'notes'
+                    'amount', 'payment_status', 'tx_date',
+                    'sender_name', 'receiver_name', 'collector_name', 'omt_number', 
+                    'sender_number', 'correction_date', 'notes'
                 ];
             } elseif ($type === 'medical') {
                 // Medical headers - includes medication_type to distinguish between medicine and hospital
@@ -70,6 +71,7 @@ class FinancialImportController extends Controller
             
             // Sample rows based on type
             if ($type === 'omt') {
+                // Updated OMT sample row - removed cost fields
                 $sampleRow = array_merge(
                     [
                         'PERSON001', 'ISTIMARA001', 'Mr', 'false', 'National',
@@ -80,8 +82,9 @@ class FinancialImportController extends Controller
                         'PASS123', 'Beirut', 'Beneficiary', 'Bachelor', 'Lebanese'
                     ],
                     [
-                        '50000', 'paid', '2024-01-15', '25000', '15000', '5000', '2000', '3000',
-                        'Ahmed Ali', 'Fatima Hassan', 'Omar Hassan', 'Sample OMT record - Sent by Ahmed to Fatima, collected by Omar'
+                        '50000', 'paid', '2024-01-15',
+                        'Ahmed Ali', 'Fatima Hassan', 'Omar Hassan', 'OMT-001', 'SENDER001',
+                        '2024-01-20', 'Sample OMT record - Sent by Ahmed to Fatima, collected by Omar'
                     ]
                 );
             } elseif ($type === 'medical') {
@@ -227,4 +230,4 @@ class FinancialImportController extends Controller
                 ->with('error', '❌ Failed to import: ' . $e->getMessage());
         }
     }
-}
+} 

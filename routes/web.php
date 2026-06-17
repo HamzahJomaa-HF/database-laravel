@@ -22,6 +22,9 @@ use Illuminate\Support\Facades\DB;
 
 use App\Http\Controllers\FinancialImportController;
 
+// VISUALIZATION
+Route::get('/financials/visualization', [FinancialController::class, 'visualization'])->name('financials.visualization');
+
 // IMPORT ROUTES
 Route::get('/financials/import', [FinancialImportController::class, 'showImportForm'])->name('financials.import.form');
 Route::post('/financials/import', [FinancialImportController::class, 'import'])->name('financials.import');

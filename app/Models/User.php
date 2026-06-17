@@ -51,6 +51,7 @@ class User extends Model
         // Other fields
         'identification_id',
         'mother_name',
+        'original_name',
         'register_number',
         'marital_status',
         'employment_status',

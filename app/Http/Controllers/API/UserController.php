@@ -111,6 +111,7 @@ class UserController extends Controller
      *             @OA\Property(property="organization_type_2", type="string", enum={"Public Sector", "Private Sector", "Academia", "UN", "INGOs", "Civil Society", "NGOs", "Activist"}, nullable=true, description="Secondary organization type"),
      *             @OA\Property(property="status_2", type="string", maxLength=255, nullable=true, example="Volunteer", description="Secondary position status"),
      *             @OA\Property(property="mother_name", type="string", maxLength=255, nullable=true, example="Jane Doe", description="Mother's name"),
+     *             @OA\Property(property="original_name", type="string", maxLength=255, nullable=true, example="أحمد علي", description="Original name (e.g. in Arabic or native script)"),
      *             @OA\Property(property="marital_status", type="string", maxLength=50, nullable=true, enum={"Single", "Married", "Divorced", "Widowed"}, example="Married", description="Marital status"),
      *             @OA\Property(property="employment_status", type="string", maxLength=50, nullable=true, enum={"Full-time", "Part-time", "Contract", "Freelance", "Unemployed", "Retired"}, example="Full-time", description="Employment status"),
      *             @OA\Property(property="type", type="string", maxLength=50, enum={"Stakeholder", "Employee", "Admin", "Customer", "Partner", "Beneficiary"}, example="Stakeholder", description="User type"),
@@ -181,6 +182,7 @@ class UserController extends Controller
                 
                 // Keep existing fields for backward compatibility
                 'mother_name' => 'nullable|string|max:255',
+                'original_name' => 'nullable|string|max:255',
                 'marital_status' => 'nullable|string|max:50',
                 'employment_status' => 'nullable|string|max:50',
                 'type' => 'nullable|string|max:50|in:Stakeholder,Employee,Admin,Customer,Partner,Beneficiary',
@@ -188,7 +190,7 @@ class UserController extends Controller
                 'passport_number' => 'nullable|string|max:50|unique:users,passport_number',
                 'register_number' => 'nullable|string|max:50',
                 'register_place' => 'nullable|string|max:255',
-                
+
                 // Diploma and Nationality fields
                 'diplomas' => 'nullable|array',
                 'diplomas.*' => 'exists:diploma,diploma_id',
@@ -197,20 +199,20 @@ class UserController extends Controller
             ];
 
             $validated = $request->validate($rules);
-            
+
             // Prepare user data
             $userData = $request->only([
                 // New required fields
                 'prefix', 'is_high_profile', 'scope', 'default_cop_id',
                 'first_name', 'last_name', 'gender', 'position_1', 'organization_1',
                 'organization_type_1', 'status_1', 'address', 'phone_number',
-                
+
                 // New optional fields
                 'sector', 'middle_name', 'dob', 'office_phone', 'extension_number',
                 'home_phone', 'email', 'position_2', 'organization_2', 'organization_type_2', 'status_2',
-                
+
                 // Existing fields
-                'mother_name', 'marital_status',
+                'mother_name', 'original_name', 'marital_status',
                 'employment_status', 'type', 'identification_id', 'passport_number',
                 'register_number', 'register_place'
             ]);
@@ -291,6 +293,7 @@ class UserController extends Controller
      *             @OA\Property(property="organization_type_2", type="string", enum={"Public Sector", "Private Sector", "Academia", "UN", "INGOs", "Civil Society", "NGOs", "Activist"}, nullable=true, description="Secondary organization type"),
      *             @OA\Property(property="status_2", type="string", maxLength=255, nullable=true, example="Volunteer", description="Secondary position status"),
      *             @OA\Property(property="mother_name", type="string", maxLength=255, nullable=true, example="Jane Doe", description="Mother's name"),
+     *             @OA\Property(property="original_name", type="string", maxLength=255, nullable=true, example="أحمد علي", description="Original name (e.g. in Arabic or native script)"),
      *             @OA\Property(property="marital_status", type="string", maxLength=50, nullable=true, enum={"Single", "Married", "Divorced", "Widowed"}, example="Married", description="Marital status"),
      *             @OA\Property(property="employment_status", type="string", maxLength=50, nullable=true, enum={"Full-time", "Part-time", "Contract", "Freelance", "Unemployed", "Retired"}, example="Full-time", description="Employment status"),
      *             @OA\Property(property="type", type="string", maxLength=50, enum={"Stakeholder", "Employee", "Admin", "Customer", "Partner", "Beneficiary"}, example="Stakeholder", description="User type"),
@@ -373,6 +376,7 @@ class UserController extends Controller
                 
                 // Keep existing fields for backward compatibility
                 'mother_name' => 'nullable|string|max:255',
+                'original_name' => 'nullable|string|max:255',
                 'marital_status' => 'nullable|string|max:50',
                 'employment_status' => 'nullable|string|max:50',
                 'type' => 'nullable|string|max:50|in:Stakeholder,Employee,Admin,Customer,Partner,Beneficiary',
@@ -390,7 +394,7 @@ class UserController extends Controller
                 ],
                 'register_number' => 'nullable|string|max:50',
                 'register_place' => 'nullable|string|max:255',
-                
+
                 // Diploma and Nationality fields
                 'diplomas' => 'nullable|array',
                 'diplomas.*' => 'exists:diploma,diploma_id',
@@ -406,13 +410,13 @@ class UserController extends Controller
                 'prefix', 'is_high_profile', 'scope', 'default_cop_id',
                 'first_name', 'last_name', 'gender', 'position_1', 'organization_1',
                 'organization_type_1', 'status_1', 'address', 'phone_number',
-                
+
                 // New optional fields
                 'sector', 'middle_name', 'dob', 'office_phone', 'extension_number',
                 'home_phone', 'email', 'position_2', 'organization_2', 'organization_type_2', 'status_2',
-                
+
                 // Existing fields
-                'mother_name', 'marital_status',
+                'mother_name', 'original_name', 'marital_status',
                 'employment_status', 'type', 'identification_id', 'passport_number',
                 'register_number', 'register_place'
             ]);

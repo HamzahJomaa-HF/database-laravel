@@ -707,13 +707,21 @@
 
     <div class="main-div">
         <!-- Page Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="page-title">
-                <i class="fas fa-chart-line me-2"></i>Financial Management
-            </h4>
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+                <h4 class="page-title mb-1">
+                    <i class="fas fa-chart-line me-2"></i>Financial Management
+                </h4>
+                <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;">
+                   
+                </div>
+            </div>
             <div class="action-buttons">
+                <a href="{{ route('financials.visualization') }}" class="btn-outline" style="border-color:#7c3aed;color:#7c3aed;">
+                    <i class="fas fa-chart-pie"></i> Visualization
+                </a>
                 <a href="{{ route('financials.create') }}" class="btn-primary">
-                    <i class="fas fa-plus"></i> Add Financial Record
+                    <i class="fas fa-plus"></i> Add Record
                 </a>
                 <a href="{{ route('financials.import.form') }}" class="btn-outline">
                     <i class="fas fa-file-import"></i> Import

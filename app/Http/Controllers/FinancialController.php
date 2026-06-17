@@ -98,11 +98,58 @@ class FinancialController extends Controller
         $perPage = $request->get('per_page', 15);
         $financials = $query->paginate($perPage);
 
+        // --- Totals (across all filtered records, not just current page) ---
+        $totalsQuery = ActivityFinancial::query();
+
+        if ($request->filled('financial_type'))   $totalsQuery->where('financial_type', $request->financial_type);
+        if ($request->filled('payment_status'))   $totalsQuery->where('payment_status', $request->payment_status);
+        if ($request->filled('start_date'))       $totalsQuery->whereDate('tx_date', '>=', $request->start_date);
+        if ($request->filled('end_date'))         $totalsQuery->whereDate('tx_date', '<=', $request->end_date);
+        if ($request->filled('min_amount'))       $totalsQuery->where('amount', '>=', $request->min_amount);
+        if ($request->filled('max_amount'))       $totalsQuery->where('amount', '<=', $request->max_amount);
+        if ($request->filled('activity_search')) {
+            $totalsQuery->whereHas('activity', fn($q) => $q->where('activity_title_en', 'ilike', "%{$request->activity_search}%")->orWhere('activity_title_ar', 'ilike', "%{$request->activity_search}%"));
+        }
+        if ($request->filled('user_search')) {
+            $totalsQuery->whereHas('user', fn($q) => $q->where('first_name', 'ilike', "%{$request->user_search}%")->orWhere('last_name', 'ilike', "%{$request->user_search}%"));
+        }
+
+        $summaryRaw = (clone $totalsQuery)->selectRaw("
+            COUNT(*) as total_count,
+            COALESCE(SUM(amount), 0) as grand_total,
+            COALESCE(SUM(CASE WHEN financial_type = 'omt' THEN amount ELSE 0 END), 0) as omt_total,
+            COALESCE(SUM(CASE WHEN financial_type = 'medical' THEN amount ELSE 0 END), 0) as medical_total,
+            COALESCE(SUM(CASE WHEN financial_type = 'education' THEN amount ELSE 0 END), 0) as education_total,
+            COALESCE(SUM(CASE WHEN payment_status = 'paid' THEN amount ELSE 0 END), 0) as paid_total,
+            COALESCE(SUM(CASE WHEN payment_status = 'pending' THEN amount ELSE 0 END), 0) as pending_total,
+            COALESCE(SUM(CASE WHEN payment_status = 'partial' THEN amount ELSE 0 END), 0) as partial_total,
+            COALESCE(SUM(CASE WHEN payment_status = 'overdue' THEN amount ELSE 0 END), 0) as overdue_total,
+            COUNT(CASE WHEN financial_type = 'omt' THEN 1 END) as omt_count,
+            COUNT(CASE WHEN financial_type = 'medical' THEN 1 END) as medical_count,
+            COUNT(CASE WHEN financial_type = 'education' THEN 1 END) as education_count
+        ")->first();
+
+        $totals = [
+            'count'      => $summaryRaw->total_count ?? 0,
+            'grand'      => (float) ($summaryRaw->grand_total ?? 0),
+            'omt'        => (float) ($summaryRaw->omt_total ?? 0),
+            'medical'    => (float) ($summaryRaw->medical_total ?? 0),
+            'education'  => (float) ($summaryRaw->education_total ?? 0),
+            'paid'       => (float) ($summaryRaw->paid_total ?? 0),
+            'pending'    => (float) ($summaryRaw->pending_total ?? 0),
+            'partial'    => (float) ($summaryRaw->partial_total ?? 0),
+            'overdue'    => (float) ($summaryRaw->overdue_total ?? 0),
+            'omt_count'       => $summaryRaw->omt_count ?? 0,
+            'medical_count'   => $summaryRaw->medical_count ?? 0,
+            'education_count' => $summaryRaw->education_count ?? 0,
+        ];
+        // --- End Totals ---
+
         // Get data for filter dropdowns
         $activities = Activity::orderBy('activity_title_en')
             ->limit(100)
             ->get(['activity_id', 'activity_title_en', 'activity_title_ar']);
-        
+
         $users = User::orderBy('first_name')
             ->limit(100)
             ->get(['user_id', 'first_name', 'last_name', 'email']);
@@ -112,6 +159,7 @@ class FinancialController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => $financials,
+                'totals' => $totals,
                 'filters' => [
                     'activities' => $activities,
                     'users' => $users,
@@ -119,7 +167,7 @@ class FinancialController extends Controller
             ]);
         }
 
-        return view('financials.index', compact('financials', 'activities', 'users'));
+        return view('financials.index', compact('financials', 'activities', 'users', 'totals'));
     }
 
     /**
@@ -414,6 +462,72 @@ class FinancialController extends Controller
         return array_filter($data, function ($value) {
             return $value !== null && $value !== '';
         });
+    }
+
+    /**
+     * PowerBI-style visualization dashboard for financials
+     */
+    public function visualization(Request $request)
+    {
+        $page = $request->get('page_type', 'all');
+
+        // ── Base stats (all records) ────────────────────────────────────────
+        $byType = ActivityFinancial::selectRaw("financial_type, COUNT(*) as cnt, COALESCE(SUM(amount),0) as total")
+            ->groupBy('financial_type')->get()->keyBy('financial_type');
+
+        $byStatus = ActivityFinancial::selectRaw("payment_status, COUNT(*) as cnt, COALESCE(SUM(amount),0) as total")
+            ->groupBy('payment_status')->get()->keyBy('payment_status');
+
+        $monthly = ActivityFinancial::selectRaw("TO_CHAR(tx_date,'YYYY-MM') as month, COALESCE(SUM(amount),0) as total, COUNT(*) as cnt")
+            ->whereNotNull('tx_date')
+            ->groupBy('month')->orderBy('month')->get();
+
+        // ── OMT breakdown ───────────────────────────────────────────────────
+        $omtCostFields = ['operational_cost','personnel_cost','travel_cost','equipment_cost','supplies_cost','training_cost','communication_cost'];
+        $omtBreakdown = [];
+        foreach ($omtCostFields as $field) {
+            $omtBreakdown[$field] = (float) ActivityFinancial::where('financial_type','omt')
+                ->selectRaw("COALESCE(SUM((financial_data->>'$field')::numeric),0) as val")->value('val');
+        }
+
+        // ── Medicine breakdown ──────────────────────────────────────────────
+        $medicineByDisease = ActivityFinancial::where('financial_type','medical')
+            ->whereRaw("financial_data->>'medication_type' = 'medicine'")
+            ->selectRaw("financial_data->>'disease_type' as disease, COUNT(*) as cnt, COALESCE(SUM(amount),0) as total")
+            ->groupBy('disease')->orderByDesc('total')->limit(10)->get();
+
+        // ── Hospital breakdown ──────────────────────────────────────────────
+        $hospitalByOperation = ActivityFinancial::where('financial_type','medical')
+            ->whereRaw("financial_data->>'medication_type' = 'hospital'")
+            ->selectRaw("financial_data->>'operation_type' as op, COUNT(*) as cnt, COALESCE(SUM(amount),0) as total")
+            ->groupBy('op')->orderByDesc('total')->limit(10)->get();
+
+        // ── Education breakdown ─────────────────────────────────────────────
+        $educationByLevel = ActivityFinancial::where('financial_type','education')
+            ->selectRaw("financial_data->>'education_level' as level, COUNT(*) as cnt, COALESCE(SUM(amount),0) as total")
+            ->groupBy('level')->orderByDesc('total')->get();
+
+        $educationByInstitution = ActivityFinancial::where('financial_type','education')
+            ->selectRaw("financial_data->>'institution_name' as institution, COUNT(*) as cnt, COALESCE(SUM(amount),0) as total")
+            ->groupBy('institution')->orderByDesc('total')->limit(10)->get();
+
+        // ── KPIs ────────────────────────────────────────────────────────────
+        $kpis = [
+            'grand_total'   => (float) ActivityFinancial::sum('amount'),
+            'total_records' => ActivityFinancial::count(),
+            'paid_total'    => (float) ActivityFinancial::where('payment_status','paid')->sum('amount'),
+            'pending_total' => (float) ActivityFinancial::where('payment_status','pending')->sum('amount'),
+            'overdue_total' => (float) ActivityFinancial::where('payment_status','overdue')->sum('amount'),
+            'omt_total'     => (float) ($byType->get('omt')->total ?? 0),
+            'medical_total' => (float) ($byType->get('medical')->total ?? 0),
+            'edu_total'     => (float) ($byType->get('education')->total ?? 0),
+        ];
+
+        return view('financials.visualization', compact(
+            'page','kpis','byType','byStatus','monthly',
+            'omtBreakdown','medicineByDisease','hospitalByOperation',
+            'educationByLevel','educationByInstitution'
+        ));
     }
 
     /**
