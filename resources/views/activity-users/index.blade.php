@@ -694,6 +694,9 @@
         <a href="{{ route('activity-users.import.form') }}" style="background-color: white; color: #2563eb; border: 1px solid #2563eb; padding: 0.625rem 1.25rem; border-radius: 0.375rem; font-weight: 500; font-size: 0.875rem; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; margin-left: 0.75rem;">
             <i class="fas fa-file-import"></i> Import
         </a>
+        <button type="button" onclick="exportWithCurrentFilters()" style="background-color: white; color: #16a34a; border: 1px solid #16a34a; padding: 0.625rem 1.25rem; border-radius: 0.375rem; font-weight: 500; font-size: 0.875rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; margin-left: 0.75rem;">
+            <i class="fas fa-file-export"></i> Export
+        </button>
     </div>
 </div>
 
@@ -1136,7 +1139,12 @@ if (venueFilter && venueFilter.value) {
         function resetFilters() {
             window.location.href = '{{ route("activity-users.index") }}';
         }
-        
+
+        function exportWithCurrentFilters() {
+            const params = new URLSearchParams(window.location.search);
+            window.location.href = '{{ route("activity-users.export") }}?' + params.toString();
+        }
+
        function changePerPage(value) {
     const params = new URLSearchParams(window.location.search);
     params.set('per_page', value);

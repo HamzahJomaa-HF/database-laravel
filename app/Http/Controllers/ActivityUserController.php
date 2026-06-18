@@ -426,16 +426,22 @@ class ActivityUserController extends Controller
     }
 
     /**
-     * Export activity users to CSV.
+     * Export activity users to CSV based on current filters.
      */
     public function export(Request $request)
     {
-        // ... (keep your existing export method)
-        $query = ActivityUser::with(['user', 'activity', 'cop']);
+        $query = ActivityUser::with(['user', 'activity', 'cop'])
+            ->orderBy('created_at', 'desc');
 
-        // Apply filters if provided
         if ($request->filled('activity_id')) {
             $query->where('activity_id', $request->activity_id);
+        }
+
+        if ($request->filled('venue')) {
+            $venue = $request->venue;
+            $query->whereHas('activity', function ($q) use ($venue) {
+                $q->where('venue', $venue);
+            });
         }
 
         if ($request->filled('user_id')) {
@@ -458,75 +464,120 @@ class ActivityUserController extends Controller
             $query->where('attended', $request->boolean('attended'));
         }
 
-        $activityUsers = $query->get();
-
-        $filename = 'activity-users-' . now()->format('Y-m-d-His') . '.csv';
-        $handle = fopen('php://output', 'w');
-
-        header('Content-Type: text/csv');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        header('Cache-Control: no-cache, no-store, must-revalidate');
-        header('Pragma: no-cache');
-        header('Expires: 0');
-
-        // Add UTF-8 BOM for Excel compatibility
-        fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
-
-        // Add headers
-        fputcsv($handle, [
-            'ID',
-            'User Name',
-            'User Email',
-            'User Phone',
-            'User Person ID',
-            'User Istimara ID',
-            'User Type',
-            'Activity Title (EN)',
-            'Activity Title (AR)',
-            'Activity Type',
-            'Activity Date',
-            'Role/Type',
-            'Invited',
-            'Attended',
-            'COP',
-            'External ID',
-            'Created At'
-        ]);
-
-        // Add data rows
-        foreach ($activityUsers as $item) {
-            $userName = '';
-            if ($item->user) {
-                $userName = $item->user->first_name;
-                if ($item->user->middle_name) {
-                    $userName .= ' ' . $item->user->middle_name;
-                }
-                $userName .= ' ' . $item->user->last_name;
-            }
-
-            fputcsv($handle, [
-                $item->activity_user_id,
-                $userName,
-                $item->user ? $item->user->email : '',
-                $item->user ? $item->user->phone_number : '',
-                $item->user ? $item->user->person_id : '',
-                $item->user ? $item->user->istimara_id : '',
-                $item->type,
-                $item->activity ? $item->activity->activity_title_en : '',
-                $item->activity ? $item->activity->activity_title_ar : '',
-                $item->activity ? $item->activity->activity_type : '',
-                $item->activity ? $item->activity->start_date : '',
-                $item->type,
-                $item->invited ? 'Yes' : 'No',
-                $item->attended ? 'Yes' : 'No',
-                $item->cop ? $item->cop->cop_name : '',
-                $item->external_id,
-                $item->created_at ? $item->created_at->format('Y-m-d H:i:s') : '',
-            ]);
+        if ($request->filled('start_date')) {
+            $startDate = $request->start_date;
+            $query->whereHas('activity', function ($q) use ($startDate) {
+                $q->whereDate('start_date', $startDate);
+            });
         }
 
-        fclose($handle);
-        exit;
+        if ($request->filled('user_search')) {
+            $userSearch = $request->user_search;
+            $query->whereHas('user', function ($q) use ($userSearch) {
+                $q->where(function ($inner) use ($userSearch) {
+                    $inner->where('first_name', 'ilike', "%{$userSearch}%")
+                          ->orWhere('middle_name', 'ilike', "%{$userSearch}%")
+                          ->orWhere('last_name', 'ilike', "%{$userSearch}%")
+                          ->orWhere('email', 'ilike', "%{$userSearch}%")
+                          ->orWhere(DB::raw("CONCAT(first_name, ' ', last_name)"), 'ilike', "%{$userSearch}%")
+                          ->orWhere(DB::raw("CONCAT(first_name, ' ', middle_name, ' ', last_name)"), 'ilike', "%{$userSearch}%")
+                          ->orWhere('person_id', 'ilike', "%{$userSearch}%")
+                          ->orWhere('istimara_id', 'ilike', "%{$userSearch}%");
+                });
+            });
+        }
+
+        if ($request->filled('activity_search')) {
+            $activitySearch = $request->activity_search;
+            $query->whereHas('activity', function ($q) use ($activitySearch) {
+                $q->where(function ($inner) use ($activitySearch) {
+                    $inner->where('activity_title_en', 'ilike', "%{$activitySearch}%")
+                          ->orWhere('activity_title_ar', 'ilike', "%{$activitySearch}%")
+                          ->orWhere('activity_type', 'ilike', "%{$activitySearch}%")
+                          ->orWhere('venue', 'ilike', "%{$activitySearch}%");
+                });
+            });
+        }
+
+        $activityUsers = $query->get();
+
+        $filenameBase = 'activity-users';
+        if ($request->filled('activity_search')) {
+            $filenameBase = 'activity-users-' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $request->activity_search);
+        }
+        $filename = $filenameBase . '-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($activityUsers) {
+            $handle = fopen('php://output', 'w');
+            fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+            fputcsv($handle, [
+                'Full Name',
+                'Email',
+                'Phone',
+                'Person ID',
+                'Istimara ID',
+                'Gender',
+                'Date of Birth',
+                'Organization',
+                'Organization Type',
+                'Position',
+                'Activity Title (EN)',
+                'Activity Title (AR)',
+                'Activity Type',
+                'Activity Start Date',
+                'Activity End Date',
+                'Venue',
+                'Assignment Type',
+                'Invited',
+                'Attended',
+                'Is Lead',
+                'COP',
+                'External ID',
+                'Created At',
+            ]);
+
+            foreach ($activityUsers as $item) {
+                $userName = '';
+                if ($item->user) {
+                    $userName = trim(implode(' ', array_filter([
+                        $item->user->first_name,
+                        $item->user->middle_name,
+                        $item->user->last_name,
+                    ])));
+                }
+
+                fputcsv($handle, [
+                    $userName,
+                    $item->user?->email ?? '',
+                    $item->user?->phone_number ?? '',
+                    $item->user?->person_id ?? '',
+                    $item->user?->istimara_id ?? '',
+                    $item->user?->gender ?? '',
+                    $item->user?->dob ? $item->user->dob->format('d/m/Y') : '',
+                    $item->user?->organization_1 ?? '',
+                    $item->user?->organization_type_1 ?? '',
+                    $item->user?->position_1 ?? '',
+                    $item->activity?->activity_title_en ?? '',
+                    $item->activity?->activity_title_ar ?? '',
+                    $item->activity?->activity_type ?? '',
+                    $item->activity?->start_date ? $item->activity->start_date->format('d/m/Y') : '',
+                    $item->activity?->end_date ? $item->activity->end_date->format('d/m/Y') : '',
+                    $item->activity?->venue ?? '',
+                    $item->type ?? '',
+                    $item->invited ? 'Yes' : 'No',
+                    $item->attended ? 'Yes' : 'No',
+                    $item->is_lead ? 'Yes' : 'No',
+                    $item->cop?->cop_name ?? '',
+                    $item->external_id ?? '',
+                    $item->created_at ? $item->created_at->format('d/m/Y H:i') : '',
+                ]);
+            }
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     /**
