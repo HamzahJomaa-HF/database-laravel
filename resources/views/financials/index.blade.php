@@ -219,25 +219,13 @@
             color: var(--secondary-color);
         }
         
-        .pagination-wrapper {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-        }
-        
-        .pagination {
+        .pagination-numbers {
             display: flex;
             gap: 0.5rem;
-            padding-left: 0;
-            list-style: none;
-            margin: 0;
+            align-items: center;
         }
-        
-        .page-item {
-            display: inline-block;
-        }
-        
-        .page-link {
+
+        .pagination-button {
             padding: 0.5rem 0.75rem;
             border: 1px solid var(--border-color);
             background-color: white;
@@ -247,30 +235,57 @@
             cursor: pointer;
             transition: all 0.2s;
             text-decoration: none;
+            display: inline-block;
         }
-        
-        .page-link:hover {
+
+        .pagination-button:hover {
             background-color: #f3f4f6;
+            text-decoration: none;
         }
-        
-        .page-item.active .page-link {
+
+        .pagination-button.active {
             background-color: var(--primary-color);
             color: white;
             border-color: var(--primary-color);
         }
-        
-        .page-item.disabled .page-link {
+
+        .pagination-nav-button {
+            padding: 0.5rem 0.625rem;
+            border: 1px solid var(--border-color);
+            background-color: white;
+            color: #374151;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .pagination-nav-button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-            background-color: #f9fafb;
         }
-        
+
+        .pagination-nav-button:hover:not(:disabled) {
+            background-color: #f3f4f6;
+            text-decoration: none;
+            color: #374151;
+        }
+
+        .pagination-ellipsis {
+            padding: 0.5rem 0.25rem;
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
         .pagination-perpage {
             display: flex;
             align-items: center;
             gap: 0.5rem;
         }
-        
+
         .pagination-perpage .filter-select {
             width: auto;
             padding: 0.375rem 0.75rem;
@@ -599,7 +614,7 @@
                 gap: 1rem;
             }
             
-            .pagination-wrapper {
+            .pagination-numbers {
                 order: 2;
             }
             
@@ -865,59 +880,69 @@
                         </tr>
                         @endforeach
                     </tbody>
-                <table>
-                
-                <!-- Organized Pagination Footer -->
+                </table>
+
+                <!-- Pagination Footer -->
                 <div class="pagination-container">
                     <div class="pagination-info">
                         Showing {{ $financials->firstItem() }} to {{ $financials->lastItem() }} of {{ $financials->total() }} entries
                     </div>
-                    
-                    <div class="pagination-wrapper">
-                        @if ($financials->hasPages())
-                            <nav>
-                                <ul class="pagination">
-                                    {{-- Previous Page Link --}}
-                                    @if ($financials->onFirstPage())
-                                        <li class="page-item disabled">
-                                            <span class="page-link">&laquo; Previous</span>
-                                        </li>
-                                    @else
-                                        <li class="page-item">
-                                            <a class="page-link" href="{{ $financials->previousPageUrl() }}" rel="prev">&laquo; Previous</a>
-                                        </li>
-                                    @endif
 
-                                    {{-- Pagination Elements --}}
-                                    @foreach ($financials->getUrlRange(1, $financials->lastPage()) as $page => $url)
-                                        @if ($page == $financials->currentPage())
-                                            <li class="page-item active" aria-current="page">
-                                                <span class="page-link">{{ $page }}</span>
-                                            </li>
-                                        @else
-                                            <li class="page-item">
-                                                <a class="page-link" href="{{ $url }}">{{ $page }}</a>
-                                            </li>
-                                        @endif
-                                    @endforeach
+                    <div class="pagination-numbers">
+                        {{-- First Page --}}
+                        @if($financials->onFirstPage())
+                            <button class="pagination-nav-button" disabled title="First Page"><i class="fas fa-angle-double-left"></i></button>
+                        @else
+                            <a href="{{ $financials->appends(request()->query())->url(1) }}" class="pagination-nav-button" title="First Page"><i class="fas fa-angle-double-left"></i></a>
+                        @endif
 
-                                    {{-- Next Page Link --}}
-                                    @if ($financials->hasMorePages())
-                                        <li class="page-item">
-                                            <a class="page-link" href="{{ $financials->nextPageUrl() }}" rel="next">Next &raquo;</a>
-                                        </li>
-                                    @else
-                                        <li class="page-item disabled">
-                                            <span class="page-link">Next &raquo;</span>
-                                        </li>
-                                    @endif
-                                </ul>
-                            </nav>
+                        {{-- Previous Page --}}
+                        @if($financials->onFirstPage())
+                            <button class="pagination-nav-button" disabled title="Previous Page"><i class="fas fa-chevron-left"></i></button>
+                        @else
+                            <a href="{{ $financials->appends(request()->query())->previousPageUrl() }}" class="pagination-nav-button" title="Previous Page"><i class="fas fa-chevron-left"></i></a>
+                        @endif
+
+                        {{-- Page Numbers with dynamic range --}}
+                        @php
+                            $currentPage = $financials->currentPage();
+                            $lastPage    = $financials->lastPage();
+                            $start       = max(1, $currentPage - 2);
+                            $end         = min($lastPage, $currentPage + 2);
+                            if ($start > 1) {
+                                echo '<a href="' . $financials->appends(request()->query())->url(1) . '" class="pagination-button">1</a>';
+                                if ($start > 2) echo '<span class="pagination-ellipsis">...</span>';
+                            }
+                            for ($i = $start; $i <= $end; $i++) {
+                                if ($i == $currentPage) {
+                                    echo '<span class="pagination-button active">' . $i . '</span>';
+                                } else {
+                                    echo '<a href="' . $financials->appends(request()->query())->url($i) . '" class="pagination-button">' . $i . '</a>';
+                                }
+                            }
+                            if ($end < $lastPage) {
+                                if ($end < $lastPage - 1) echo '<span class="pagination-ellipsis">...</span>';
+                                echo '<a href="' . $financials->appends(request()->query())->url($lastPage) . '" class="pagination-button">' . $lastPage . '</a>';
+                            }
+                        @endphp
+
+                        {{-- Next Page --}}
+                        @if($financials->hasMorePages())
+                            <a href="{{ $financials->appends(request()->query())->nextPageUrl() }}" class="pagination-nav-button" title="Next Page"><i class="fas fa-chevron-right"></i></a>
+                        @else
+                            <button class="pagination-nav-button" disabled title="Next Page"><i class="fas fa-chevron-right"></i></button>
+                        @endif
+
+                        {{-- Last Page --}}
+                        @if($financials->hasMorePages())
+                            <a href="{{ $financials->appends(request()->query())->url($financials->lastPage()) }}" class="pagination-nav-button" title="Last Page"><i class="fas fa-angle-double-right"></i></a>
+                        @else
+                            <button class="pagination-nav-button" disabled title="Last Page"><i class="fas fa-angle-double-right"></i></button>
                         @endif
                     </div>
-                    
+
                     <div class="pagination-perpage">
-                        <label class="text-muted small">Rows per page:</label>
+                        <label class="text-muted small me-2">Rows per page:</label>
                         <select class="filter-select" onchange="changePerPage(this.value)">
                             <option value="10" {{ $financials->perPage() == 10 ? 'selected' : '' }}>10</option>
                             <option value="25" {{ $financials->perPage() == 25 ? 'selected' : '' }}>25</option>
