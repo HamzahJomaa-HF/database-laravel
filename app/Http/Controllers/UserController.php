@@ -201,7 +201,7 @@ class UserController extends Controller
 
             // person_id and istimara_id fields
             'person_id' => 'nullable|string|max:255|unique:users,person_id',
-            'istimara_id' => 'nullable|string|max:255|unique:users,istimara_id',
+            'istimara_id' => 'nullable|string|max:255',
 
             // Diploma and Nationality fields
             'diplomas' => 'nullable|array',
@@ -346,7 +346,6 @@ class UserController extends Controller
                 'nullable',
                 'string',
                 'max:255',
-                Rule::unique('users', 'istimara_id')->ignore($user->user_id, 'user_id'),
             ],
 
             // Diploma and Nationality fields
@@ -1137,13 +1136,7 @@ class UserController extends Controller
                         }
                     }
 
-                    // NEW: Validate istimara_id if provided (must be unique)
-                    if (!empty($cleanedData['istimara_id'])) {
-                        $existingUser = User::where('istimara_id', $cleanedData['istimara_id'])->first();
-                        if ($existingUser) {
-                            throw new \Exception("Istimara ID '{$cleanedData['istimara_id']}' already exists for user ID: {$existingUser->user_id}");
-                        }
-                    }
+                    // istimara_id is a household register number — duplicates are expected and allowed
 
                     // Check for duplicate by name/phone combination (optional but recommended) - only if phone is provided
                     if (!empty($cleanedData['phone_number']) && $cleanedData['phone_number'] !== 'Not Provided') {

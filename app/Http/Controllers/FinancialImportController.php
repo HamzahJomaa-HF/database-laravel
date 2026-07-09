@@ -63,7 +63,13 @@ class FinancialImportController extends Controller
                     'residual_amount', 'covered_percentage', 'other_assistance', 'notes'
                 ];
             } else {
-                $financialHeaders = ['amount', 'payment_status', 'tx_date', 'scholarship_percentage', 'student_count', 'education_level', 'institution_name', 'tuition_fees', 'notes'];
+                $financialHeaders = [
+                    'amount', 'payment_status', 'tx_date',
+                    'scholarship_percentage', 'tuition_fees', 'books_supplies',
+                    'living_allowance', 'student_count', 'education_level',
+                    'institution_name', 'semester', 'academic_year',
+                    'registration_fees', 'notes'
+                ];
             }
             
             $headers = array_merge($commonHeaders, $financialHeaders);
@@ -108,8 +114,13 @@ class FinancialImportController extends Controller
                 
                 // Also add a second sample row for Hospital type
                 fputcsv($file, $sampleRow);
-                
+
                 // Sample for Hospital type
+                // Headers: amount, payment_status, tx_date, medication_type,
+                //   disease_type, invoice_number, location, medicine_cost,
+                //   assistance_cost_after_pharmacy_discount, discount_percentage,
+                //   operation_type, description, operation_cost, medical_assistance,
+                //   residual_amount, covered_percentage, other_assistance, notes
                 $sampleRow2 = array_merge(
                     [
                         'PERSON002', 'ISTIMARA002', 'Dr', 'true', 'International',
@@ -120,17 +131,22 @@ class FinancialImportController extends Controller
                         'PASS456', 'Beirut', 'Beneficiary', 'PhD', 'Lebanese'
                     ],
                     [
-                        '1000000', 'partial', '2024-02-10', 'hospital',
-                        '', '', '', '',
+                        '2500000', 'partial', '2024-02-10', 'hospital',
+                        '', '', 'Rafik Hariri Hospital', '',
                         '', '',
-                        'Appendectomy', 'Emergency appendectomy surgery', 'Rafik Hariri Hospital', '2500000',
-                        '1500000', '1000000', '60', 'Insurance covered 40%', 'Sample Hospital record'
+                        'Appendectomy', 'Emergency appendectomy surgery', '2500000', '1500000',
+                        '1000000', '60', 'Insurance covered 40%', 'Sample Hospital record'
                     ]
                 );
                 fputcsv($file, $sampleRow2);
                 fclose($file);
                 return;
             } else {
+                // Headers: amount, payment_status, tx_date,
+                //   scholarship_percentage, tuition_fees, books_supplies,
+                //   living_allowance, student_count, education_level,
+                //   institution_name, semester, academic_year,
+                //   registration_fees, notes
                 $sampleRow = array_merge(
                     [
                         'PERSON001', 'ISTIMARA001', 'Mr', 'false', 'National',
@@ -140,7 +156,7 @@ class FinancialImportController extends Controller
                         '', '', '', '', 'ID123', 'REG123', 'Single', 'Employed',
                         'PASS123', 'Beirut', 'Beneficiary', 'Bachelor', 'Lebanese'
                     ],
-                    ['40000', 'paid', '2024-01-10', '75', '25', 'bachelor', 'University', '30000', 'Sample education record']
+                    ['40000', 'paid', '2024-01-10', '75', '30000', '5000', '2000', '1', 'bachelor', 'American University of Beirut', '2', '2024-2025', '500', 'Sample education record']
                 );
             }
             
@@ -149,6 +165,37 @@ class FinancialImportController extends Controller
         };
         
         return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Resolve the correct index URL to redirect to after import based on
+     * financial_type and, for medical, the medication_type distribution
+     * stored in the financial_data JSONB column.
+     */
+    private function resolveRedirectUrl(string $type, array $results): string
+    {
+        if ($type === 'omt') {
+            return route('financials.index', ['financial_type' => 'omt']);
+        }
+
+        if ($type === 'education') {
+            return route('financials.index', ['financial_type' => 'education']);
+        }
+
+        if ($type === 'medical') {
+            $hospitalCount = $results['medical_breakdown']['hospital'] ?? 0;
+            $medicineCount = $results['medical_breakdown']['medicine'] ?? 0;
+
+            // Pure hospital import → hospital page
+            if ($hospitalCount > 0 && $medicineCount === 0) {
+                return route('financials.medical.hospital');
+            }
+
+            // Pure medicine import or mixed → medicine page
+            return route('financials.medical.medicine');
+        }
+
+        return route('financials.index');
     }
 
     public function import(Request $request)
@@ -210,16 +257,16 @@ class FinancialImportController extends Controller
                 $message = "ℹ️ Import completed! No changes were made.\n";
                 $message .= "✓ All {$results['skipped']} records already exist with the same data.";
                 return redirect()
-                    ->route('financials.index', ['financial_type' => $request->financial_type])
+                    ->to($this->resolveRedirectUrl($request->financial_type, $results))
                     ->with('info', $message);
             }
-            
+
             if (!empty($results['errors'])) {
                 $message .= "\n⚠️ " . count($results['errors']) . " errors occurred";
             }
-            
+
             return redirect()
-                ->route('financials.index', ['financial_type' => $request->financial_type])
+                ->to($this->resolveRedirectUrl($request->financial_type, $results))
                 ->with('success', $message);
                 
         } catch (\Exception $e) {

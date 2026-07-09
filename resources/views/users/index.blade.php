@@ -60,142 +60,71 @@
         </div> {{-- Close card --}}
     </div> {{-- Close col --}}
 </div> {{-- Close row --}}
-  {{-- Filters Section --}}
+    {{-- Filters Section --}}
     <div class="row mb-4">
         <div class="col-12">
             <div class="card shadow-sm border-0">
-                <div class="card-header bg-light border-bottom py-3" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse" style="cursor: pointer;">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-grow-1">
-                            <h5 class="mb-0 fw-semibold">
-                                <i class="bi bi-funnel me-2 text-primary"></i>Search & Filter Users
-                            </h5>
-                        </div>
-                        <div class="flex-shrink-0">
-                            @if($hasSearch)
-                                <span class="badge bg-warning text-dark">Filters Active</span>
-                            @endif
-                            <i class="bi bi-chevron-down ms-2 transition-rotate" id="filterChevron"></i>
-                        </div>
+                <div class="card-header bg-light border-bottom py-3"
+                     data-bs-toggle="collapse" data-bs-target="#filterCollapse"
+                     style="cursor: pointer;">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <h5 class="mb-0 fw-semibold">
+                            <i class="bi bi-funnel me-2 text-primary"></i>Search & Filter Users
+                        </h5>
+                        <i class="bi bi-chevron-down" id="filterChevron"></i>
                     </div>
                 </div>
-                
-                <div class="collapse" id="filterCollapse">
+                <div class="collapse {{ $hasSearch ? 'show' : '' }}" id="filterCollapse">
                     <div class="card-body p-4">
                         <form method="GET">
                             <div class="row g-3">
-                                {{-- Name Search (first_name, middle_name, last_name) --}}
-                                <div class="col-md-3">
-                                    <label for="inlineFormFilterBy" class="form-label fw-semibold">Name Search</label>
-                                    <input type="text" 
-                                           name="name" 
-                                           value="{{ request('name') }}"
-                                           class="form-control" 
-                                           id="inlineFormFilterBy"
-                                           placeholder="Search by first, middle, or last name">
-                                    <small class="text-muted">Search in first, middle, or last name</small>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Name</label>
+                                    <input type="text" name="name" value="{{ request('name') }}"
+                                           class="form-control" placeholder="First, middle or last name">
                                 </div>
-
-                                {{-- Identification ID --}}
-                                <div class="col-md-3">
-                                    <label for="inlineFormIdentification" class="form-label fw-semibold">Identification ID</label>
-                                    <input type="text" 
-                                           name="identification_id" 
-                                           value="{{ request('identification_id') }}"
-                                           class="form-control" 
-                                           id="inlineFormIdentification" 
-                                           placeholder="Search by ID number">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Identification ID</label>
+                                    <input type="text" name="identification_id" value="{{ request('identification_id') }}"
+                                           class="form-control" placeholder="ID number">
                                 </div>
-
-                                {{-- Passport Number --}}
-                                <div class="col-md-3">
-                                    <label for="inlineFormPassport" class="form-label fw-semibold">Passport Number</label>
-                                    <input type="text" 
-                                           name="passport_number" 
-                                           value="{{ request('passport_number') }}"
-                                           class="form-control" 
-                                           id="inlineFormPassport" 
-                                           placeholder="Search by passport number">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Passport Number</label>
+                                    <input type="text" name="passport_number" value="{{ request('passport_number') }}"
+                                           class="form-control" placeholder="Passport number">
                                 </div>
-
-                                {{-- Phone --}}
-                                <div class="col-md-3">
-                                    <label for="inlineFormPhone" class="form-label fw-semibold">Phone Number</label>
-                                    <input type="text" 
-                                           name="phone_number" 
-                                           value="{{ request('phone_number') }}"
-                                           class="form-control" 
-                                           id="inlineFormPhone" 
-                                           placeholder="Phone number">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Phone Number</label>
+                                    <input type="text" name="phone_number" value="{{ request('phone_number') }}"
+                                           class="form-control" placeholder="Phone number">
                                 </div>
-
-                                {{-- Employment Status --}}
-                                <div class="col-md-3">
-                                    <label for="inlineFormEmployment" class="form-label fw-semibold">Status</label>
-                                    <select id="inlineFormEmployment" name="employment_status" class="form-control">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Employment Status</label>
+                                    <select name="employment_status" class="form-control">
                                         <option value="">All Statuses</option>
-                                        <option value="Employed" {{ request('employment_status') == 'Employed' ? 'selected' : '' }}>Employed</option>
+                                        <option value="Employed"   {{ request('employment_status') == 'Employed'   ? 'selected' : '' }}>Employed</option>
                                         <option value="Unemployed" {{ request('employment_status') == 'Unemployed' ? 'selected' : '' }}>Unemployed</option>
-                                        <option value="Student" {{ request('employment_status') == 'Student' ? 'selected' : '' }}>Student</option>
-                                        <option value="Retired" {{ request('employment_status') == 'Retired' ? 'selected' : '' }}>Retired</option>
+                                        <option value="Student"    {{ request('employment_status') == 'Student'    ? 'selected' : '' }}>Student</option>
+                                        <option value="Retired"    {{ request('employment_status') == 'Retired'    ? 'selected' : '' }}>Retired</option>
                                     </select>
                                 </div>
-{{-- Register Place (NEW) --}}
-                                <div class="col-md-3">
-                                    <label for="inlineFormRegisterPlace" class="form-label fw-semibold">Register Place</label>
-                                    <input type="text" 
-                                           name="register_place" 
-                                           value="{{ request('register_place') }}"
-                                           class="form-control" 
-                                           id="inlineFormRegisterPlace" 
-                                           placeholder="Search by register place">
-                                    <small class="text-muted">Search by place of registration</small>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Register Place</label>
+                                    <input type="text" name="register_place" value="{{ request('register_place') }}"
+                                           class="form-control" placeholder="Place of registration">
                                 </div>
-                                {{-- Action Buttons --}}
-                                <div class="col-12 mt-3">
+                                <div class="col-12">
                                     <div class="d-flex gap-2">
                                         <button type="submit" class="btn btn-primary">
                                             <i class="bi bi-funnel me-1"></i>Apply Filters
                                         </button>
                                         <a href="{{ route('users.index') }}" class="btn btn-outline-secondary">
-                                            <i class="bi bi-arrow-clockwise me-1"></i>Reset Filters
+                                            <i class="bi bi-arrow-clockwise me-1"></i>Reset
                                         </a>
                                     </div>
                                 </div>
                             </div>
                         </form>
-
-                        {{-- ACTIVE FILTERS --}}
-                        @if($hasSearch)
-                        <div class="mt-4 pt-3 border-top">
-                            <div class="d-flex flex-wrap align-items-center gap-2">
-                                <span class="fw-semibold text-muted small">Active Filters:</span>
-                                <div class="d-flex flex-wrap gap-2">
-                                    @php
-                                    $filters = [
-                                        'name' => ['icon' => 'bi-person', 'label' => 'Name'],
-                                        'identification_id' => ['icon' => 'bi-card-text', 'label' => 'ID Number'],
-                                        'passport_number' => ['icon' => 'bi-passport', 'label' => 'Passport'],
-                                        'phone_number' => ['icon' => 'bi-telephone', 'label' => 'Phone'],
-                                        'employment_status' => ['icon' => 'bi-briefcase', 'label' => 'Status']
-                                    ];
-                                    @endphp
-
-                                    @foreach($filters as $key => $meta)
-                                        @if(request($key))
-                                            <span class="badge bg-primary p-2 d-flex align-items-center">
-                                                <i class="bi {{ $meta['icon'] }} me-1"></i>
-                                                {{ $meta['label'] }}: <strong class="ms-1">{{ request($key) }}</strong>
-                                                <a href="{{ request()->fullUrlWithQuery([$key => null]) }}" class="text-white ms-2">
-                                                    <i class="bi bi-x"></i>
-                                                </a>
-                                            </span>
-                                        @endif
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
-                        @endif
                     </div>
                 </div>
             </div>
@@ -665,32 +594,13 @@
 @section('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-
-    // Filter collapse functionality
+    // Chevron toggle for filter collapse
     const filterCollapse = document.getElementById('filterCollapse');
-    const filterChevron = document.getElementById('filterChevron');
-    
+    const filterChevron  = document.getElementById('filterChevron');
     if (filterCollapse && filterChevron) {
-        filterCollapse.addEventListener('show.bs.collapse', function () {
-            filterChevron.classList.add('rotated');
-        });
-        
-        filterCollapse.addEventListener('hide.bs.collapse', function () {
-            filterChevron.classList.remove('rotated');
-        });
-        
-        // Auto-expand if there are active filters
-        @if($hasSearch)
-            const bsCollapse = new bootstrap.Collapse(filterCollapse, {
-                toggle: false
-            });
-            bsCollapse.show();
-        @endif
+        filterCollapse.addEventListener('show.bs.collapse', () => filterChevron.style.transform = 'rotate(180deg)');
+        filterCollapse.addEventListener('hide.bs.collapse', () => filterChevron.style.transform = 'rotate(0deg)');
+        if (filterCollapse.classList.contains('show')) filterChevron.style.transform = 'rotate(180deg)';
     }
 
     // Auto-hide toasts after delay

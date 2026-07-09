@@ -26,25 +26,6 @@ use App\Http\Controllers\AnalyticsController;
 // ANALYTICS DASHBOARD
 Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
 
-// VISUALIZATION
-Route::get('/financials/visualization', [FinancialController::class, 'visualization'])->name('financials.visualization');
-
-// IMPORT ROUTES
-Route::get('/financials/import', [FinancialImportController::class, 'showImportForm'])->name('financials.import.form');
-Route::post('/financials/import', [FinancialImportController::class, 'import'])->name('financials.import');
-Route::get('/financials/import/template/{type}', [FinancialImportController::class, 'downloadTemplate'])->name('financials.import.template');
-
-// CRUD ROUTES
-Route::resource('financials', FinancialController::class);
-Route::delete('financials/bulk', [FinancialController::class, 'bulkDestroy'])->name('financials.bulk.destroy');
-Route::put('/financials/{id}/update-details', [FinancialController::class, 'updateDetails'])->name('financials.update.details');
-// =============================================
-// MEDICAL SUBTYPE ROUTES - Medicine & Hospital
-// =============================================
-Route::prefix('financials')->name('financials.')->group(function () {
-    Route::get('/medical/medicine', [FinancialController::class, 'medicineIndex'])->name('medical.medicine');
-    Route::get('/medical/hospital', [FinancialController::class, 'hospitalIndex'])->name('medical.hospital');
-});
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -511,7 +492,62 @@ Route::prefix('activity-users')->name('activity-users.')->group(function () {
             ->delete('/{id}/force-delete', [ActivityUserController::class, 'forceDelete'])->name('force-delete');
     });
 });
-// Token management
+    // ------------------------------------------------------------------------
+    // FINANCIALS MODULE
+    // Specific paths MUST be registered before /{financial} wildcard.
+    // ------------------------------------------------------------------------
+    Route::prefix('financials')->name('financials.')->group(function () {
+
+        // index
+        Route::middleware(['hasPermission:Financials.view,Financials.manage,Financials.full'])
+            ->get('/', [FinancialController::class, 'index'])->name('index');
+
+        // visualization
+        Route::middleware(['hasPermission:Financials.view,Financials.manage,Financials.full'])
+            ->get('/visualization', [FinancialController::class, 'visualization'])->name('visualization');
+
+        // medical sub-pages
+        Route::middleware(['hasPermission:Financials.view,Financials.manage,Financials.full'])
+            ->get('/medical/medicine', [FinancialController::class, 'medicineIndex'])->name('medical.medicine');
+        Route::middleware(['hasPermission:Financials.view,Financials.manage,Financials.full'])
+            ->get('/medical/hospital', [FinancialController::class, 'hospitalIndex'])->name('medical.hospital');
+
+        // create form + store
+        Route::middleware(['hasPermission:Financials.create,Financials.manage,Financials.full'])
+            ->get('/create', [FinancialController::class, 'create'])->name('create');
+        Route::middleware(['hasPermission:Financials.create,Financials.manage,Financials.full'])
+            ->post('/', [FinancialController::class, 'store'])->name('store');
+
+        // import (GET form, POST process, GET template)
+        Route::middleware(['hasPermission:Financials.create,Financials.manage,Financials.full'])
+            ->get('/import', [FinancialImportController::class, 'showImportForm'])->name('import.form');
+        Route::middleware(['hasPermission:Financials.create,Financials.manage,Financials.full'])
+            ->post('/import', [FinancialImportController::class, 'import'])->name('import');
+        Route::middleware(['hasPermission:Financials.create,Financials.manage,Financials.full'])
+            ->get('/import/template/{type}', [FinancialImportController::class, 'downloadTemplate'])->name('import.template');
+
+        // bulk delete (before {financial} wildcard)
+        Route::middleware(['hasPermission:Financials.delete,Financials.manage,Financials.full'])
+            ->delete('/bulk', [FinancialController::class, 'bulkDestroy'])->name('bulk.destroy');
+
+        // edit + update + update-details (/{financial}/edit before /{financial})
+        Route::middleware(['hasPermission:Financials.edit,Financials.manage,Financials.full'])
+            ->get('/{financial}/edit', [FinancialController::class, 'edit'])->name('edit');
+        Route::middleware(['hasPermission:Financials.edit,Financials.manage,Financials.full'])
+            ->put('/{financial}', [FinancialController::class, 'update'])->name('update');
+        Route::middleware(['hasPermission:Financials.edit,Financials.manage,Financials.full'])
+            ->put('/{id}/update-details', [FinancialController::class, 'updateDetails'])->name('update.details');
+
+        // single delete
+        Route::middleware(['hasPermission:Financials.delete,Financials.manage,Financials.full'])
+            ->delete('/{financial}', [FinancialController::class, 'destroy'])->name('destroy');
+
+        // show — LAST: wildcard /{financial} must come after all specific GET paths
+        Route::middleware(['hasPermission:Financials.view,Financials.manage,Financials.full'])
+            ->get('/{financial}', [FinancialController::class, 'show'])->name('show');
+    });
+
+    // Token management
     // Route::prefix('settings')->name('settings.')->group(function () {
     //     Route::get('/api-tokens', [App\Http\Controllers\TokenManagementController::class, 'index'])->name('tokens.index');
     //     Route::post('/api-tokens/generate', [App\Http\Controllers\TokenManagementController::class, 'generate'])->name('tokens.generate');

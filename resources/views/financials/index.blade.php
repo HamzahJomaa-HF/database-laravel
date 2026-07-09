@@ -703,7 +703,8 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ route('financials.bulk.destroy') }}" id="bulkDeleteForm" class="d-inline">
+                    <form method="POST" action="{{ route('financials.bulk.destroy') }}" id="bulkDeleteForm" class="d-inline"
+                          onsubmit="return confirm('Delete the selected records? This cannot be undone.')">
                         @csrf
                         @method('DELETE')
                         <div id="selectedFinancialIds"></div>
@@ -722,24 +723,14 @@
 
     <div class="main-div">
         <!-- Page Header -->
-        <div class="d-flex justify-content-between align-items-start mb-3">
-            <div>
-                <h4 class="page-title mb-1">
-                    <i class="fas fa-chart-line me-2"></i>Financial Management
-                </h4>
-                <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;">
-                   
-                </div>
-            </div>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="page-title">Financial Management</h4>
             <div class="action-buttons">
-                <a href="{{ route('financials.visualization') }}" class="btn-outline" style="border-color:#7c3aed;color:#7c3aed;">
-                    <i class="fas fa-chart-pie"></i> Visualization
+                <a href="{{ route('financials.visualization') }}" class="btn btn-outline-primary me-2" style="background-color:white;border-color:#7c3aed;color:#7c3aed;">
+                    <i class="fas fa-chart-pie me-1"></i> Visualization
                 </a>
-                <a href="{{ route('financials.create') }}" class="btn-primary">
-                    <i class="fas fa-plus"></i> Add Record
-                </a>
-                <a href="{{ route('financials.import.form') }}" class="btn-outline">
-                    <i class="fas fa-file-import"></i> Import
+                <a href="{{ route('financials.import.form') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-file-import me-1"></i> Import
                 </a>
             </div>
         </div>
@@ -762,7 +753,6 @@
                             <option value="">All Types</option>
                             <option value="omt" {{ request('financial_type') == 'omt' ? 'selected' : '' }}>OMT</option>
                             <option value="medical" {{ request('financial_type') == 'medical' ? 'selected' : '' }}>Medical</option>
-                            <option value="education" {{ request('financial_type') == 'education' ? 'selected' : '' }}>Education</option>
                         </select>
                         
                         <select class="filter-select" id="paymentStatusFilter">
@@ -786,6 +776,15 @@
                 </div>
             </div>
         </div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab">
+                    Records ({{ $financials->total() }})
+                </button>
+            </li>
+        </ul>
 
         <!-- Table -->
         <div class="table-container">
@@ -955,10 +954,7 @@
                 <div class="empty-state">
                     <i class="fas fa-chart-line empty-state-icon"></i>
                     <h5>No financial records found</h5>
-                    <p class="text-muted">Add your first financial record to get started</p>
-                    <a href="{{ route('financials.create') }}" class="btn-primary mt-3">
-                        <i class="fas fa-plus"></i> Add Financial Record
-                    </a>
+                    <p class="text-muted">No financial records available</p>
                 </div>
             @endif
         </div>

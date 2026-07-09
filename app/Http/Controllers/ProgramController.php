@@ -37,10 +37,10 @@ class ProgramController extends Controller
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhere('folder_name', 'like', "%{$search}%")
-                  ->orWhere('external_id', 'like', "%{$search}%");
+                $q->where('name', 'ilike', "%{$search}%")
+                  ->orWhere('description', 'ilike', "%{$search}%")
+                  ->orWhere('folder_name', 'ilike', "%{$search}%")
+                  ->orWhere('external_id', 'ilike', "%{$search}%");
             });
         }
 

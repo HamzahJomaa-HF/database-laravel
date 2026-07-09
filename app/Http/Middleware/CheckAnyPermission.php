@@ -41,9 +41,14 @@ class CheckAnyPermission
         }
 
         if (!$user->role) {
-            return response()->json([
-                'error' => 'Forbidden',
-                'message' => 'No role assigned to your account.'
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'error' => 'Forbidden',
+                    'message' => 'No role assigned to your account.'
+                ], 403);
+            }
+            return response()->view('errors.403', [
+                'message' => 'No role has been assigned to your account. Contact your administrator.'
             ], 403);
         }
 
@@ -63,9 +68,15 @@ class CheckAnyPermission
             }
         }
 
-        return response()->json([
-            'error' => 'Forbidden',
-            'message' => 'You do not have permission to access this resource.'
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'error' => 'Forbidden',
+                'message' => 'You do not have permission to access this resource.'
+            ], 403);
+        }
+
+        return response()->view('errors.403', [
+            'message' => 'You do not have permission to access this page.'
         ], 403);
     }
 }

@@ -70,104 +70,74 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="card shadow-sm border-0">
-                <div class="card-header bg-light border-bottom py-3" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse" style="cursor: pointer;">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-grow-1">
-                            <h5 class="mb-0 fw-semibold">
-                                <i class="bi bi-funnel me-2 text-primary"></i>Search & Filter Activities
-                            </h5>
-                        </div>
-                        
+                <div class="card-header bg-light border-bottom py-3"
+                     data-bs-toggle="collapse" data-bs-target="#filterCollapse"
+                     style="cursor: pointer;">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <h5 class="mb-0 fw-semibold">
+                            <i class="bi bi-funnel me-2 text-primary"></i>Search & Filter Activities
+                        </h5>
+                        <i class="bi bi-chevron-down" id="filterChevron"></i>
                     </div>
                 </div>
-                
-                <div class="collapse" id="filterCollapse">
+                <div class="collapse {{ $hasSearch ? 'show' : '' }}" id="filterCollapse">
                     <div class="card-body p-4">
                         <form method="GET">
                             <div class="row g-3">
-                                {{-- Title Search --}}
-                                <div class="col-md-3">
-                                    <label for="inlineFormTitle" class="form-label fw-semibold">Title Search</label>
-                                    <input type="text" 
-                                           name="title" 
-                                           value="{{ request('title') }}"
-                                           class="form-control" 
-                                           id="inlineFormTitle"
-                                           placeholder="Search by title">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Title</label>
+                                    <input type="text" name="title" value="{{ request('title') }}"
+                                           class="form-control" placeholder="Search by title">
                                 </div>
-
-                                {{-- Activity Type --}}
-                                <div class="col-md-3">
-                                    <label for="inlineFormType" class="form-label fw-semibold">Activity Type</label>
-                                    <select id="inlineFormType" name="activity_type" class="form-control">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Activity Type</label>
+                                    <select name="activity_type" class="form-control">
                                         <option value="">All Types</option>
-                                        <option value="Training" {{ request('activity_type') == 'Training' ? 'selected' : '' }}>Training</option>
-                                        <option value="Workshop" {{ request('activity_type') == 'Workshop' ? 'selected' : '' }}>Workshop</option>
+                                        <option value="Training"   {{ request('activity_type') == 'Training'   ? 'selected' : '' }}>Training</option>
+                                        <option value="Workshop"   {{ request('activity_type') == 'Workshop'   ? 'selected' : '' }}>Workshop</option>
                                         <option value="Conference" {{ request('activity_type') == 'Conference' ? 'selected' : '' }}>Conference</option>
-                                        <option value="Seminar" {{ request('activity_type') == 'Seminar' ? 'selected' : '' }}>Seminar</option>
-                                        <option value="Meeting" {{ request('activity_type') == 'Meeting' ? 'selected' : '' }}>Meeting</option>
-                                        <option value="Event" {{ request('activity_type') == 'Event' ? 'selected' : '' }}>Event</option>
+                                        <option value="Seminar"    {{ request('activity_type') == 'Seminar'    ? 'selected' : '' }}>Seminar</option>
+                                        <option value="Meeting"    {{ request('activity_type') == 'Meeting'    ? 'selected' : '' }}>Meeting</option>
+                                        <option value="Event"      {{ request('activity_type') == 'Event'      ? 'selected' : '' }}>Event</option>
                                     </select>
                                 </div>
-
-                                {{-- Date Range --}}
-                                <div class="col-md-3">
-                                    <label for="inlineFormStartDate" class="form-label fw-semibold">Start Date From</label>
-                                    <input type="date" 
-                                           name="start_date_from" 
-                                           value="{{ request('start_date_from') }}"
-                                           class="form-control" 
-                                           id="inlineFormStartDate">
-                                </div>
-
-                                <div class="col-md-3">
-                                    <label for="inlineFormEndDate" class="form-label fw-semibold">End Date To</label>
-                                    <input type="date" 
-                                           name="end_date_to" 
-                                           value="{{ request('end_date_to') }}"
-                                           class="form-control" 
-                                           id="inlineFormEndDate">
-                                </div>
-
-                                {{-- Venue --}}
-                                <div class="col-md-3">
-                                    <label for="inlineFormVenue" class="form-label fw-semibold">Venue</label>
-                                    <input type="text" 
-                                           name="venue" 
-                                           value="{{ request('venue') }}"
-                                           class="form-control" 
-                                           id="inlineFormVenue"
-                                           placeholder="Search by venue">
-                                </div>
-
-                                {{-- Status --}}
-                                <div class="col-md-3">
-                                    <label for="inlineFormStatus" class="form-label fw-semibold">Status</label>
-                                    <select id="inlineFormStatus" name="status" class="form-control">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Status</label>
+                                    <select name="status" class="form-control">
                                         <option value="">All Statuses</option>
-                                        <option value="upcoming" {{ request('status') == 'upcoming' ? 'selected' : '' }}>Upcoming</option>
-                                        <option value="ongoing" {{ request('status') == 'ongoing' ? 'selected' : '' }}>Ongoing</option>
+                                        <option value="upcoming"  {{ request('status') == 'upcoming'  ? 'selected' : '' }}>Upcoming</option>
+                                        <option value="ongoing"   {{ request('status') == 'ongoing'   ? 'selected' : '' }}>Ongoing</option>
                                         <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Completed</option>
                                         <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                                     </select>
                                 </div>
-
-                                {{-- Action Buttons --}}
-                                <div class="col-12 mt-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Start Date From</label>
+                                    <input type="date" name="start_date_from" value="{{ request('start_date_from') }}"
+                                           class="form-control">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">End Date To</label>
+                                    <input type="date" name="end_date_to" value="{{ request('end_date_to') }}"
+                                           class="form-control">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Venue</label>
+                                    <input type="text" name="venue" value="{{ request('venue') }}"
+                                           class="form-control" placeholder="Search by venue">
+                                </div>
+                                <div class="col-12">
                                     <div class="d-flex gap-2">
                                         <button type="submit" class="btn btn-primary">
                                             <i class="bi bi-funnel me-1"></i>Apply Filters
                                         </button>
                                         <a href="{{ route('activities.index') }}" class="btn btn-outline-secondary">
-                                            <i class="bi bi-arrow-clockwise me-1"></i>Reset Filters
+                                            <i class="bi bi-arrow-clockwise me-1"></i>Reset
                                         </a>
                                     </div>
                                 </div>
                             </div>
                         </form>
-
-                    
-                       
                     </div>
                 </div>
             </div>
@@ -687,27 +657,13 @@
 @section('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-
-    // Filter collapse functionality
+    // Chevron toggle for filter collapse
     const filterCollapse = document.getElementById('filterCollapse');
-    const filterChevron = document.getElementById('filterChevron');
-    
+    const filterChevron  = document.getElementById('filterChevron');
     if (filterCollapse && filterChevron) {
-        filterCollapse.addEventListener('show.bs.collapse', function () {
-            filterChevron.classList.add('rotated');
-        });
-        
-        filterCollapse.addEventListener('hide.bs.collapse', function () {
-            filterChevron.classList.remove('rotated');
-        });
-        
-    
-       
+        filterCollapse.addEventListener('show.bs.collapse', () => filterChevron.style.transform = 'rotate(180deg)');
+        filterCollapse.addEventListener('hide.bs.collapse', () => filterChevron.style.transform = 'rotate(0deg)');
+        if (filterCollapse.classList.contains('show')) filterChevron.style.transform = 'rotate(180deg)';
     }
 
     // Auto-hide toasts after delay

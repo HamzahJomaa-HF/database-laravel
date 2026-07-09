@@ -52,13 +52,11 @@
                                 @enderror
                             </div>
                             
-                            <div class="mb-3 d-flex align-items-center gap-2">
-                                <div class="form-check form-switch mb-0">
-                                    <input class="form-check-input" type="checkbox" role="switch"
-                                           id="remember" name="remember" {{ old('remember') ? 'checked' : '' }}
-                                           style="width:2.5em;height:1.25em;cursor:pointer;">
-                                    <label class="form-check-label ms-1 user-select-none" for="remember"
-                                           style="font-size:.9rem;color:#495057;cursor:pointer;">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox"
+                                           id="remember" name="remember" {{ old('remember') ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="remember">
                                         Remember me
                                     </label>
                                 </div>

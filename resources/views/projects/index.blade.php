@@ -32,19 +32,19 @@
         
         
         
+        .filtering-bar-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
         .search-input-container {
             flex: 1;
             max-width: 400px;
             position: relative;
         }
-        .filtering-bar-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-}
+
         .search-input {
             width: 100%;
             padding: 0.625rem 2.5rem 0.625rem 1rem;
@@ -53,21 +53,27 @@
             font-size: 0.875rem;
             transition: all 0.2s;
         }
-        
+
         .search-input:focus {
             outline: none;
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
-        
-        .search-icon {
-            position: absolute;
-            right: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #9ca3af;
-            width: 1.25rem;
-            height: 1.25rem;
+
+        .filters-container {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            padding: 0.625rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            background-color: white;
+            color: #374151;
+            min-width: 150px;
         }
         
         .scrollable-grid {
@@ -325,22 +331,6 @@
             color: #dc2626;
         }
         
-        .filters-container {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-        
-        .filter-select {
-            padding: 0.625rem 1rem;
-            border: 1px solid var(--border-color);
-            border-radius: 0.375rem;
-            font-size: 0.875rem;
-            background-color: white;
-            color: #374151;
-            min-width: 150px;
-        }
-        
         .d-flex {
             display: flex;
         }
@@ -499,18 +489,17 @@
         <!-- Filtering Bar -->
         <div class="card mb-4">
             <div class="card-body">
-                <div class="filtering-bar-container">
-                    <div class="search-input-container">
-                        <input type="text" 
-                               class="search-input" 
-                               placeholder="Search by project name, external ID, or folder name..." 
-                               value="{{ request('search') }}"
-                               id="searchInput">
-                                    </div>
-                    
-                    <div class="filters-container">
-                       
-                        
+                <div class="filtering-bar-container" style="flex-direction: column; align-items: stretch;">
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <div class="search-input-container" style="flex: 1; min-width: 200px;">
+                            <input type="text"
+                                   class="search-input"
+                                   placeholder="Search by project name, external ID, or folder name..."
+                                   value="{{ request('search') }}"
+                                   id="searchInput">
+                        </div>
+                    </div>
+                    <div class="filters-container" style="margin-top: 0.5rem;">
                         <select class="filter-select" id="programFilter">
                             <option value="">All Programs</option>
                             @foreach($programs as $program)
@@ -519,7 +508,7 @@
                                 </option>
                             @endforeach
                         </select>
-                        
+
                         <select class="filter-select" id="parentProjectFilter">
                             <option value="">All Parent Projects</option>
                             @foreach($parentProjects as $parent)
@@ -528,7 +517,7 @@
                                 </option>
                             @endforeach
                         </select>
-                        
+
                         <button class="btn-outline" onclick="resetFilters()">
                             <i class="fas fa-redo"></i> Reset
                         </button>
@@ -733,6 +722,12 @@
         
         function resetFilters() {
             window.location.href = '{{ route("projects.index") }}';
+        }
+
+        function removeFilter(key) {
+            const params = new URLSearchParams(window.location.search);
+            params.delete(key);
+            window.location.href = '{{ route("projects.index") }}?' + params.toString();
         }
         
         function changePerPage(value) {

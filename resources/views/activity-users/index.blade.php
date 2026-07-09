@@ -694,6 +694,9 @@
         <a href="{{ route('activity-users.import.form') }}" style="background-color: white; color: #2563eb; border: 1px solid #2563eb; padding: 0.625rem 1.25rem; border-radius: 0.375rem; font-weight: 500; font-size: 0.875rem; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; margin-left: 0.75rem;">
             <i class="fas fa-file-import"></i> Import
         </a>
+        <button type="button" onclick="exportWithCurrentFilters()" style="background-color: white; color: #16a34a; border: 1px solid #16a34a; padding: 0.625rem 1.25rem; border-radius: 0.375rem; font-weight: 500; font-size: 0.875rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; margin-left: 0.75rem;">
+            <i class="fas fa-file-export"></i> Export
+        </button>
     </div>
 </div>
 
@@ -716,12 +719,20 @@
                         
                         <!-- Activity Search -->
                         <div class="search-input-container" style="flex: 1; min-width: 200px;">
-                            <input type="text" 
-                                   class="search-input" 
-                                   placeholder="Search activities..." 
+                            <input type="text"
+                                   class="search-input"
+                                   placeholder="Search activities..."
                                    value="{{ request('activity_search') }}"
                                    id="activitySearchInput">
-                            
+                        </div>
+
+                        <!-- Phone Number Search -->
+                        <div class="search-input-container" style="flex: 1; min-width: 180px;">
+                            <input type="text"
+                                   class="search-input"
+                                   placeholder="Search by phone..."
+                                   value="{{ request('phone_search') }}"
+                                   id="phoneSearchInput">
                         </div>
                     </div>
                     
@@ -1084,6 +1095,7 @@
         // Search functionality
         const userSearchInput = document.getElementById('userSearchInput');
         const activitySearchInput = document.getElementById('activitySearchInput');
+        const phoneSearchInput = document.getElementById('phoneSearchInput');
         const typeFilter = document.getElementById('typeFilter');
         const attendedFilter = document.getElementById('attendedFilter');
         const invitedFilter = document.getElementById('invitedFilter');
@@ -1100,7 +1112,11 @@
             if (activitySearchInput && activitySearchInput.value) {
                 params.set('activity_search', activitySearchInput.value);
             }
-            
+
+            if (phoneSearchInput && phoneSearchInput.value) {
+                params.set('phone_search', phoneSearchInput.value);
+            }
+
             if (typeFilter && typeFilter.value) {
                 params.set('type', typeFilter.value);
             }
@@ -1135,6 +1151,11 @@ if (venueFilter && venueFilter.value) {
         
         function resetFilters() {
             window.location.href = '{{ route("activity-users.index") }}';
+        }
+
+        function exportWithCurrentFilters() {
+            const params = new URLSearchParams(window.location.search);
+            window.location.href = '{{ route("activity-users.export") }}?' + params.toString();
         }
         
        function changePerPage(value) {
@@ -1194,7 +1215,11 @@ if (venueFilter && venueFilter.value) {
             if (activitySearchInput && urlParams.get('activity_search')) {
                 activitySearchInput.value = urlParams.get('activity_search');
             }
-            
+
+            if (phoneSearchInput && urlParams.get('phone_search')) {
+                phoneSearchInput.value = urlParams.get('phone_search');
+            }
+
             // Add event listeners for search and filters
             if (userSearchInput) {
                 userSearchInput.addEventListener('keyup', function(e) {
@@ -1209,7 +1234,14 @@ if (venueFilter && venueFilter.value) {
                     searchTimeout = setTimeout(applyFilters, 500);
                 });
             }
-            
+
+            if (phoneSearchInput) {
+                phoneSearchInput.addEventListener('keyup', function(e) {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(applyFilters, 500);
+                });
+            }
+
             if (typeFilter) {
                 typeFilter.addEventListener('change', applyFilters);
             }

@@ -18,6 +18,11 @@ class FinancialController extends Controller
      */
     public function index(Request $request)
     {
+        // Medical records have dedicated pages; redirect away from the generic filter view
+        if ($request->get('financial_type') === 'medical') {
+            return redirect()->route('financials.medical.medicine');
+        }
+
         $query = ActivityFinancial::with(['activity', 'user', 'cop'])
             ->orderBy('created_at', 'desc');
 
@@ -378,7 +383,7 @@ class FinancialController extends Controller
                 ]);
             }
 
-            return redirect()->route('financials.index')
+            return redirect()->back()
                 ->with('success', "{$count} financial record(s) deleted successfully!");
 
         } catch (\Exception $e) {
@@ -482,34 +487,32 @@ class FinancialController extends Controller
             ->whereNotNull('tx_date')
             ->groupBy('month')->orderBy('month')->get();
 
-        // ── OMT breakdown ───────────────────────────────────────────────────
-        $omtCostFields = ['operational_cost','personnel_cost','travel_cost','equipment_cost','supplies_cost','training_cost','communication_cost'];
-        $omtBreakdown = [];
-        foreach ($omtCostFields as $field) {
-            $omtBreakdown[$field] = (float) ActivityFinancial::where('financial_type','omt')
-                ->selectRaw("COALESCE(SUM((financial_data->>'$field')::numeric),0) as val")->value('val');
-        }
+        // ── OMT: dynamic numeric JSONB breakdown ────────────────────────────
+        $omtBreakdown = $this->getDynamicNumericBreakdown('omt', null);
 
-        // ── Medicine breakdown ──────────────────────────────────────────────
+        // ── OMT: total sent per activity ─────────────────────────────────────
+        $omtByActivity = ActivityFinancial::where('financial_type','omt')
+            ->join('activities', 'activity_financials.activity_id', '=', 'activities.activity_id')
+            ->selectRaw("activities.activity_title_en as activity, COUNT(*) as cnt, COALESCE(SUM(activity_financials.amount),0) as total")
+            ->groupBy('activities.activity_title_en')
+            ->orderByDesc('total')
+            ->get();
+
+        // ── Medicine: disease grouping + dynamic numeric JSONB fields ────────
         $medicineByDisease = ActivityFinancial::where('financial_type','medical')
             ->whereRaw("financial_data->>'medication_type' = 'medicine'")
             ->selectRaw("financial_data->>'disease_type' as disease, COUNT(*) as cnt, COALESCE(SUM(amount),0) as total")
             ->groupBy('disease')->orderByDesc('total')->limit(10)->get();
 
-        // ── Hospital breakdown ──────────────────────────────────────────────
+        $medicineCostBreakdown = $this->getDynamicNumericBreakdown('medical', 'medicine', ['disease_type','invoice_number']);
+
+        // ── Hospital: operation grouping + dynamic numeric JSONB fields ───────
         $hospitalByOperation = ActivityFinancial::where('financial_type','medical')
             ->whereRaw("financial_data->>'medication_type' = 'hospital'")
             ->selectRaw("financial_data->>'operation_type' as op, COUNT(*) as cnt, COALESCE(SUM(amount),0) as total")
             ->groupBy('op')->orderByDesc('total')->limit(10)->get();
 
-        // ── Education breakdown ─────────────────────────────────────────────
-        $educationByLevel = ActivityFinancial::where('financial_type','education')
-            ->selectRaw("financial_data->>'education_level' as level, COUNT(*) as cnt, COALESCE(SUM(amount),0) as total")
-            ->groupBy('level')->orderByDesc('total')->get();
-
-        $educationByInstitution = ActivityFinancial::where('financial_type','education')
-            ->selectRaw("financial_data->>'institution_name' as institution, COUNT(*) as cnt, COALESCE(SUM(amount),0) as total")
-            ->groupBy('institution')->orderByDesc('total')->limit(10)->get();
+        $hospitalCostBreakdown = $this->getDynamicNumericBreakdown('medical', 'hospital', ['operation_type']);
 
         // ── KPIs ────────────────────────────────────────────────────────────
         $kpis = [
@@ -520,14 +523,58 @@ class FinancialController extends Controller
             'overdue_total' => (float) ActivityFinancial::where('payment_status','overdue')->sum('amount'),
             'omt_total'     => (float) ($byType->get('omt')->total ?? 0),
             'medical_total' => (float) ($byType->get('medical')->total ?? 0),
-            'edu_total'     => (float) ($byType->get('education')->total ?? 0),
         ];
 
         return view('financials.visualization', compact(
             'page','kpis','byType','byStatus','monthly',
-            'omtBreakdown','medicineByDisease','hospitalByOperation',
-            'educationByLevel','educationByInstitution'
+            'omtBreakdown','omtByActivity',
+            'medicineByDisease','medicineCostBreakdown',
+            'hospitalByOperation','hospitalCostBreakdown'
         ));
+    }
+
+    private function getDynamicNumericBreakdown(string $financialType, ?string $medicationType, array $excludeKeys = ['medication_type']): array
+    {
+        try {
+            $bindings = [$financialType];
+            $medFilter = '';
+            if ($medicationType !== null) {
+                $medFilter = " AND financial_data->>'medication_type' = ?";
+                $bindings[] = $medicationType;
+            }
+
+            $keys = DB::select(
+                "SELECT DISTINCT jsonb_object_keys(financial_data) as key
+                 FROM activity_financials
+                 WHERE financial_type = ?" . $medFilter,
+                $bindings
+            );
+
+            $breakdown = [];
+            foreach ($keys as $row) {
+                $key = preg_replace('/[^a-z0-9_]/i', '', $row->key);
+                if (!$key || in_array($key, $excludeKeys)) continue;
+
+                $result = DB::select(
+                    "SELECT COALESCE(SUM(
+                        CASE WHEN (financial_data->>'$key') ~ '^-?[0-9]+(\.[0-9]+)?$'
+                        THEN (financial_data->>'$key')::numeric
+                        ELSE 0 END
+                    ), 0) as val
+                    FROM activity_financials
+                    WHERE financial_type = ?" . $medFilter,
+                    $bindings
+                );
+
+                $val = (float) ($result[0]->val ?? 0);
+                if ($val > 0) $breakdown[$key] = $val;
+            }
+
+            return $breakdown;
+        } catch (\Exception $e) {
+            Log::error('getDynamicNumericBreakdown error: ' . $e->getMessage());
+            return [];
+        }
     }
 
     /**

@@ -122,6 +122,14 @@ class ModuleAccessSeeder extends Seeder
                 'create' => 'Can create action plans',
                 'full' => 'Full access to action plans including bulk delete'
             ],
+            'Financials' => [
+                'view' => 'Can view financial records (OMT, medical)',
+                'create' => 'Can import financial records but cannot edit or delete',
+                'edit' => 'Can edit existing financial records but cannot create or delete',
+                'delete' => 'Can delete financial records but cannot create or edit',
+                'manage' => 'Can manage all financial operations including import and export',
+                'full' => 'Administrator level access with all permissions for financials',
+            ],
         ];
 
         $now = now();

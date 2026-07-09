@@ -124,6 +124,14 @@ class ActivityUserController extends Controller
             });
         }
 
+        // Phone number search
+        if ($request->filled('phone_search')) {
+            $phoneSearch = $request->phone_search;
+            $query->whereHas('user', function ($userQuery) use ($phoneSearch) {
+                $userQuery->where('phone_number', 'ilike', "%{$phoneSearch}%");
+            });
+        }
+
         // Handle pagination
         $perPage = $request->get('per_page', 20);
         $activityUsers = $query->paginate($perPage);
@@ -430,10 +438,9 @@ class ActivityUserController extends Controller
      */
     public function export(Request $request)
     {
-        // ... (keep your existing export method)
-        $query = ActivityUser::with(['user', 'activity', 'cop']);
+        $query = ActivityUser::with(['user', 'activity', 'cop'])
+            ->orderBy('created_at', 'desc');
 
-        // Apply filters if provided
         if ($request->filled('activity_id')) {
             $query->where('activity_id', $request->activity_id);
         }
@@ -456,6 +463,55 @@ class ActivityUserController extends Controller
 
         if ($request->has('attended') && $request->attended !== '') {
             $query->where('attended', $request->boolean('attended'));
+        }
+
+        if ($request->filled('venue')) {
+            $venue = $request->venue;
+            $query->whereHas('activity', function ($q) use ($venue) {
+                $q->where('venue', $venue);
+            });
+        }
+
+        if ($request->filled('start_date')) {
+            $startDate = $request->start_date;
+            $query->whereHas('activity', function ($q) use ($startDate) {
+                $q->whereDate('start_date', $startDate);
+            });
+        }
+
+        if ($request->filled('user_search')) {
+            $userSearch = $request->user_search;
+            $query->whereHas('user', function ($q) use ($userSearch) {
+                $q->where(function ($inner) use ($userSearch) {
+                    $inner->where('first_name', 'ilike', "%{$userSearch}%")
+                          ->orWhere('middle_name', 'ilike', "%{$userSearch}%")
+                          ->orWhere('last_name', 'ilike', "%{$userSearch}%")
+                          ->orWhere('email', 'ilike', "%{$userSearch}%")
+                          ->orWhere(DB::raw("CONCAT(first_name, ' ', last_name)"), 'ilike', "%{$userSearch}%")
+                          ->orWhere(DB::raw("CONCAT(first_name, ' ', middle_name, ' ', last_name)"), 'ilike', "%{$userSearch}%")
+                          ->orWhere('person_id', 'ilike', "%{$userSearch}%")
+                          ->orWhere('istimara_id', 'ilike', "%{$userSearch}%");
+                });
+            });
+        }
+
+        if ($request->filled('activity_search')) {
+            $activitySearch = $request->activity_search;
+            $query->whereHas('activity', function ($q) use ($activitySearch) {
+                $q->where(function ($inner) use ($activitySearch) {
+                    $inner->where('activity_title_en', 'ilike', "%{$activitySearch}%")
+                          ->orWhere('activity_title_ar', 'ilike', "%{$activitySearch}%")
+                          ->orWhere('activity_type', 'ilike', "%{$activitySearch}%")
+                          ->orWhere('venue', 'ilike', "%{$activitySearch}%");
+                });
+            });
+        }
+
+        if ($request->filled('phone_search')) {
+            $phoneSearch = $request->phone_search;
+            $query->whereHas('user', function ($q) use ($phoneSearch) {
+                $q->where('phone_number', 'ilike', "%{$phoneSearch}%");
+            });
         }
 
         $activityUsers = $query->get();
@@ -707,15 +763,16 @@ class ActivityUserController extends Controller
         $defaultUserType = $request->default_user_type;
         
         $results = [
-            'total' => 0,
-            'new_users' => 0,
-            'existing_users' => 0,
-            'already_assigned' => 0, 
-            'assigned' => 0,
-            'failed' => 0,
-            'duplicates' => 0,
-            'merged_users' => 0,
-            'errors' => []
+            'total'            => 0,
+            'new_users'        => 0,
+            'existing_users'   => 0,
+            'already_assigned' => 0,
+            'assigned'         => 0,
+            'failed'           => 0,
+            'duplicates'       => 0,
+            'merged_users'     => 0,
+            'errors'           => [],
+            'not_entered_names' => [],  // collects every name that did not enter the DB
         ];
         
         try {
@@ -742,70 +799,150 @@ class ActivityUserController extends Controller
                 throw new \Exception('Invalid file format');
             }
             
-            // Clean headers (remove * and trim)
+            // Clean headers: strip UTF-8 BOM (added by Excel/CSV tools to first column), *, and whitespace
             $headers = array_map(function($header) {
-                return trim(str_replace('*', '', $header));
+                return trim(str_replace(["\xEF\xBB\xBF", '*'], '', $header));
             }, $headers);
             
             Log::info('Import Headers', ['headers' => $headers]);
             
+            // ── Import start diagnostic ─────────────────────────────────────────
+            $importFile = $request->file('import_file');
+            Log::info('[IMPORT-START]', [
+                'activity_id'        => $activityId,
+                'file_name'          => $importFile->getClientOriginalName(),
+                'file_size_bytes'    => $importFile->getSize(),
+                'file_extension'     => $extension,
+                'php_memory_limit'   => ini_get('memory_limit'),
+                'php_upload_max'     => ini_get('upload_max_filesize'),
+                'php_post_max'       => ini_get('post_max_size'),
+                'php_max_exec'       => ini_get('max_execution_time'),
+                'headers_found'      => $headers,
+            ]);
+
             // Process in chunks to manage memory
             $chunkSize = 500;
             $chunkData = [];
             $rowNumber = 1; // Header is row 1
-            
+            $chunkNumber = 0;
+            $emptyRowsSkipped = 0;
+
             DB::beginTransaction();
-            
+
             while (($row = fgetcsv($handle)) !== false) {
                 $rowNumber++;
                 $results['total']++;
-                
+
                 // Skip empty rows
                 if (empty(array_filter($row))) {
+                    $emptyRowsSkipped++;
+                    Log::debug('[IMPORT-SKIP-EMPTY] Row ' . $rowNumber . ' is blank — skipped');
                     continue;
                 }
-                
+
                 // Pad row if needed
                 if (count($row) < count($headers)) {
+                    Log::warning('[IMPORT-ROW-SHORT] Row ' . $rowNumber . ' has ' . count($row) . ' columns, expected ' . count($headers) . ' — padded with empty strings');
                     $row = array_pad($row, count($headers), '');
                 }
-                
+
                 // Map row to associative array
                 $rowData = [];
                 foreach ($headers as $index => $header) {
                     $rowData[$header] = $row[$index] ?? '';
                 }
-                
+
                 $chunkData[] = $rowData;
-                
+
                 // Process chunk when it reaches the limit
                 if (count($chunkData) >= $chunkSize) {
-                    $this->processImportChunk($chunkData, $activityId, $copId, $invitedDefault, $attendedDefault, $defaultUserType, $results, $rowNumber - count($chunkData));
-                    $chunkData = []; // Clear chunk
-                    gc_collect_cycles(); // Force garbage collection
+                    $chunkNumber++;
+                    $chunkStart = $rowNumber - count($chunkData);
+                    Log::info('[IMPORT-CHUNK-START] Chunk #' . $chunkNumber . ' | rows ' . $chunkStart . '–' . ($chunkStart + count($chunkData) - 1) . ' | running totals so far: assigned=' . $results['assigned'] . ' already_assigned=' . $results['already_assigned'] . ' failed=' . $results['failed']);
+                    $this->processImportChunk($chunkData, $activityId, $copId, $invitedDefault, $attendedDefault, $defaultUserType, $results, $chunkStart);
+                    Log::info('[IMPORT-CHUNK-END]   Chunk #' . $chunkNumber . ' complete | assigned=' . $results['assigned'] . ' already_assigned=' . $results['already_assigned'] . ' failed=' . $results['failed'] . ' new_users=' . $results['new_users'] . ' existing=' . $results['existing_users']);
+                    $chunkData = [];
+                    gc_collect_cycles();
                 }
             }
-            
+
             // Process remaining rows
             if (!empty($chunkData)) {
-                $this->processImportChunk($chunkData, $activityId, $copId, $invitedDefault, $attendedDefault, $defaultUserType, $results, $rowNumber - count($chunkData));
+                $chunkNumber++;
+                $chunkStart = $rowNumber - count($chunkData);
+                Log::info('[IMPORT-CHUNK-START] Chunk #' . $chunkNumber . ' (final) | rows ' . $chunkStart . '–' . ($chunkStart + count($chunkData) - 1));
+                $this->processImportChunk($chunkData, $activityId, $copId, $invitedDefault, $attendedDefault, $defaultUserType, $results, $chunkStart);
+                Log::info('[IMPORT-CHUNK-END]   Chunk #' . $chunkNumber . ' (final) complete');
             }
-            
+
             fclose($handle);
-            
+
             // Clean up temp file if created
             if ($tempFile && file_exists($tempFile)) {
                 unlink($tempFile);
             }
-            
+
             DB::commit();
-            
+
+            // ── Import end summary ───────────────────────────────────────────────
+            $totalNotEntered = $results['already_assigned'] + $results['failed'];
+            Log::info('[IMPORT-SUMMARY]', [
+                'activity_id'       => $activityId,
+                'file_name'         => $importFile->getClientOriginalName(),
+                'total_rows_read'   => $results['total'],
+                'empty_skipped'     => $emptyRowsSkipped,
+                'assigned_new'      => $results['assigned'],
+                'already_assigned'  => $results['already_assigned'],
+                'failed'            => $results['failed'],
+                'total_not_entered' => $totalNotEntered,
+                'new_users_created' => $results['new_users'],
+                'existing_users'    => $results['existing_users'],
+                'merged_users'      => $results['merged_users'],
+                'first_20_errors'   => array_slice($results['errors'], 0, 20),
+            ]);
+
+            // ── End-of-import: full list of names that did NOT enter the DB ──────
+            if (!empty($results['not_entered_names'])) {
+                $lines   = [];
+                $lines[] = '';
+                $lines[] = '╔══════════════════════════════════════════════════════════════╗';
+                $lines[] = '  NAMES THAT DID NOT ENTER THE DATABASE';
+                $lines[] = '  File     : ' . $importFile->getClientOriginalName();
+                $lines[] = '  Activity : ' . $activityId;
+                $lines[] = '  Date     : ' . now()->format('Y-m-d H:i:s');
+                $lines[] = '  Total    : ' . $totalNotEntered . ' name(s) blocked';
+                $lines[] = '╚══════════════════════════════════════════════════════════════╝';
+                $lines[] = '';
+
+                foreach ($results['not_entered_names'] as $i => $entry) {
+                    $num     = str_pad($i + 1, 5, ' ', STR_PAD_LEFT);
+                    $name    = str_pad($entry['name'],      35);
+                    $pid     = 'person_id: ' . str_pad($entry['person_id'], 12);
+                    $phone   = 'phone: '     . str_pad($entry['phone'],     18);
+                    $reason  = 'reason: '    . $entry['reason'];
+                    $lines[] = $num . '.  ' . $name . ' | ' . $pid . ' | ' . $phone . ' | ' . $reason;
+                }
+
+                $lines[] = '';
+                $lines[] = '══════════════════════════════════════════════════════════════';
+                $lines[] = '  END OF NOT-ENTERED LIST  (' . $totalNotEntered . ' total)';
+                $lines[] = '══════════════════════════════════════════════════════════════';
+                $lines[] = '';
+
+                Log::warning('[IMPORT-NOT-ENTERED-LIST]' . PHP_EOL . implode(PHP_EOL, $lines));
+            } else {
+                Log::info('[IMPORT-NOT-ENTERED-LIST] All ' . $results['total'] . ' rows were successfully assigned — no blocked names.');
+            }
+
             // Build response message
             return $this->buildImportResponse($results);
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Import failed: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            Log::error('[IMPORT-FATAL] Import crashed: ' . $e->getMessage(), [
+                'activity_id' => $activityId ?? null,
+                'trace'       => $e->getTraceAsString(),
+            ]);
             
             // Clean up temp file if exists
             if (isset($tempFile) && $tempFile && file_exists($tempFile)) {
@@ -824,14 +961,14 @@ class ActivityUserController extends Controller
     private function processImportChunk($chunkData, $activityId, $copId, $invitedDefault, $attendedDefault, $defaultUserType, &$results, $startRow)
     {
         $importedUsersCache = [];
-        
+
         foreach ($chunkData as $index => $row) {
             $rowNumber = $startRow + $index + 1;
-            
+
             // Create a savepoint for each row to handle individual failures
             $savepoint = "row_" . uniqid();
             DB::statement("SAVEPOINT {$savepoint}");
-            
+
             try {
                 // Validate required fields
                 $requiredFields = ['first_name', 'last_name'];
@@ -841,77 +978,167 @@ class ActivityUserController extends Controller
                         $missingFields[] = $field;
                     }
                 }
-                
+
                 if (!empty($missingFields)) {
                     throw new \Exception("Missing required fields: " . implode(', ', $missingFields));
                 }
-                
+
                 // Validate name length
                 $firstName = trim($row['first_name']);
-                $lastName = trim($row['last_name']);
-                
+                $lastName  = trim($row['last_name']);
+
                 if (strlen($firstName) < 2 || strlen($lastName) < 2) {
-                    throw new \Exception("first_name and last_name must be at least 2 characters long");
+                    throw new \Exception("Name too short — first_name='{$firstName}' last_name='{$lastName}' (min 2 chars each)");
                 }
-                
+
                 // Parse attended value
                 $attendedValue = null;
                 if (isset($row['attended']) && !empty($row['attended'])) {
                     $attendedValue = $this->parseBoolean($row['attended']);
                 }
-                
+
                 // Parse type value
                 $activityUserType = null;
                 if (!empty($row['type'])) {
                     $activityUserType = ucfirst(strtolower(trim($row['type'])));
                     $allowedTypes = ['Stakeholder', 'Beneficiary'];
                     if (!in_array($activityUserType, $allowedTypes)) {
+                        Log::warning('[IMPORT-ROW-TYPE] Row ' . $rowNumber . " — invalid type '{$activityUserType}', falling back to default '{$defaultUserType}'");
                         $activityUserType = $defaultUserType;
                     }
                 } elseif ($defaultUserType) {
                     $activityUserType = $defaultUserType;
                 }
-                
+
                 // Prepare user data
                 $userData = $this->prepareUserData($row);
-                
-                // Find or create user
-                $user = $this->findOrCreateUserOptimized($userData, $results);
-                
+
+                // Find or create user — matchInfo explains HOW the user was resolved
+                $matchInfo = [];
+                $user = $this->findOrCreateUserOptimized($userData, $results, $matchInfo);
+
                 if (!$user) {
-                    throw new \Exception("Failed to process user");
+                    throw new \Exception("findOrCreateUserOptimized returned null unexpectedly");
                 }
-                
+
+                // Name-mismatch detection — must happen before the relationship check
+                // so we can recover from corrupted person_id data written by old buggy imports.
+                $csvName      = trim($firstName . ' ' . $lastName);
+                $dbName       = trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? ''));
+                $nameMismatch = (strtolower($csvName) !== strtolower($dbName));
+
+                // Corruption recovery: if we matched by person_id but the names differ,
+                // a previous import wrote person_id=X onto the wrong user (via name/istimara
+                // fallback). Strip that person_id from the wrong user and create a fresh one.
+                if ($nameMismatch
+                    && isset($matchInfo['matched_by'])
+                    && str_starts_with($matchInfo['matched_by'], 'person_id:')
+                    && $matchInfo['method'] !== 'cache'
+                ) {
+                    Log::error(
+                        '[IMPORT-CORRUPTION-RECOVERY] Row ' . $rowNumber
+                        . ' | CSV: "' . $csvName . '" person_id=' . ($userData['person_id'] ?? 'N/A')
+                        . ' | DB user_id=' . $user->user_id . ' has name "' . $dbName . '"'
+                        . ' | Stripping wrong person_id from DB user and creating correct new user'
+                    );
+
+                    // Remove the wrongly-attached person_id so it no longer blocks this person
+                    $user->person_id = null;
+                    $user->save();
+
+                    // Create the correct user (no person_id lookup will conflict now)
+                    $user = User::create($userData);
+                    $results['new_users']++;
+                    $matchInfo    = ['method' => 'corruption_recovery_created', 'matched_by' => null];
+                    $nameMismatch = false; // fresh user — no mismatch
+                    $dbName       = $csvName;
+                }
+
                 // Check if relationship already exists
                 $relationshipExists = ActivityUser::where('user_id', $user->user_id)
                     ->where('activity_id', $activityId)
                     ->exists();
-                
+
                 if (!$relationshipExists) {
                     ActivityUser::create([
                         'activity_user_id' => (string) Str::uuid(),
-                        'user_id' => $user->user_id,
-                        'activity_id' => $activityId,
-                        'cop_id' => $copId,
-                        'invited' => $invitedDefault,
-                        'attended' => $attendedDefault ?? $attendedValue,
-                        'type' => $activityUserType,
+                        'user_id'          => $user->user_id,
+                        'activity_id'      => $activityId,
+                        'cop_id'           => $copId,
+                        'invited'          => $invitedDefault,
+                        'attended'         => $attendedDefault ?? $attendedValue,
+                        'type'             => $activityUserType,
                     ]);
                     $results['assigned']++;
                 } else {
                     $results['already_assigned']++;
+
+                    if ($nameMismatch) {
+                        Log::error(
+                            '[IMPORT-NAME-MISMATCH] Row ' . $rowNumber
+                            . ' | CSV name: "' . $csvName . '"'
+                            . ' | DB name on matched user: "' . $dbName . '"'
+                            . ' | matched_by: ' . ($matchInfo['matched_by'] ?? 'unknown')
+                            . ' | user_id: ' . $user->user_id
+                            . ' | User is in activity but names differ — manual review needed'
+                        );
+                    }
+
+                    // ── Collect for end-of-import list ──────────────────────────
+                    $results['not_entered_names'][] = [
+                        'row'       => $rowNumber,
+                        'name'      => $csvName,
+                        'db_name'   => $dbName,
+                        'person_id' => $userData['person_id'] ?? 'N/A',
+                        'phone'     => ($userData['phone_number'] ?? 'Not Provided') !== 'Not Provided' ? $userData['phone_number'] : 'N/A',
+                        'reason'    => 'already assigned to this activity' . ($nameMismatch ? ' [NAME MISMATCH]' : ''),
+                    ];
+
+                    // ── Clean single-line log: name that did not enter ──────────
+                    Log::warning(
+                        '[IMPORT-NOT-ENTERED] Row ' . $rowNumber
+                        . ' | Name: "' . $csvName . '"'
+                        . ' | DB name: "' . $dbName . '"'
+                        . ' | person_id: '   . ($userData['person_id']   ?? 'N/A')
+                        . ' | istimara_id: ' . ($userData['istimara_id'] ?? 'N/A')
+                        . ' | phone: '       . ($userData['phone_number'] !== 'Not Provided' ? $userData['phone_number'] : 'N/A')
+                        . ' | Reason: already assigned to this activity'
+                        . ' | matched_by: '  . ($matchInfo['matched_by'] ?? 'unknown')
+                        . ($nameMismatch ? ' | *** NAME MISMATCH — manual review needed ***' : '')
+                    );
                 }
-                
+
                 // Release savepoint on success
                 DB::statement("RELEASE SAVEPOINT {$savepoint}");
-                
+
             } catch (\Exception $e) {
                 // Rollback this row only
                 DB::statement("ROLLBACK TO SAVEPOINT {$savepoint}");
-                
+
                 $results['failed']++;
                 $results['errors'][] = "Row {$rowNumber}: " . $e->getMessage();
-                Log::error("Import row {$rowNumber} failed: " . $e->getMessage());
+
+                $failedName = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
+                if ($failedName === '') {
+                    $failedName = '(name missing)';
+                }
+
+                // ── Collect for end-of-import list ──────────────────────────
+                $results['not_entered_names'][] = [
+                    'row'       => $rowNumber,
+                    'name'      => $failedName,
+                    'person_id' => $row['person_id'] ?? 'N/A',
+                    'phone'     => 'N/A',
+                    'reason'    => 'FAILED — ' . $e->getMessage(),
+                ];
+
+                // ── Clean single-line log: name that did not enter ──────────
+                Log::error(
+                    '[IMPORT-NOT-ENTERED] Row ' . $rowNumber
+                    . ' | Name: "' . $failedName . '"'
+                    . ' | person_id: ' . ($row['person_id'] ?? 'N/A')
+                    . ' | Reason: FAILED — ' . $e->getMessage()
+                );
             }
         }
     }
@@ -919,110 +1146,193 @@ class ActivityUserController extends Controller
     /**
      * Optimized find or create user with caching
      */
-    private function findOrCreateUserOptimized($userData, &$results)
+    private function findOrCreateUserOptimized($userData, &$results, &$matchInfo = [])
     {
         static $userCache = [];
-        
-        $cacheKey = strtolower(trim($userData['first_name'])) . '|' . 
-                    strtolower(trim($userData['last_name'])) . '|' .
-                    ($userData['email'] ?? '') . '|' .
-                    ($userData['phone_number'] ?? '');
-        
-        if (isset($userCache[$cacheKey])) {
+
+        // Build cache key from UNIQUE PERSONAL identifiers only.
+        // istimara_id is a Lebanese household/family register number shared by all family members
+        // — it must NEVER be used to identify a specific individual.
+        $identifierParts = [];
+        if (!empty($userData['person_id']))                                                    $identifierParts[] = 'pid:' . $userData['person_id'];
+        if (!empty($userData['email']))                                                        $identifierParts[] = 'em:'  . strtolower(trim($userData['email']));
+        if (!empty($userData['identification_id']))                                            $identifierParts[] = 'iid:' . $userData['identification_id'];
+        if (!empty($userData['passport_number']))                                              $identifierParts[] = 'pp:'  . $userData['passport_number'];
+        if (!empty($userData['phone_number']) && $userData['phone_number'] !== 'Not Provided') $identifierParts[] = 'ph:'  . $userData['phone_number'];
+
+        $cacheKey = !empty($identifierParts) ? implode('|', $identifierParts) : null;
+
+        if ($cacheKey && isset($userCache[$cacheKey])) {
+            $matchInfo = ['method' => 'cache', 'matched_by' => $cacheKey];
             return $userCache[$cacheKey];
         }
-        
-        // Try to find existing user by multiple criteria
-        $query = User::query();
-        
+
+        $user        = null;
+        $matchedBy   = null;
+        $matchStrength = null; // 'strong' | 'weak' — controls which fields we allow to overwrite
+
+        // Priority-based lookup: each identifier tried independently, stopping at first hit.
+        // Using orWhere causes cross-matches (e.g. row with person_id=X AND phone=Y finds a
+        // DIFFERENT user who has phone=Y, marks them as already-assigned, and then corrupts
+        // their person_id field — cascading into every future import run).
         if (!empty($userData['person_id'])) {
-            $query->orWhere('person_id', $userData['person_id']);
+            $user = User::where('person_id', $userData['person_id'])->first();
+            if ($user) { $matchedBy = 'person_id:' . $userData['person_id']; $matchStrength = 'strong'; }
         }
-        
-        if (!empty($userData['istimara_id'])) {
-            $query->orWhere('istimara_id', $userData['istimara_id']);
+
+        if (!$user && !empty($userData['email'])) {
+            $user = User::where('email', $userData['email'])->first();
+            if ($user) { $matchedBy = 'email:' . $userData['email']; $matchStrength = 'strong'; }
         }
-        
-        if (!empty($userData['email'])) {
-            $query->orWhere('email', $userData['email']);
+
+        if (!$user && !empty($userData['identification_id'])) {
+            $user = User::where('identification_id', $userData['identification_id'])->first();
+            if ($user) { $matchedBy = 'identification_id:' . $userData['identification_id']; $matchStrength = 'strong'; }
         }
-        
-        if (!empty($userData['identification_id'])) {
-            $query->orWhere('identification_id', $userData['identification_id']);
+
+        if (!$user && !empty($userData['passport_number'])) {
+            $user = User::where('passport_number', $userData['passport_number'])->first();
+            if ($user) { $matchedBy = 'passport_number:' . $userData['passport_number']; $matchStrength = 'strong'; }
         }
-        
-        if (!empty($userData['passport_number'])) {
-            $query->orWhere('passport_number', $userData['passport_number']);
+
+        if (!$user && !empty($userData['phone_number']) && $userData['phone_number'] !== 'Not Provided') {
+            $user = User::where('phone_number', $userData['phone_number'])->first();
+            if ($user) { $matchedBy = 'phone_number:' . $userData['phone_number']; $matchStrength = 'weak'; }
         }
-        
-        if (!empty($userData['phone_number']) && $userData['phone_number'] !== 'Not Provided') {
-            $query->orWhere('phone_number', $userData['phone_number']);
-        }
-        
-        // Also check by name combination
-        $user = $query->first();
-        
-        if (!$user) {
-            // Try by first_name and last_name only
+
+        if ($user) {
+            $matchInfo = ['method' => 'priority_lookup', 'matched_by' => $matchedBy];
+        } else {
+            if (empty($identifierParts)) {
+                Log::warning('[IMPORT-NO-IDENTIFIERS] Row has no unique identifiers — falling back to name-only lookup', [
+                    'first_name' => $userData['first_name'],
+                    'last_name'  => $userData['last_name'],
+                ]);
+            }
+
+            // Fallback: name-only match — same name ≠ same person, not cached, weak
             $user = User::where('first_name', $userData['first_name'])
                 ->where('last_name', $userData['last_name'])
                 ->first();
+
+            if ($user) {
+                $matchedBy     = "first_name='{$userData['first_name']}' last_name='{$userData['last_name']}'";
+                $matchStrength = 'weak';
+                $matchInfo     = ['method' => 'name_only_fallback', 'matched_by' => $matchedBy];
+                Log::warning('[IMPORT-NAME-ONLY-MATCH] Matched by name only — risk of wrong person', [
+                    'first_name'      => $userData['first_name'],
+                    'last_name'       => $userData['last_name'],
+                    'matched_user_id' => $user->user_id,
+                ]);
+            }
         }
-        
+
+        // Conflicting-identifier check for weak matches (phone, name fallback).
+        // If the CSV carries a strong identifier (person_id, email, id-card, passport) AND the
+        // DB user matched by phone/name has a DIFFERENT non-null value for that same field,
+        // they are different people who happen to share a name or phone number.
+        // Discard this match; the caller will create a new user instead.
+        if ($user && $matchStrength === 'weak') {
+            $conflicts = [];
+            if (!empty($userData['person_id'])        && !empty($user->person_id)        && $user->person_id        != $userData['person_id'])        $conflicts[] = 'person_id';
+            if (!empty($userData['email'])             && !empty($user->email)             && strtolower($user->email) != strtolower($userData['email'])) $conflicts[] = 'email';
+            if (!empty($userData['identification_id']) && !empty($user->identification_id) && $user->identification_id != $userData['identification_id']) $conflicts[] = 'identification_id';
+            if (!empty($userData['passport_number'])   && !empty($user->passport_number)   && $user->passport_number   != $userData['passport_number'])   $conflicts[] = 'passport_number';
+
+            if (!empty($conflicts)) {
+                Log::warning(
+                    '[IMPORT-WEAK-MATCH-DISCARDED] Discarding weak match — conflicting identifiers indicate different people'
+                    . ' | matched_by: ' . $matchedBy
+                    . ' | conflicts: '  . implode(', ', $conflicts)
+                    . ' | CSV person_id: ' . ($userData['person_id'] ?? 'N/A')
+                    . ' | DB user_id: ' . $user->user_id
+                    . ' | name: ' . ($userData['first_name'] ?? '') . ' ' . ($userData['last_name'] ?? '')
+                );
+                $user          = null;
+                $matchedBy     = null;
+                $matchStrength = null;
+                $matchInfo     = [];
+            }
+        }
+
         if ($user) {
-            // Update existing user with missing information
-            $updated = false;
-            
+            // Update existing user with any new information from file
+            $updated        = false;
+            $updatedFields  = [];
+
             $fieldsToUpdate = [
                 'phone_number', 'email', 'identification_id', 'passport_number',
                 'person_id', 'istimara_id', 'middle_name', 'mother_name', 'dob',
                 'gender', 'position_1', 'organization_1', 'organization_type_1',
-                'status_1', 'address', 'sector'
+                'status_1', 'address', 'sector',
             ];
-            
+
+            // Strong identifiers must never be written onto a user found by a weak match
+            // (phone, name). Doing so corrupts the DB so future imports find the wrong person.
+            $strongIdentifiers = ['person_id', 'email', 'identification_id', 'passport_number'];
+
             foreach ($fieldsToUpdate as $field) {
                 if (!empty($userData[$field]) && (empty($user->$field) || $user->$field === 'Not Specified' || $user->$field === 'Not Provided')) {
+                    // Skip writing a strong identifier onto a weakly-matched user
+                    if ($matchStrength === 'weak' && in_array($field, $strongIdentifiers)) {
+                        continue;
+                    }
+                    $updatedFields[$field] = ['from' => $user->$field, 'to' => $userData[$field]];
                     $user->$field = $userData[$field];
                     $updated = true;
                 }
             }
-            
+
             if ($updated) {
                 $user->save();
                 $results['merged_users']++;
-                Log::info("Updated existing user", ['user_id' => $user->user_id]);
+                Log::info('[IMPORT-USER-MERGED] Updated existing user fields', [
+                    'user_id'        => $user->user_id,
+                    'updated_fields' => $updatedFields,
+                ]);
             }
-            
+
             $results['existing_users']++;
-            $userCache[$cacheKey] = $user;
+            if ($cacheKey) {
+                $userCache[$cacheKey] = $user;
+            }
             return $user;
         }
-        
-        // Create new user
+
+        // No match — create new user
         $user = User::create($userData);
         $results['new_users']++;
-        
+        $matchInfo = ['method' => 'created_new', 'matched_by' => null];
+        Log::info('[IMPORT-USER-CREATED] New user created', [
+            'user_id'    => $user->user_id,
+            'first_name' => $user->first_name,
+            'last_name'  => $user->last_name,
+            'person_id'  => $user->person_id ?? null,
+        ]);
+
         // Handle nationality assignment
         if (!empty($userData['_nationality_id'])) {
             DB::table('users_nationality')->insert([
-                'user_id' => $user->user_id,
+                'user_id'        => $user->user_id,
                 'nationality_id' => $userData['_nationality_id'],
-                'created_at' => now(),
-                'updated_at' => now(),
+                'created_at'     => now(),
+                'updated_at'     => now(),
             ]);
         }
-        
+
         // Handle diploma assignment
         if (!empty($userData['_diploma_id'])) {
             DB::table('users_diploma')->insert([
-                'user_id' => $user->user_id,
+                'user_id'    => $user->user_id,
                 'diploma_id' => $userData['_diploma_id'],
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
         }
-        
-        $userCache[$cacheKey] = $user;
+
+        if ($cacheKey) {
+            $userCache[$cacheKey] = $user;
+        }
         return $user;
     }
     
@@ -1047,9 +1357,6 @@ class ActivityUserController extends Controller
         // Create temp CSV file
         $tempCsvFile = tempnam(sys_get_temp_dir(), 'import_') . '.csv';
         $handle = fopen($tempCsvFile, 'w');
-        
-        // Add UTF-8 BOM
-        fwrite($handle, "\xEF\xBB\xBF");
         
         // Get highest row and column
         $highestRow = min($worksheet->getHighestRow(), 50000); // Limit to 50,000 rows
@@ -1345,11 +1652,17 @@ class ActivityUserController extends Controller
         // Handle phone number
         $phoneNumber = $this->normalizePhone($row['phone_number'] ?? null);
         
-        // Handle date of birth
+        // Handle date of birth — Excel serial numbers (e.g. 30589) must be converted
         $dob = null;
         if (!empty($row['dob'])) {
             try {
-                $dob = \Carbon\Carbon::parse($row['dob'])->format('Y-m-d');
+                $dobRaw = trim($row['dob']);
+                if (is_numeric($dobRaw) && (int)$dobRaw > 0 && (int)$dobRaw < 200000) {
+                    // Excel date serial: days since 1899-12-30 (accounts for Excel's leap-year bug)
+                    $dob = \Carbon\Carbon::create(1899, 12, 30)->addDays((int)$dobRaw)->format('Y-m-d');
+                } else {
+                    $dob = \Carbon\Carbon::parse($dobRaw)->format('Y-m-d');
+                }
             } catch (\Exception $e) {
                 Log::warning("Invalid date format for dob: {$row['dob']}");
                 $dob = null;

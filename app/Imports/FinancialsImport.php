@@ -96,10 +96,24 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
                 }
             }
 
-            // Check if financial record exists for this activity and user
-            $existing = ActivityFinancial::where('activity_id', $this->activityId)
+            // Check if financial record exists for this activity, user, and exact type.
+            // For medical, match on medication_type so medicine and hospital records
+            // are kept separate. Legacy records with no medication_type in JSONB are
+            // also matched here so a re-import fixes them instead of creating duplicates.
+            $existingQuery = ActivityFinancial::where('activity_id', $this->activityId)
                 ->where('user_id', $user->user_id)
-                ->first();
+                ->where('financial_type', $this->financialType);
+
+            if ($this->financialType === 'medical' && !empty($financialData['medication_type'])) {
+                $existingQuery->where(function ($q) use ($financialData) {
+                    $q->whereRaw(
+                        "financial_data->>'medication_type' = ?",
+                        [$financialData['medication_type']]
+                    )->orWhereRaw("(financial_data->>'medication_type') IS NULL");
+                });
+            }
+
+            $existing = $existingQuery->first();
 
             if ($existing) {
                 // Check if the data is exactly the same
@@ -193,18 +207,15 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
                 if (str_contains($column, 'date') || $column === 'correction_date') {
                     $financialData[$column] = $this->parseDate($value);
                 } 
-                // Parse numeric values for financial fields (removed OMT cost fields)
+                // Parse numeric values for financial fields
                 elseif (in_array($column, [
-                    'amount', 'medicine_cost', 'assistance_cost_after_pharmacy_discount', 
-                    'discount_percentage', 'operation_cost', 'medical_assistance', 
-                    'residual_amount', 'covered_percentage', 'tuition_fees', 
-                    'scholarship_percentage', 'student_count', 'patient_count'
+                    'amount', 'medicine_cost', 'assistance_cost_after_pharmacy_discount',
+                    'discount_percentage', 'operation_cost', 'medical_assistance',
+                    'residual_amount', 'covered_percentage', 'tuition_fees',
+                    'scholarship_percentage', 'student_count', 'patient_count',
+                    'books_supplies', 'living_allowance', 'registration_fees',
                 ])) {
                     $financialData[$column] = $this->parseNumeric($value);
-                }
-                // Parse integer values
-                elseif (in_array($column, ['patient_count', 'student_count'])) {
-                    $financialData[$column] = $this->parseInteger($value);
                 }
                 else {
                     $financialData[$column] = $value;
@@ -212,30 +223,43 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
             }
         }
         
-        // For medical records, ensure medication_type is set
-        if ($this->financialType === 'medical' && empty($financialData['medication_type']) && !empty($row['medication_type'])) {
-            $financialData['medication_type'] = strtolower(trim($row['medication_type']));
-        }
-        
-        // Add OMT contact fields to financial_data if they exist in the row
-        if ($this->financialType === 'omt') {
-            if (!empty($row['sender_name'])) {
-                $financialData['sender_name'] = trim($row['sender_name']);
-            }
-            if (!empty($row['receiver_name'])) {
-                $financialData['receiver_name'] = trim($row['receiver_name']);
-            }
-            if (!empty($row['collector_name'])) {
-                $financialData['collector_name'] = trim($row['collector_name']);
-            }
-            if (!empty($row['omt_number'])) {
-                $financialData['omt_number'] = trim($row['omt_number']);
-            }
-            if (!empty($row['sender_number'])) {
-                $financialData['sender_number'] = trim($row['sender_number']);
-            }
-            if (!empty($row['correction_date'])) {
-                $financialData['correction_date'] = $this->parseDate($row['correction_date']);
+        // For medical records, resolve medication_type.
+        // The generic loop may have picked up any string from the CSV (including drug names
+        // like "Painkiller"), so we MUST validate the value is one of the two valid subtypes.
+        // If it is not, fall through to auto-detect from field presence.
+        if ($this->financialType === 'medical') {
+            $validSubtypes = ['hospital', 'medicine'];
+
+            // Grab whatever was captured (from generic loop or raw row)
+            $rawType = strtolower(trim($financialData['medication_type'] ?? $row['medication_type'] ?? ''));
+
+            if (in_array($rawType, $validSubtypes)) {
+                $financialData['medication_type'] = $rawType;
+            } else {
+                // Value is a drug name, blank, or otherwise invalid — auto-detect instead
+                unset($financialData['medication_type']);
+
+                $hospitalSignals = ['operation_type', 'operation_cost', 'medical_assistance',
+                                    'residual_amount', 'covered_percentage', 'other_assistance'];
+                $medicineSignals = ['disease_type', 'medicine_cost', 'invoice_number',
+                                    'assistance_cost_after_pharmacy_discount', 'discount_percentage'];
+
+                $hasHospital = false;
+                foreach ($hospitalSignals as $f) {
+                    if (!empty($row[$f])) { $hasHospital = true; break; }
+                }
+
+                $hasMedicine = false;
+                foreach ($medicineSignals as $f) {
+                    if (!empty($row[$f])) { $hasMedicine = true; break; }
+                }
+
+                if ($hasHospital && !$hasMedicine) {
+                    $financialData['medication_type'] = 'hospital';
+                } elseif ($hasMedicine) {
+                    $financialData['medication_type'] = 'medicine';
+                }
+                // if neither signals are present, leave medication_type unset
             }
         }
         

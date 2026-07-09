@@ -28,21 +28,22 @@
                 <form action="{{ route('financials.import') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     
-                    {{-- Activity Selection --}}
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Activity <span class="text-danger">*</span></label>
-                        <select name="activity_id" class="form-control" required>
-                            <option value="">-- Select Activity --</option>
-                            @foreach($activities as $activity)
-                                <option value="{{ $activity->activity_id }}">
-                                    {{ $activity->activity_title_en }} 
-                                    @if($activity->start_date)
-                                        ({{ date('d M Y', strtotime($activity->start_date)) }})
-                                    @endif
-                                </option>
-                            @endforeach
-                        </select>
-                        <small class="text-muted">Select the activity for these financial records</small>
+                    {{-- Activity Selection (Livewire Enhanced Search) --}}
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            Select Activity <span class="text-danger">*</span>
+                        </label>
+
+                        @livewire('activity-selector')
+
+                        @error('activity_id')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
+
+                        <div class="form-text mt-2">
+                            <i class="bi bi-search me-1"></i>
+                            Type to search by title, date, or venue
+                        </div>
                     </div>
                     
                     {{-- Financial Type Selection --}}

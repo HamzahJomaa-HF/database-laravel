@@ -17,30 +17,39 @@
     @auth('employee')
         @php
             $employee = auth()->guard('employee')->user();
-            // Load role with module accesses
-            if (!$employee->relationLoaded('role')) {
-                $employee->load('role.moduleAccesses');
-            }
+            $employee->load('role.moduleAccesses');
             $hasFullAccess = $employee->hasFullAccess();
-            
-            // Check specific module access with simpler logic
-            $canAccessUsers = $employee->hasPermission('Users') || $hasFullAccess;
-            $canAccessEmployees = $employee->hasPermission('Employees') || $hasFullAccess;
-            $canAccessRoles = $employee->hasPermission('Roles') || $hasFullAccess;
-            $canAccessPrograms = $employee->hasPermission('Programs') || $hasFullAccess;
-            $canAccessProjects = $employee->hasPermission('Projects') || $hasFullAccess;
-            $canAccessActivities = $employee->hasPermission('Activities') || $hasFullAccess;
-            $canAccessReports = $employee->hasPermission('Reports') || $hasFullAccess;
-            $canAccessDashboard = $employee->hasPermission('Dashboard') || $hasFullAccess;
-            $canAccessActionPlans = $employee->hasPermission('Reports') || $hasFullAccess;
-            $canAccessPortfolios = $employee->hasPermission('Portfolios') || $hasFullAccess;
-            $canAccessCOPs = $employee->hasPermission('COPs') || $hasFullAccess;
-            $canAccessModuleAccess = $hasFullAccess; // Only full access for module access
-            $canAccessActivityUsers = $employee->hasPermission('ActivityUsers') || $hasFullAccess;
-            $canAccessFinancials = $employee->hasPermission('Financials') || $hasFullAccess;
-            
-            // Helper function to check specific permission levels
-            $hasModulePermission = function($module, $level) use ($employee, $hasFullAccess) {
+
+            // Returns true only if at least one concrete access level is granted for the module.
+            // Using explicit level checks avoids the early-return in hasPermission(module, null)
+            // which can fire even when no boxes are checked.
+            $hasAny = function(string $module) use ($employee, $hasFullAccess): bool {
+                if ($hasFullAccess) return true;
+                foreach (['view', 'create', 'edit', 'delete', 'manage', 'full'] as $lvl) {
+                    if ($employee->hasPermission($module, $lvl)) return true;
+                }
+                return false;
+            };
+
+            $canAccessUsers        = $hasAny('Users');
+            $canAccessEmployees    = $hasAny('Employees');
+            $canAccessRoles        = $hasAny('Roles');
+            $canAccessPrograms     = $hasAny('Programs');
+            $canAccessProjects     = $hasAny('Projects');
+            $canAccessActivities   = $hasAny('Activities');
+            $canAccessReports      = $hasAny('Reports');
+            $canAccessDashboard    = $hasFullAccess || $canAccessUsers || $canAccessActivities
+                                     || $hasAny('Programs') || $hasAny('Financials')
+                                     || $hasAny('Employees') || $hasAny('ActivityUsers');
+            $canAccessActionPlans  = $hasAny('Reports');
+            $canAccessPortfolios   = $hasAny('Portfolios');
+            $canAccessCOPs         = $hasAny('COPs');
+            $canAccessModuleAccess = $hasFullAccess;
+            $canAccessActivityUsers = $hasAny('ActivityUsers');
+            $canAccessFinancials   = $hasAny('Financials');
+
+            // Sub-level shortcut (keeps inline @if conditions readable)
+            $can = function(string $module, string $level) use ($employee, $hasFullAccess): bool {
                 if ($hasFullAccess) return true;
                 return $employee->hasPermission($module, $level);
             };
@@ -74,16 +83,6 @@
             @endif
         @endauth
 
-        {{-- Analytics --}}
-        @auth('employee')
-            @if($hasFullAccess || $canAccessDashboard)
-            <li class="nav-item">
-                <a class="nav-link {{ request()->is('analytics') ? 'active' : '' }}" href="{{ route('analytics.index') }}">
-                    <i class="bi bi-graph-up-arrow me-2"></i> Analytics
-                </a>
-            </li>
-            @endif
-        @endauth
 
         {{-- Employees Directory --}}
         @auth('employee')
@@ -98,7 +97,7 @@
                 </a>
                 <div class="collapse {{ request()->is('employees*') ? 'show' : '' }}" id="employeesDirectoryCollapse">
                     <ul class="nav flex-column sub-menu ms-4">
-                        @if($hasFullAccess || $employee->hasPermission('Employees', 'view') || $employee->hasPermission('Employees', 'full'))
+                        @if($can('Employees', 'view') || $can('Employees', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('employees.index') ? 'active' : '' }}" 
                                href="{{ route('employees.index') }}">
@@ -107,7 +106,7 @@
                         </li>
                         @endif
                         
-                        @if($hasFullAccess || $employee->hasPermission('Employees', 'create') || $employee->hasPermission('Employees', 'full'))
+                        @if($can('Employees', 'create') || $can('Employees', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('employees.create') ? 'active' : '' }}" 
                                href="{{ route('employees.create') }}">
@@ -134,7 +133,7 @@
                 </a>
                 <div class="collapse {{ request()->is('roles*') ? 'show' : '' }}" id="rolesDirectoryCollapse">
                     <ul class="nav flex-column sub-menu ms-4">
-                        @if($hasFullAccess || $employee->hasPermission('Roles', 'view') || $employee->hasPermission('Roles', 'full'))
+                        @if($can('Roles', 'view') || $can('Roles', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('roles.index') ? 'active' : '' }}" 
                                href="{{ route('roles.index') }}">
@@ -143,7 +142,7 @@
                         </li>
                         @endif
                         
-                        @if($hasFullAccess || $employee->hasPermission('Roles', 'create') || $employee->hasPermission('Roles', 'full'))
+                        @if($can('Roles', 'create') || $can('Roles', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('roles.create') ? 'active' : '' }}" 
                                href="{{ route('roles.create') }}">
@@ -170,7 +169,7 @@
                 </a>
                 <div class="collapse {{ request()->is('users*') ? 'show' : '' }}" id="userDirectoryCollapse">
                     <ul class="nav flex-column sub-menu ms-4">
-                        @if($hasFullAccess || $employee->hasPermission('Users', 'view') || $employee->hasPermission('Users', 'full'))
+                        @if($can('Users', 'view') || $can('Users', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('users.index') ? 'active' : '' }}" 
                                href="{{ route('users.index') }}">
@@ -179,7 +178,7 @@
                         </li>
                         @endif
                         
-                        @if($hasFullAccess || $employee->hasPermission('Users', 'create') || $employee->hasPermission('Users', 'full'))
+                        @if($can('Users', 'create') || $can('Users', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('users.create') ? 'active' : '' }}" 
                                href="{{ route('users.create') }}">
@@ -188,7 +187,7 @@
                         </li>
                         @endif
                         
-                        @if($hasFullAccess || $employee->hasPermission('Users', 'view') || $employee->hasPermission('Users', 'full'))
+                        @if($can('Users', 'view') || $can('Users', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('users.statistics') ? 'active' : '' }}" 
                                href="{{ route('users.statistics') }}">
@@ -197,7 +196,7 @@
                         </li>
                         @endif
                         
-                        @if($hasFullAccess || $employee->hasPermission('Users', 'create') || $employee->hasPermission('Users', 'full'))
+                        @if($can('Users', 'create') || $can('Users', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('users.import.form') ? 'active' : '' }}" 
                                href="{{ route('users.import.form') }}">
@@ -206,7 +205,7 @@
                         </li>
                         @endif
                         
-                        @if($hasFullAccess || $employee->hasPermission('Users', 'view') || $employee->hasPermission('Users', 'full'))
+                        @if($can('Users', 'view') || $can('Users', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('users.export.excel') ? 'active' : '' }}" 
                                href="{{ route('users.export.excel') }}">
@@ -233,7 +232,7 @@
                 </a>
                 <div class="collapse {{ request()->is('programs*') ? 'show' : '' }}" id="programsDirectoryCollapse">
                     <ul class="nav flex-column sub-menu ms-4">
-                        @if($hasFullAccess || $employee->hasPermission('Programs', 'view') || $employee->hasPermission('Programs', 'full'))
+                        @if($can('Programs', 'view') || $can('Programs', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('programs.index') ? 'active' : '' }}" 
                                href="{{ route('programs.index') }}">
@@ -242,7 +241,7 @@
                         </li>
                         @endif
                         
-                        @if($hasFullAccess || $employee->hasPermission('Programs', 'create') || $employee->hasPermission('Programs', 'full'))
+                        @if($can('Programs', 'create') || $can('Programs', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('createCenter') ? 'active' : '' }}" 
                                href="{{ route('createCenter') }}">
@@ -251,7 +250,7 @@
                         </li>
                         @endif
                         
-                        @if($hasFullAccess || $employee->hasPermission('Programs', 'create') || $employee->hasPermission('Programs', 'full'))
+                        @if($can('Programs', 'create') || $can('Programs', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('create.flagshiplocal') ? 'active' : '' }}" 
                                href="{{ route('create.flagshiplocal') }}">
@@ -260,7 +259,7 @@
                         </li>
                         @endif
                         
-                        @if($hasFullAccess || $employee->hasPermission('Programs', 'create') || $employee->hasPermission('Programs', 'full'))
+                        @if($can('Programs', 'create') || $can('Programs', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('create.subprogram') ? 'active' : '' }}" 
                                href="{{ route('create.subprogram') }}">
@@ -287,7 +286,7 @@
                 </a>
                 <div class="collapse {{ request()->is('projects*') ? 'show' : '' }}" id="projectsDirectoryCollapse">
                     <ul class="nav flex-column sub-menu ms-4">
-                        @if($hasFullAccess || $employee->hasPermission('Projects', 'view') || $employee->hasPermission('Projects', 'full'))
+                        @if($can('Projects', 'view') || $can('Projects', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('projects.index') ? 'active' : '' }}" 
                                href="{{ route('projects.index') }}">
@@ -296,7 +295,7 @@
                         </li>
                         @endif
                         
-                        @if($hasFullAccess || $employee->hasPermission('Projects', 'create') || $employee->hasPermission('Projects', 'full'))
+                        @if($can('Projects', 'create') || $can('Projects', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('projects.create') ? 'active' : '' }}" 
                                href="{{ route('projects.create') }}">
@@ -323,7 +322,7 @@
                 </a>
                 <div class="collapse {{ request()->is('portfolios*') ? 'show' : '' }}" id="portfoliosDirectoryCollapse">
                     <ul class="nav flex-column sub-menu ms-4">
-                        @if($hasFullAccess || $employee->hasPermission('Portfolios', 'view') || $employee->hasPermission('Portfolios', 'full'))
+                        @if($can('Portfolios', 'view') || $can('Portfolios', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('portfolios.index') ? 'active' : '' }}" 
                                href="{{ route('portfolios.index') }}">
@@ -332,7 +331,7 @@
                         </li>
                         @endif
                         
-                        @if($hasFullAccess || $employee->hasPermission('Portfolios', 'create') || $employee->hasPermission('Portfolios', 'full'))
+                        @if($can('Portfolios', 'create') || $can('Portfolios', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('portfolios.create') ? 'active' : '' }}" 
                                href="{{ route('portfolios.create') }}">
@@ -359,7 +358,7 @@
                 </a>
                 <div class="collapse {{ request()->is('cops*') ? 'show' : '' }}" id="copsDirectoryCollapse">
                     <ul class="nav flex-column sub-menu ms-4">
-                        @if($hasFullAccess || $employee->hasPermission('COPs', 'view') || $employee->hasPermission('COPs', 'full'))
+                        @if($can('COPs', 'view') || $can('COPs', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('cops.index') ? 'active' : '' }}" 
                                href="{{ route('cops.index') }}">
@@ -368,7 +367,7 @@
                         </li>
                         @endif
                         
-                        @if($hasFullAccess || $employee->hasPermission('COPs', 'create') || $employee->hasPermission('COPs', 'full'))
+                        @if($can('COPs', 'create') || $can('COPs', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('cops.create') ? 'active' : '' }}" 
                                href="{{ route('cops.create') }}">
@@ -395,7 +394,7 @@
                 </a>
                 <div class="collapse {{ request()->is('activities*') ? 'show' : '' }}" id="activityDirectoryCollapse">
                     <ul class="nav flex-column sub-menu ms-4">
-                        @if($hasFullAccess || $employee->hasPermission('Activities', 'view') || $employee->hasPermission('Activities', 'full'))
+                        @if($can('Activities', 'view') || $can('Activities', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('activities.index') ? 'active' : '' }}" 
                                href="{{ route('activities.index') }}">
@@ -404,7 +403,7 @@
                         </li>
                         @endif
                         
-                        @if($hasFullAccess || $employee->hasPermission('Activities', 'create') || $employee->hasPermission('Activities', 'full'))
+                        @if($can('Activities', 'create') || $can('Activities', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('activities.create') ? 'active' : '' }}" 
                                href="{{ route('activities.create') }}">
@@ -413,7 +412,7 @@
                         </li>
                         @endif
                         
-                        @if($hasFullAccess || $employee->hasPermission('Activities', 'create') || $employee->hasPermission('Activities', 'full'))
+                        @if($can('Activities', 'create') || $can('Activities', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('activities.import') ? 'active' : '' }}" 
                                href="{{ route('activities.import') }}">
@@ -422,7 +421,7 @@
                         </li>
                         @endif
                         
-                        @if($hasFullAccess || $employee->hasPermission('Activities', 'view') || $employee->hasPermission('Activities', 'full'))
+                        @if($can('Activities', 'view') || $can('Activities', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('activities.export') ? 'active' : '' }}" 
                                href="{{ route('activities.export') }}">
@@ -449,7 +448,7 @@
                 </a>
                 <div class="collapse {{ request()->is('activity-users*') ? 'show' : '' }}" id="activityUserDirectoryCollapse">
                     <ul class="nav flex-column sub-menu ms-4">
-                        @if($hasFullAccess || $employee->hasPermission('ActivityUsers', 'view') || $employee->hasPermission('ActivityUsers', 'full'))
+                        @if($can('ActivityUsers', 'view') || $can('ActivityUsers', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('activity-users.index') ? 'active' : '' }}" 
                                href="{{ route('activity-users.index') }}">
@@ -458,7 +457,7 @@
                         </li>
                         @endif
                         
-                        @if($hasFullAccess || $employee->hasPermission('ActivityUsers', 'create') || $employee->hasPermission('ActivityUsers', 'full'))
+                        @if($can('ActivityUsers', 'create') || $can('ActivityUsers', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('activity-users.create') ? 'active' : '' }}" 
                                href="{{ route('activity-users.create') }}">
@@ -467,7 +466,7 @@
                         </li>
                         @endif
                         
-                        @if($hasFullAccess || $employee->hasPermission('ActivityUsers', 'create') || $employee->hasPermission('ActivityUsers', 'full'))
+                        @if($can('ActivityUsers', 'create') || $can('ActivityUsers', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('activity-users.import.form') ? 'active' : '' }}" 
                                href="{{ route('activity-users.import.form') }}">
@@ -476,11 +475,49 @@
                         </li>
                         @endif
                         
-                        @if($hasFullAccess || $employee->hasPermission('ActivityUsers', 'view') || $employee->hasPermission('ActivityUsers', 'full'))
+                        @if($can('ActivityUsers', 'view') || $can('ActivityUsers', 'full'))
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('activity-users.export') ? 'active' : '' }}" 
                                href="{{ route('activity-users.export') }}">
                                 <i class="bi bi-download me-2"></i> Export
+                            </a>
+                        </li>
+                        @endif
+                    </ul>
+                </div>
+            </li>
+            @endif
+        @endauth
+
+        {{-- Action Plans --}}
+        @auth('employee')
+            @if($hasFullAccess || $canAccessActionPlans || $canAccessReports)
+            <li class="nav-item">
+                <a class="nav-link d-flex justify-content-between align-items-center"
+                   data-bs-toggle="collapse" href="#actionPlansCollapse" role="button">
+                    <span>
+                        <i class="bi bi-file-earmark-spreadsheet me-2"></i> Action Plans
+                    </span>
+                    <i class="bi bi-chevron-down collapse-icon"></i>
+                </a>
+                <div class="collapse {{ request()->is('action-plans*') || request()->is('reporting*') ? 'show' : '' }}" id="actionPlansCollapse">
+                    <ul class="nav flex-column sub-menu ms-4">
+                        @if($can('Reports', 'create') || $can('Reports', 'full'))
+                        <div class="sub-header ms-2 mt-2">Excel Operations</div>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->is('reporting/import') ? 'active' : '' }}"
+                               href="{{ url('/reporting/import') }}">
+                                <i class="bi bi-upload me-2"></i> Import Excel File
+                            </a>
+                        </li>
+                        @endif
+
+                        @if($can('Reports', 'view') || $can('Reports', 'full'))
+                        <div class="sub-header ms-2 mt-2">Action Plans</div>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('action-plans.index') ? 'active' : '' }}"
+                               href="{{ route('action-plans.index') }}">
+                                <i class="bi bi-list-ul me-2"></i> All Action Plans
                             </a>
                         </li>
                         @endif
@@ -496,7 +533,7 @@
         @auth('employee')
             @if($hasFullAccess || $canAccessFinancials)
             <li class="nav-item">
-                <a class="nav-link d-flex justify-content-between align-items-center" 
+                <a class="nav-link d-flex justify-content-between align-items-center"
                    data-bs-toggle="collapse" href="#financialsCollapse" role="button">
                     <span>
                         <i class="bi bi-coin me-2"></i> Financials
@@ -505,30 +542,20 @@
                 </a>
                 <div class="collapse {{ request()->is('financials*') ? 'show' : '' }}" id="financialsCollapse">
                     <ul class="nav flex-column sub-menu ms-4">
-                        {{-- All Financials --}}
-                        @if($hasFullAccess || $employee->hasPermission('Financials', 'view') || $employee->hasPermission('Financials', 'full'))
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('financials.index') && !request()->get('financial_type') ? 'active' : '' }}" 
-                               href="{{ route('financials.index') }}">
-                                <i class="bi bi-list-ul me-2"></i> All Financials
-                            </a>
-                        </li>
-                        @endif
-                        
                         {{-- OMT Financials --}}
-                        @if($hasFullAccess || $employee->hasPermission('Financials', 'view') || $employee->hasPermission('Financials', 'full'))
+                        @if($can('Financials', 'view') || $can('Financials', 'full'))
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->get('financial_type') == 'omt' ? 'active' : '' }}" 
+                            <a class="nav-link {{ request()->get('financial_type') == 'omt' ? 'active' : '' }}"
                                href="{{ route('financials.index', ['financial_type' => 'omt']) }}">
                                 <i class="bi bi-graph-up me-2"></i> OMT Financials
                             </a>
                         </li>
                         @endif
-                        
+
                         {{-- Medical Financials with Sub-menu for Medicine & Hospital --}}
-@if($hasFullAccess || $employee->hasPermission('Financials', 'view') || $employee->hasPermission('Financials', 'full'))
+@if($can('Financials', 'view') || $can('Financials', 'full'))
 <li class="nav-item">
-    <a class="nav-link d-flex justify-content-between align-items-center" 
+    <a class="nav-link d-flex justify-content-between align-items-center"
        data-bs-toggle="collapse" href="#medicalSubmenuCollapse" role="button">
         <span>
             <i class="bi bi-heart-pulse me-2"></i> Medical Financials
@@ -537,25 +564,17 @@
     </a>
     <div class="collapse {{ request()->is('financials/medical*') ? 'show' : '' }}" id="medicalSubmenuCollapse">
         <ul class="nav flex-column sub-menu ms-4">
-            {{-- All Medical Records --}}
-            <li class="nav-item">
-                <a class="nav-link {{ request()->get('financial_type') == 'medical' && !request()->is('financials/medical*') ? 'active' : '' }}" 
-                   href="{{ route('financials.index', ['financial_type' => 'medical']) }}">
-                    <i class="bi bi-list-ul me-2"></i> All Medical Records
-                </a>
-            </li>
-            
             {{-- Medicine Records --}}
             <li class="nav-item">
-                <a class="nav-link {{ request()->is('financials/medical/medicine*') ? 'active' : '' }}" 
+                <a class="nav-link {{ request()->is('financials/medical/medicine*') ? 'active' : '' }}"
                    href="{{ route('financials.medical.medicine') }}">
                     <i class="bi bi-capsule me-2"></i> Medicine Records
                 </a>
             </li>
-            
+
             {{-- Hospital Records --}}
             <li class="nav-item">
-                <a class="nav-link {{ request()->is('financials/medical/hospital*') ? 'active' : '' }}" 
+                <a class="nav-link {{ request()->is('financials/medical/hospital*') ? 'active' : '' }}"
                    href="{{ route('financials.medical.hospital') }}">
                     <i class="bi bi-hospital me-2"></i> Hospital Records
                 </a>
@@ -564,72 +583,13 @@
     </div>
 </li>
 @endif
-                        
-                        {{-- Education Financials --}}
-                        @if($hasFullAccess || $employee->hasPermission('Financials', 'view') || $employee->hasPermission('Financials', 'full'))
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->get('financial_type') == 'education' ? 'active' : '' }}" 
-                               href="{{ route('financials.index', ['financial_type' => 'education']) }}">
-                                <i class="bi bi-book me-2"></i> Education Financials
-                            </a>
-                        </li>
-                        @endif
-                        
-                        {{-- Create Financial Record --}}
-                        @if($hasFullAccess || $employee->hasPermission('Financials', 'create') || $employee->hasPermission('Financials', 'full'))
-                        <div class="sub-header ms-2 mt-2">Operations</div>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('financials.create') ? 'active' : '' }}" 
-                               href="{{ route('financials.create') }}">
-                                <i class="bi bi-plus-circle me-2"></i> Add Financial Record
-                            </a>
-                        </li>
-                        @endif
-                        
+
                         {{-- Import Financials --}}
-                        @if($hasFullAccess || $employee->hasPermission('Financials', 'create') || $employee->hasPermission('Financials', 'full'))
+                        @if($can('Financials', 'create') || $can('Financials', 'full'))
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('financials.import.form') ? 'active' : '' }}" 
+                            <a class="nav-link {{ request()->routeIs('financials.import.form') ? 'active' : '' }}"
                                href="{{ route('financials.import.form') }}">
                                 <i class="bi bi-cloud-upload me-2"></i> Import Financials
-                            </a>
-                        </li>
-                        @endif
-                    </ul>
-                </div>
-            </li>
-            @endif
-        @endauth
-
-        {{-- Action Plans --}}
-        @auth('employee')
-            @if($hasFullAccess || $canAccessActionPlans || $canAccessReports)
-            <li class="nav-item">
-                <a class="nav-link d-flex justify-content-between align-items-center" 
-                   data-bs-toggle="collapse" href="#actionPlansCollapse" role="button">
-                    <span>
-                        <i class="bi bi-file-earmark-spreadsheet me-2"></i> Action Plans
-                    </span>
-                    <i class="bi bi-chevron-down collapse-icon"></i>
-                </a>
-                <div class="collapse {{ request()->is('action-plans*') || request()->is('reporting*') ? 'show' : '' }}" id="actionPlansCollapse">
-                    <ul class="nav flex-column sub-menu ms-4">
-                        @if($hasFullAccess || $employee->hasPermission('Reports', 'create') || $employee->hasPermission('Reports', 'full'))
-                        <div class="sub-header ms-2 mt-2">Excel Operations</div>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->is('reporting/import') ? 'active' : '' }}" 
-                               href="{{ url('/reporting/import') }}">
-                                <i class="bi bi-upload me-2"></i> Import Excel File
-                            </a>
-                        </li>
-                        @endif
-                        
-                        @if($hasFullAccess || $employee->hasPermission('Reports', 'view') || $employee->hasPermission('Reports', 'full'))
-                        <div class="sub-header ms-2 mt-2">Action Plans</div>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('action-plans.index') ? 'active' : '' }}" 
-                               href="{{ route('action-plans.index') }}">
-                                <i class="bi bi-list-ul me-2"></i> All Action Plans
                             </a>
                         </li>
                         @endif
