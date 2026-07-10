@@ -34,7 +34,10 @@ class UserController extends Controller
                 $q->where('first_name', 'ilike', "%$name%")
                   ->orWhere('middle_name', 'ilike', "%$name%")
                   ->orWhere('last_name', 'ilike', "%$name%")
-                  ->orWhere('mother_name', 'ilike', "%$name%");
+                  ->orWhere('mother_name', 'ilike', "%$name%")
+                  ->orWhere('original_name', 'ilike', "%$name%")
+                  ->orWhereRaw("CONCAT(first_name, ' ', last_name) ilike ?", ["%$name%"])
+                  ->orWhereRaw("CONCAT(first_name, ' ', middle_name, ' ', last_name) ilike ?", ["%$name%"]);
             });
         }
 
