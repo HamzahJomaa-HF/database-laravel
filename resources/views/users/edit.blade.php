@@ -204,54 +204,75 @@
                 @enderror
             </div>
 
-            {{-- Row 3: Identification Fields --}}
-            <div class="col-md-6">
+            {{-- Row 3: IDs --}}
+            <div class="col-md-3">
                 <label for="identification_id" class="form-label fw-semibold">Identification ID</label>
-                <input type="text" name="identification_id" id="identification_id" 
-                       class="form-control @error('identification_id') is-invalid @enderror" 
-                       value="{{ old('identification_id', $user->identification_id) }}" 
+                <input type="text" name="identification_id" id="identification_id"
+                       class="form-control @error('identification_id') is-invalid @enderror"
+                       value="{{ old('identification_id', $user->identification_id) }}"
                        placeholder="Identification ID">
                 @error('identification_id')
                     <div class="invalid-feedback d-block">{{ $message }}</div>
                 @enderror
             </div>
 
-            <div class="col-md-6">
+            <div class="col-md-3">
                 <label for="passport_number" class="form-label fw-semibold">Passport Number</label>
-                <input type="text" name="passport_number" id="passport_number" 
-                       class="form-control @error('passport_number') is-invalid @enderror" 
-                       value="{{ old('passport_number', $user->passport_number) }}" 
+                <input type="text" name="passport_number" id="passport_number"
+                       class="form-control @error('passport_number') is-invalid @enderror"
+                       value="{{ old('passport_number', $user->passport_number) }}"
                        placeholder="Passport Number">
                 @error('passport_number')
                     <div class="invalid-feedback d-block">{{ $message }}</div>
                 @enderror
             </div>
 
-            {{-- Row 4: Register Number and Place --}}
-            <div class="col-md-6">
+            <div class="col-md-3">
+                <label for="person_id" class="form-label fw-semibold">Person ID</label>
+                <input type="text" name="person_id" id="person_id"
+                       class="form-control @error('person_id') is-invalid @enderror"
+                       value="{{ old('person_id', $user->person_id) }}"
+                       placeholder="Person ID">
+                @error('person_id')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="col-md-3">
+                <label for="istimara_id" class="form-label fw-semibold">Istimara ID</label>
+                <input type="text" name="istimara_id" id="istimara_id"
+                       class="form-control @error('istimara_id') is-invalid @enderror"
+                       value="{{ old('istimara_id', $user->istimara_id) }}"
+                       placeholder="Istimara ID">
+                @error('istimara_id')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+            </div>
+
+            {{-- Row 4: Register + Marital --}}
+            <div class="col-md-3">
                 <label for="register_number" class="form-label fw-semibold">Register Number</label>
-                <input type="text" name="register_number" id="register_number" 
-                       class="form-control @error('register_number') is-invalid @enderror" 
-                       value="{{ old('register_number', $user->register_number) }}" 
+                <input type="text" name="register_number" id="register_number"
+                       class="form-control @error('register_number') is-invalid @enderror"
+                       value="{{ old('register_number', $user->register_number) }}"
                        placeholder="Register Number">
                 @error('register_number')
                     <div class="invalid-feedback d-block">{{ $message }}</div>
                 @enderror
             </div>
 
-            <div class="col-md-6">
+            <div class="col-md-3">
                 <label for="register_place" class="form-label fw-semibold">Register Place</label>
-                <input type="text" name="register_place" id="register_place" 
-                       class="form-control @error('register_place') is-invalid @enderror" 
-                       value="{{ old('register_place', $user->register_place) }}" 
+                <input type="text" name="register_place" id="register_place"
+                       class="form-control @error('register_place') is-invalid @enderror"
+                       value="{{ old('register_place', $user->register_place) }}"
                        placeholder="Register Place">
                 @error('register_place')
                     <div class="invalid-feedback d-block">{{ $message }}</div>
                 @enderror
             </div>
 
-            {{-- Row 5: Marital Status --}}
-            <div class="col-md-6">
+            <div class="col-md-3">
                 <label for="marital_status" class="form-label fw-semibold">Marital Status</label>
                 <select name="marital_status" id="marital_status" class="form-control form-select @error('marital_status') is-invalid @enderror">
                     <option value="">Select Marital Status</option>
