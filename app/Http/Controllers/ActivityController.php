@@ -87,7 +87,7 @@ class ActivityController extends Controller
         }
 
         // Get paginated results
-        $activities = $query->orderBy('start_date', 'desc')->paginate(20);
+        $activities = $query->orderBy('start_date', 'desc')->paginate(50);
 
         // Preserve query parameters for pagination links
         $activities->appends($request->all());
