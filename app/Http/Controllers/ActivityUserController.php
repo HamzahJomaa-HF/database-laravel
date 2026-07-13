@@ -514,10 +514,10 @@ class ActivityUserController extends Controller
             });
         }
 
-        $activityUsers = $query->get();
+        ini_set('memory_limit', '512M');
+        set_time_limit(300);
 
         $filename = 'activity-users-' . now()->format('Y-m-d-His') . '.csv';
-        $handle = fopen('php://output', 'w');
 
         header('Content-Type: text/csv');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
@@ -525,61 +525,53 @@ class ActivityUserController extends Controller
         header('Pragma: no-cache');
         header('Expires: 0');
 
-        // Add UTF-8 BOM for Excel compatibility
+        $handle = fopen('php://output', 'w');
+
+        // UTF-8 BOM for Excel
         fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
 
-        // Add headers
         fputcsv($handle, [
-            'ID',
-            'User Name',
-            'User Email',
-            'User Phone',
-            'User Person ID',
-            'User Istimara ID',
-            'User Type',
-            'Activity Title (EN)',
-            'Activity Title (AR)',
-            'Activity Type',
-            'Activity Date',
-            'Role/Type',
-            'Invited',
-            'Attended',
-            'COP',
-            'External ID',
-            'Created At'
+            'ID', 'User Name', 'User Email', 'User Phone',
+            'User Person ID', 'User Istimara ID', 'User Type',
+            'Activity Title (EN)', 'Activity Title (AR)', 'Activity Type',
+            'Activity Date', 'Role/Type', 'Invited', 'Attended',
+            'COP', 'External ID', 'Created At',
         ]);
 
-        // Add data rows
-        foreach ($activityUsers as $item) {
-            $userName = '';
-            if ($item->user) {
-                $userName = $item->user->first_name;
-                if ($item->user->middle_name) {
-                    $userName .= ' ' . $item->user->middle_name;
+        $query->chunk(500, function ($items) use ($handle) {
+            foreach ($items as $item) {
+                $userName = '';
+                if ($item->user) {
+                    $userName = $item->user->first_name;
+                    if ($item->user->middle_name) {
+                        $userName .= ' ' . $item->user->middle_name;
+                    }
+                    $userName .= ' ' . $item->user->last_name;
                 }
-                $userName .= ' ' . $item->user->last_name;
-            }
 
-            fputcsv($handle, [
-                $item->activity_user_id,
-                $userName,
-                $item->user ? $item->user->email : '',
-                $item->user ? $item->user->phone_number : '',
-                $item->user ? $item->user->person_id : '',
-                $item->user ? $item->user->istimara_id : '',
-                $item->type,
-                $item->activity ? $item->activity->activity_title_en : '',
-                $item->activity ? $item->activity->activity_title_ar : '',
-                $item->activity ? $item->activity->activity_type : '',
-                $item->activity ? $item->activity->start_date : '',
-                $item->type,
-                $item->invited ? 'Yes' : 'No',
-                $item->attended ? 'Yes' : 'No',
-                $item->cop ? $item->cop->cop_name : '',
-                $item->external_id,
-                $item->created_at ? $item->created_at->format('Y-m-d H:i:s') : '',
-            ]);
-        }
+                fputcsv($handle, [
+                    $item->activity_user_id,
+                    $userName,
+                    $item->user ? $item->user->email : '',
+                    $item->user ? $item->user->phone_number : '',
+                    $item->user ? $item->user->person_id : '',
+                    $item->user ? $item->user->istimara_id : '',
+                    $item->type,
+                    $item->activity ? $item->activity->activity_title_en : '',
+                    $item->activity ? $item->activity->activity_title_ar : '',
+                    $item->activity ? $item->activity->activity_type : '',
+                    $item->activity ? $item->activity->start_date : '',
+                    $item->type,
+                    $item->invited ? 'Yes' : 'No',
+                    $item->attended ? 'Yes' : 'No',
+                    $item->cop ? $item->cop->cop_name : '',
+                    $item->external_id,
+                    $item->created_at ? $item->created_at->format('Y-m-d H:i:s') : '',
+                ]);
+            }
+            ob_flush();
+            flush();
+        });
 
         fclose($handle);
         exit;
