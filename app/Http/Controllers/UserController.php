@@ -673,16 +673,19 @@ class UserController extends Controller
                 $query->whereDate('dob', '<=', $request->dob_to);
             }
 
-            $users = $query->with('defaultCop')->orderBy('last_name', 'asc')->get();
-            
+            $query->with('defaultCop')->orderBy('last_name', 'asc');
+
+            ini_set('memory_limit', '512M');
+            set_time_limit(300);
+
             $filename = 'users-export-' . now()->format('Y-m-d-H-i-s') . '.csv';
-            
+
             $headers = [
                 'Content-Type' => 'text/csv; charset=utf-8',
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"',
             ];
-            
-            $callback = function() use ($users) {
+
+            $callback = function() use ($query) {
                 $file = fopen('php://output', 'w');
                 
                 // Add BOM for UTF-8
@@ -741,63 +744,70 @@ class UserController extends Controller
                 ];
                 
                 fputcsv($file, $headers, ',');
-                
-                // Data rows
-                foreach ($users as $user) {
-                    $row = [
-                        // Required fields
-                        $user->user_id,
-                        $user->first_name ?? '',
-                        $user->last_name ?? '',
-                        $user->gender ?? '',
-                        $user->position_1 ?? '',
-                        $user->organization_1 ?? '',
-                        $user->organization_type_1 ?? '',
-                        $user->status_1 ?? '',
-                        $user->address ?? '',
-                        $user->phone_number ?? '',
-                        $user->is_high_profile ? 'Yes' : 'No',
-                        $user->scope ?? '',
-                        
-                        // Community of Practice
-                        $user->default_cop_id ?? '',
-                        $user->defaultCop ? $user->defaultCop->cop_name : '',
-                        
-                        // Other important optional fields
-                        $user->prefix ?? '',
-                        $user->sector ?? '',
-                        $user->middle_name ?? '',
-                        $user->dob ? $user->dob->format('Y-m-d') : '',
-                        $user->office_phone ?? '',
-                        $user->extension_number ?? '',
-                        $user->home_phone ?? '',
-                        $user->email ?? '',
-                        $user->position_2 ?? '',
-                        $user->organization_2 ?? '',
-                        $user->organization_type_2 ?? '',
-                        $user->status_2 ?? '',
-                        
-                        // Existing optional fields
-                        $user->mother_name ?? '',
-                        $user->identification_id ?? '',
-                        $user->passport_number ?? '',
-                        $user->register_number ?? '',
-                        $user->register_place ?? '',
-                        $user->marital_status ?? '',
-                        $user->employment_status ?? '',
-                        
-                        // person_id, istimara_id, original_name
-                        $user->person_id ?? '',
-                        $user->istimara_id ?? '',
-                        $user->original_name ?? '',
 
-                        $user->created_at->format('Y-m-d H:i:s'),
-                        $user->updated_at->format('Y-m-d H:i:s')
-                    ];
-                    
-                    fputcsv($file, $row, ',');
-                }
-                
+                // Data rows, streamed in chunks to avoid loading the whole result set into memory
+                $query->chunk(1000, function ($users) use ($file) {
+                    foreach ($users as $user) {
+                        $row = [
+                            // Required fields
+                            $user->user_id,
+                            $user->first_name ?? '',
+                            $user->last_name ?? '',
+                            $user->gender ?? '',
+                            $user->position_1 ?? '',
+                            $user->organization_1 ?? '',
+                            $user->organization_type_1 ?? '',
+                            $user->status_1 ?? '',
+                            $user->address ?? '',
+                            $user->phone_number ?? '',
+                            $user->is_high_profile ? 'Yes' : 'No',
+                            $user->scope ?? '',
+
+                            // Community of Practice
+                            $user->default_cop_id ?? '',
+                            $user->defaultCop ? $user->defaultCop->cop_name : '',
+
+                            // Other important optional fields
+                            $user->prefix ?? '',
+                            $user->sector ?? '',
+                            $user->middle_name ?? '',
+                            $user->dob ? $user->dob->format('Y-m-d') : '',
+                            $user->office_phone ?? '',
+                            $user->extension_number ?? '',
+                            $user->home_phone ?? '',
+                            $user->email ?? '',
+                            $user->position_2 ?? '',
+                            $user->organization_2 ?? '',
+                            $user->organization_type_2 ?? '',
+                            $user->status_2 ?? '',
+
+                            // Existing optional fields
+                            $user->mother_name ?? '',
+                            $user->identification_id ?? '',
+                            $user->passport_number ?? '',
+                            $user->register_number ?? '',
+                            $user->register_place ?? '',
+                            $user->marital_status ?? '',
+                            $user->employment_status ?? '',
+
+                            // person_id, istimara_id, original_name
+                            $user->person_id ?? '',
+                            $user->istimara_id ?? '',
+                            $user->original_name ?? '',
+
+                            $user->created_at->format('Y-m-d H:i:s'),
+                            $user->updated_at->format('Y-m-d H:i:s')
+                        ];
+
+                        fputcsv($file, $row, ',');
+                    }
+
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
+                    flush();
+                });
+
                 fclose($file);
             };
             
