@@ -476,15 +476,11 @@ class UserController extends Controller
             // Get today's registrations
             $todayRegistrations = User::whereDate('created_at', today())->count();
             
-            // Calculate average age
+            // Calculate average age (computed in the database, not hydrated into PHP memory)
             $avgAge = User::whereNotNull('dob')
-                ->get()
-                ->filter(function($user) {
-                    return $user->dob && $user->dob->age > 0;
-                })
-                ->avg(function($user) {
-                    return $user->dob->age;
-                });
+                ->where('dob', '<=', now())
+                ->selectRaw('AVG(EXTRACT(YEAR FROM AGE(CURRENT_DATE, dob))) as avg_age')
+                ->value('avg_age');
             $avgAge = $avgAge ? round($avgAge) : 0;
             
             // Get scope distribution counts
@@ -504,15 +500,6 @@ class UserController extends Controller
 
             $beneficiaryCount = $uniquePeopleByType['Beneficiary'] ?? 0;
             $stakeholderCount = $uniquePeopleByType['Stakeholder'] ?? 0;
-            
-            // Get CoP distribution with CoP names
-            $copDistribution = User::with('defaultCop')
-                ->whereNotNull('default_cop_id')
-                ->get()
-                ->groupBy('default_cop.cop_name')
-                ->map(function($group) {
-                    return $group->count();
-                });
             
             // Get distribution by CoP ID for raw data
             $copIdDistribution = User::groupBy('default_cop_id')
@@ -536,7 +523,6 @@ class UserController extends Controller
                 'regular_profile_count' => $regularProfileCount,
                 'beneficiary_count' => $beneficiaryCount,
                 'stakeholder_count' => $stakeholderCount,
-                'cop_distribution' => $copDistribution,
                 'cop_id_distribution' => $copIdDistribution,
                 
                 // Keep existing structure for other parts if needed
