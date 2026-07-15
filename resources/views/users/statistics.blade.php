@@ -107,58 +107,6 @@
 
     {{-- Charts Section --}}
     <div class="row mb-4">
-        {{-- Bar Chart: Last Month Registrations --}}
-        <div class="col-xl-8 mb-4">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-light border-bottom py-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0 fw-semibold">
-                            <i class="bi bi-calendar-week me-2 text-primary"></i>Last Month Registrations
-                        </h6>
-                        <div class="dropdown">
-                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                {{ now()->subMonth()->format('F Y') }}
-                            </button>
-                            <ul class="dropdown-menu">
-                                @for($i = 1; $i <= 6; $i++)
-                                    <li>
-                                        <a class="dropdown-item" href="#">
-                                            {{ now()->subMonths($i)->format('F Y') }}
-                                        </a>
-                                    </li>
-                                @endfor
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="chart-container" style="position: relative; height: 300px;">
-                        <canvas id="lastMonthChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- Doughnut Chart: Gender Distribution --}}
-        <div class="col-xl-4 mb-4">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-light border-bottom py-3">
-                    <h6 class="mb-0 fw-semibold">
-                        <i class="bi bi-gender-ambiguous me-2 text-primary"></i>Gender Distribution
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <div class="chart-container" style="position: relative; height: 250px;">
-                        <canvas id="genderDistributionChart"></canvas>
-                    </div>
-                    <div class="chart-legend mt-3" id="genderChartLegend"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {{-- Second Row Charts --}}
-    <div class="row mb-4">
         {{-- Doughnut Chart: User Type Distribution --}}
         <div class="col-xl-4 mb-4">
             <div class="card shadow-sm border-0">
@@ -355,25 +303,16 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Gender Distribution Data (Male & Female only)
-    const genderData = {
-        labels: ['Male', 'Female'],
-        datasets: [{
-            data: [{{ $stats['male_count'] ?? 60 }}, {{ $stats['female_count'] ?? 40 }}],
-            backgroundColor: [
-                '#4e73df', // Blue for Male
-                '#1cc88a'  // Green for Female
-            ],
-            borderWidth: 2,
-            borderColor: '#fff'
-        }]
-    };
-
     // User Type Distribution
+    // Real counts can be extremely skewed (e.g. 39,173 vs 23), which renders as an
+    // invisible sliver on a doughnut chart. We keep the true counts for the tooltip
+    // (via actualData) but floor the rendered slice so every non-zero type stays visible.
+    const userTypeActual = [{{ $stats['beneficiary_count'] ?? 0 }}, {{ $stats['stakeholder_count'] ?? 0 }}];
     const userTypeData = {
         labels: ['Beneficiary', 'Stakeholder'],
         datasets: [{
-            data: [{{ $stats['beneficiary_count'] ?? 60 }}, {{ $stats['stakeholder_count'] ?? 40 }}],
+            data: applyMinimumSlice(userTypeActual, 5),
+            actualData: userTypeActual,
             backgroundColor: [
                 '#1cc88a', // Green for Beneficiary
                 '#4e73df'  // Blue for Stakeholder
@@ -388,10 +327,10 @@ document.addEventListener('DOMContentLoaded', function() {
         labels: ['International', 'Regional', 'National', 'Local'],
         datasets: [{
             data: [
-                {{ $stats['scope_distribution']->where('scope', 'International')->first()->count ?? 0 }},
-                {{ $stats['scope_distribution']->where('scope', 'Regional')->first()->count ?? 0 }},
-                {{ $stats['scope_distribution']->where('scope', 'National')->first()->count ?? 0 }},
-                {{ $stats['scope_distribution']->where('scope', 'Local')->first()->count ?? 0 }}
+                {{ $stats['scope_distribution']->where('scope', 'International')->first()?->count ?? 0 }},
+                {{ $stats['scope_distribution']->where('scope', 'Regional')->first()?->count ?? 0 }},
+                {{ $stats['scope_distribution']->where('scope', 'National')->first()?->count ?? 0 }},
+                {{ $stats['scope_distribution']->where('scope', 'Local')->first()?->count ?? 0 }}
             ],
             backgroundColor: [
                 '#4e73df', // Blue for International
@@ -421,56 +360,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }]
     };
 
-    // Last Month Registrations
-    const lastMonthData = {
-        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-        datasets: [{
-            label: 'Beneficiary',
-            data: [12, 19, 15, 8],
-            backgroundColor: '#1cc88a',
-            borderColor: '#1cc88a',
-            borderWidth: 1
-        }, {
-            label: 'Stakeholder',
-            data: [8, 12, 10, 5],
-            backgroundColor: '#4e73df',
-            borderColor: '#4e73df',
-            borderWidth: 1
-        }]
-    };
-
-    // Create Bar Chart
-    function createBarChart(canvasId, data) {
-        const ctx = document.getElementById(canvasId);
-        if (!ctx) return null;
-        
-        return new Chart(ctx, {
-            type: 'bar',
-            data: data,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top'
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            drawBorder: false
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        }
-                    }
-                }
-            }
-        });
+    // Floors any non-zero value below minPercent of the total up to that minimum,
+    // so it still renders as a visible slice on a doughnut chart.
+    function applyMinimumSlice(rawValues, minPercent = 5) {
+        const total = rawValues.reduce((a, b) => a + b, 0);
+        if (total <= 0) return rawValues.slice();
+        const minValue = total * (minPercent / 100);
+        return rawValues.map(v => (v > 0 && v < minValue) ? minValue : v);
     }
 
     // Create Doughnut Chart
@@ -493,9 +389,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         callbacks: {
                             label: function(context) {
                                 const label = context.label || '';
-                                const value = context.raw || 0;
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = Math.round((value / total) * 100);
+                                const dataset = context.dataset;
+                                // Use real (unfloored) counts for the tooltip when available,
+                                // so a visually-boosted slice still reports its true count/percentage.
+                                const values = dataset.actualData || dataset.data;
+                                const value = values[context.dataIndex] || 0;
+                                const total = values.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
                                 return `${label}: ${value} (${percentage}%)`;
                             }
                         }
@@ -537,13 +437,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize all charts
     try {
-        const genderChart = createDoughnutChart('genderDistributionChart', genderData, 'genderChartLegend');
         const userTypeChart = createDoughnutChart('userTypeChart', userTypeData, 'userTypeChartLegend');
         const scopeChart = createDoughnutChart('scopeChart', scopeData, 'scopeChartLegend');
         const profileChart = createDoughnutChart('profileChart', profileData, 'profileChartLegend');
-        const lastMonthChart = createBarChart('lastMonthChart', lastMonthData);
-        
-        if (!genderChart || !userTypeChart || !scopeChart || !profileChart || !lastMonthChart) {
+
+        if (!userTypeChart || !scopeChart || !profileChart) {
             console.error('One or more charts failed to initialize');
         }
     } catch (error) {

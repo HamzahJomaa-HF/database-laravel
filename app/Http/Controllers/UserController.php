@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Diploma;
 use App\Models\Nationality;
 use App\Models\Cop;
+use App\Models\ActivityUser;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -494,6 +495,15 @@ class UserController extends Controller
             // Get high profile counts
             $highProfileCount = User::where('is_high_profile', true)->count();
             $regularProfileCount = User::where('is_high_profile', false)->count();
+
+            // Get unique (deduplicated) people counts per activity type, not raw activity_users rows
+            $uniquePeopleByType = ActivityUser::select('type', DB::raw('COUNT(DISTINCT user_id) as unique_count'))
+                ->whereIn('type', ['Beneficiary', 'Stakeholder'])
+                ->groupBy('type')
+                ->pluck('unique_count', 'type');
+
+            $beneficiaryCount = $uniquePeopleByType['Beneficiary'] ?? 0;
+            $stakeholderCount = $uniquePeopleByType['Stakeholder'] ?? 0;
             
             // Get CoP distribution with CoP names
             $copDistribution = User::with('defaultCop')
@@ -519,11 +529,13 @@ class UserController extends Controller
                 'female_count' => $femaleCount,
                 'today_registrations' => $todayRegistrations,
                 'avg_age' => $avgAge,
-                
+
                 // For charts data
                 'scope_distribution' => $scopeDistribution,
                 'high_profile_count' => $highProfileCount,
                 'regular_profile_count' => $regularProfileCount,
+                'beneficiary_count' => $beneficiaryCount,
+                'stakeholder_count' => $stakeholderCount,
                 'cop_distribution' => $copDistribution,
                 'cop_id_distribution' => $copIdDistribution,
                 
