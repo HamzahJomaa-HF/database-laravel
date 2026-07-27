@@ -113,6 +113,16 @@
                                     <input type="text" name="register_place" value="{{ request('register_place') }}"
                                            class="form-control" placeholder="Place of registration">
                                 </div>
+                                <div class="col-md-2">
+                                    <label class="form-label fw-semibold">Age From</label>
+                                    <input type="number" min="0" max="120" name="age_from" value="{{ request('age_from') }}"
+                                           class="form-control" placeholder="e.g. 25">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label fw-semibold">Age To</label>
+                                    <input type="number" min="0" max="120" name="age_to" value="{{ request('age_to') }}"
+                                           class="form-control" placeholder="e.g. 30">
+                                </div>
                                 <div class="col-12">
                                     <div class="d-flex gap-2">
                                         <button type="submit" class="btn btn-primary">
@@ -120,6 +130,9 @@
                                         </button>
                                         <a href="{{ route('users.index') }}" class="btn btn-outline-secondary">
                                             <i class="bi bi-arrow-clockwise me-1"></i>Reset
+                                        </a>
+                                        <a href="{{ route('users.export.excel', request()->query()) }}" class="btn btn-success ms-auto">
+                                            <i class="bi bi-download me-1"></i>Export {{ $hasSearch ? 'Filtered Results' : 'All Users' }}
                                         </a>
                                     </div>
                                 </div>
@@ -218,6 +231,7 @@
                                             @if($user->dob)
                                             <div class="mb-1">
                                                 <span class="text-muted">DOB:</span> {{ \Carbon\Carbon::parse($user->dob)->format('M d, Y') }}
+                                                <span class="text-muted">(Age: {{ \Carbon\Carbon::parse($user->dob)->age }})</span>
                                             </div>
                                             @endif
                                             @if($user->gender)

@@ -122,6 +122,22 @@ class UserController extends Controller
             $query->whereDate('dob', '<=', $request->dob_to);
         }
 
+        // NEW: Age-based filter (computed from dob) — pick an age or age range
+        if ($request->filled('age_from') || $request->filled('age_to')) {
+            $ageFrom = $request->filled('age_from') ? max(0, min(120, (int) $request->age_from)) : null;
+            $ageTo = $request->filled('age_to') ? max(0, min(120, (int) $request->age_to)) : $ageFrom;
+
+            if ($ageFrom !== null) {
+                if ($ageTo < $ageFrom) {
+                    [$ageFrom, $ageTo] = [$ageTo, $ageFrom];
+                }
+
+                $query->whereNotNull('dob')
+                    ->where('dob', '<=', now())
+                    ->whereRaw('EXTRACT(YEAR FROM AGE(CURRENT_DATE, dob)) BETWEEN ? AND ?', [$ageFrom, $ageTo]);
+            }
+        }
+
         // Eager load the default CoP relationship
         $users = $query->with('defaultCop')
             ->orderBy('last_name', 'asc')
@@ -133,7 +149,8 @@ class UserController extends Controller
             'name', 'gender', 'scope', 'default_cop_id', 'sector', 'is_high_profile',
             'organization_1', 'organization_type_1', 'position_1', 'phone_number', 'email',
             'marital_status', 'employment_status', 'type', 'dob_from', 'dob_to',
-            'register_place', 'person_id', 'istimara_id', 'original_name'
+            'register_place', 'person_id', 'istimara_id', 'original_name',
+            'age_from', 'age_to'
         ]);
 
         return view('users.index', compact('users', 'hasSearch'));
@@ -595,7 +612,10 @@ class UserController extends Controller
                     $q->where('first_name', 'ilike', "%$name%")
                       ->orWhere('middle_name', 'ilike', "%$name%")
                       ->orWhere('last_name', 'ilike', "%$name%")
-                      ->orWhere('mother_name', 'ilike', "%$name%");
+                      ->orWhere('mother_name', 'ilike', "%$name%")
+                      ->orWhere('original_name', 'ilike', "%$name%")
+                      ->orWhereRaw("CONCAT(first_name, ' ', last_name) ilike ?", ["%$name%"])
+                      ->orWhereRaw("CONCAT(first_name, ' ', middle_name, ' ', last_name) ilike ?", ["%$name%"]);
                 });
             }
 
@@ -635,6 +655,10 @@ class UserController extends Controller
                 $query->where('phone_number', 'like', "%{$request->phone_number}%");
             }
 
+            if ($request->filled('email')) {
+                $query->where('email', 'ilike', "%{$request->email}%");
+            }
+
             // ADDED register_place filter for export
             if ($request->filled('register_place')) {
                 $query->where('register_place', 'ilike', "%{$request->register_place}%");
@@ -663,12 +687,33 @@ class UserController extends Controller
                 $query->where('employment_status', $request->employment_status);
             }
 
+            if ($request->filled('type')) {
+                $query->where('type', $request->type);
+            }
+
             if ($request->filled('dob_from')) {
                 $query->whereDate('dob', '>=', $request->dob_from);
             }
 
             if ($request->filled('dob_to')) {
                 $query->whereDate('dob', '<=', $request->dob_to);
+            }
+
+            // Age-based filter (computed from dob) — must match the index() filter exactly
+            // so the exported CSV reflects the same filtered result set shown on screen.
+            if ($request->filled('age_from') || $request->filled('age_to')) {
+                $ageFrom = $request->filled('age_from') ? max(0, min(120, (int) $request->age_from)) : null;
+                $ageTo = $request->filled('age_to') ? max(0, min(120, (int) $request->age_to)) : $ageFrom;
+
+                if ($ageFrom !== null) {
+                    if ($ageTo < $ageFrom) {
+                        [$ageFrom, $ageTo] = [$ageTo, $ageFrom];
+                    }
+
+                    $query->whereNotNull('dob')
+                        ->where('dob', '<=', now())
+                        ->whereRaw('EXTRACT(YEAR FROM AGE(CURRENT_DATE, dob)) BETWEEN ? AND ?', [$ageFrom, $ageTo]);
+                }
             }
 
             $query->with('defaultCop')->orderBy('last_name', 'asc');
