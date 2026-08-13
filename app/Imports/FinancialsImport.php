@@ -329,9 +329,9 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
         }
 
         // Last resort before creating a new user: match on first_name + middle_name +
-        // last_name + phone_number (using whichever of these are present in the row).
+        // last_name + phone_number + dob (using whichever of these are present in the row).
         // This prevents duplicate user records when the CSV lacks a unique identifier
-        // but the person already exists in the users table under the same name/phone.
+        // but the person already exists in the users table under the same name/phone/dob.
         if (!empty($row['first_name']) && !empty($row['last_name'])) {
             $nameQuery = User::where('first_name', trim($row['first_name']))
                 ->where('last_name', trim($row['last_name']));
@@ -344,13 +344,19 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
                 $nameQuery->where('phone_number', trim($row['phone_number']));
             }
 
+            $parsedDob = !empty($row['dob']) ? $this->parseDate($row['dob']) : null;
+            if ($parsedDob) {
+                $nameQuery->whereDate('dob', $parsedDob);
+            }
+
             $user = $nameQuery->first();
             if ($user) {
-                Log::info("User found by first_name + middle_name + last_name + phone_number match", [
+                Log::info("User found by first_name + middle_name + last_name + phone_number + dob match", [
                     'first_name'  => $row['first_name'],
                     'middle_name' => $row['middle_name'] ?? null,
                     'last_name'   => $row['last_name'],
                     'phone_number' => $row['phone_number'] ?? null,
+                    'dob' => $parsedDob,
                     'matched_user_id' => $user->user_id,
                 ]);
                 $this->updateUser($user, $row);
@@ -442,7 +448,7 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
 
         // Handle scope
         if (!empty($row['scope'])) {
-            $scope = ucfirst(strtolower(trim($row['scope'])));
+            $scope = trim($row['scope']);
             if ($user->scope !== $scope) {
                 $user->scope = $scope;
                 $updated = true;
@@ -484,32 +490,17 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
 
         $isHighProfile = $this->normalizeBoolean($row['is_high_profile'] ?? false);
 
-        $scope = 'National';
-        if (!empty($row['scope'])) {
-            $scope = ucfirst(strtolower(trim($row['scope'])));
-            $allowed = ['International', 'Regional', 'National', 'Local'];
-            if (!in_array($scope, $allowed)) {
-                $scope = 'National';
-            }
-        }
-
-        $gender = 'Not Specified';
-        if (!empty($row['gender'])) {
-            $gender = ucfirst(strtolower(trim($row['gender'])));
-            $genderMap = ['m' => 'Male', 'male' => 'Male', 'f' => 'Female', 'female' => 'Female', 'other' => 'Other'];
-            $gender = $genderMap[strtolower($gender)] ?? 'Not Specified';
-        }
-
-        $orgType1 = 'Private Sector';
-        if (!empty($row['organization_type_1'])) {
-            $orgType1 = ucwords(strtolower(trim($row['organization_type_1'])));
-        }
-
-        $status1 = !empty($row['status_1']) ? trim($row['status_1']) : 'Active';
-        $address = !empty($row['address']) ? trim($row['address']) : 'Not Provided';
-        $phoneNumber = !empty($row['phone_number']) ? trim($row['phone_number']) : 'Not Provided';
-        $position1 = !empty($row['position_1']) ? trim($row['position_1']) : 'Not Specified';
-        $organization1 = !empty($row['organization_1']) ? trim($row['organization_1']) : 'Not Specified';
+        // Store exactly what the Excel cell contains (trimmed). These columns are
+        // NOT NULL in the DB with no default, so a blank cell becomes an empty
+        // string rather than a fabricated placeholder like "Not Specified".
+        $scope = trim($row['scope'] ?? '');
+        $gender = trim($row['gender'] ?? '');
+        $orgType1 = trim($row['organization_type_1'] ?? '');
+        $status1 = trim($row['status_1'] ?? '');
+        $address = trim($row['address'] ?? '');
+        $phoneNumber = trim($row['phone_number'] ?? '');
+        $position1 = trim($row['position_1'] ?? '');
+        $organization1 = trim($row['organization_1'] ?? '');
 
         $userData = [
             'first_name' => $firstName,
@@ -535,7 +526,7 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
         if (!empty($row['home_phone'])) $userData['home_phone'] = trim($row['home_phone']);
         if (!empty($row['position_2'])) $userData['position_2'] = trim($row['position_2']);
         if (!empty($row['organization_2'])) $userData['organization_2'] = trim($row['organization_2']);
-        if (!empty($row['organization_type_2'])) $userData['organization_type_2'] = ucwords(strtolower(trim($row['organization_type_2'])));
+        if (!empty($row['organization_type_2'])) $userData['organization_type_2'] = trim($row['organization_type_2']);
         if (!empty($row['status_2'])) $userData['status_2'] = trim($row['status_2']);
         if (!empty($row['sector'])) $userData['sector'] = trim($row['sector']);
         if (!empty($row['identification_id'])) $userData['identification_id'] = trim($row['identification_id']);
