@@ -1202,20 +1202,55 @@ class ActivityUserController extends Controller
                 ]);
             }
 
-            // Fallback: name-only match — same name ≠ same person, not cached, weak
-            $user = User::where('first_name', $userData['first_name'])
-                ->where('last_name', $userData['last_name'])
-                ->first();
+            // Fallback tier 1: stricter combined match — first_name + middle_name +
+            // last_name + phone_number, using whichever of middle_name/phone_number
+            // are actually present on this row. Tried before the plain name-only
+            // match so a precise combo hit is preferred over a bare name match.
+            if (!empty($userData['middle_name']) || (!empty($userData['phone_number']) && $userData['phone_number'] !== 'Not Provided')) {
+                $comboQuery = User::where('first_name', $userData['first_name'])
+                    ->where('last_name', $userData['last_name']);
 
-            if ($user) {
-                $matchedBy     = "first_name='{$userData['first_name']}' last_name='{$userData['last_name']}'";
-                $matchStrength = 'weak';
-                $matchInfo     = ['method' => 'name_only_fallback', 'matched_by' => $matchedBy];
-                Log::warning('[IMPORT-NAME-ONLY-MATCH] Matched by name only — risk of wrong person', [
-                    'first_name'      => $userData['first_name'],
-                    'last_name'       => $userData['last_name'],
-                    'matched_user_id' => $user->user_id,
-                ]);
+                if (!empty($userData['middle_name'])) {
+                    $comboQuery->where('middle_name', $userData['middle_name']);
+                }
+                if (!empty($userData['phone_number']) && $userData['phone_number'] !== 'Not Provided') {
+                    $comboQuery->where('phone_number', $userData['phone_number']);
+                }
+
+                $user = $comboQuery->first();
+
+                if ($user) {
+                    $matchedBy     = "first_name='{$userData['first_name']}' last_name='{$userData['last_name']}'"
+                        . (!empty($userData['middle_name']) ? " middle_name='{$userData['middle_name']}'" : '')
+                        . (!empty($userData['phone_number']) && $userData['phone_number'] !== 'Not Provided' ? " phone_number='{$userData['phone_number']}'" : '');
+                    $matchStrength = 'weak';
+                    $matchInfo     = ['method' => 'name_phone_combo_fallback', 'matched_by' => $matchedBy];
+                    Log::warning('[IMPORT-NAME-COMBO-MATCH] Matched by name + middle_name/phone combo', [
+                        'first_name'      => $userData['first_name'],
+                        'middle_name'     => $userData['middle_name'] ?? null,
+                        'last_name'       => $userData['last_name'],
+                        'phone_number'    => $userData['phone_number'] ?? null,
+                        'matched_user_id' => $user->user_id,
+                    ]);
+                }
+            }
+
+            // Fallback tier 2: name-only match — same name ≠ same person, not cached, weak
+            if (!$user) {
+                $user = User::where('first_name', $userData['first_name'])
+                    ->where('last_name', $userData['last_name'])
+                    ->first();
+
+                if ($user) {
+                    $matchedBy     = "first_name='{$userData['first_name']}' last_name='{$userData['last_name']}'";
+                    $matchStrength = 'weak';
+                    $matchInfo     = ['method' => 'name_only_fallback', 'matched_by' => $matchedBy];
+                    Log::warning('[IMPORT-NAME-ONLY-MATCH] Matched by name only — risk of wrong person', [
+                        'first_name'      => $userData['first_name'],
+                        'last_name'       => $userData['last_name'],
+                        'matched_user_id' => $user->user_id,
+                    ]);
+                }
             }
         }
 
@@ -1875,14 +1910,21 @@ class ActivityUserController extends Controller
     private function normalizePhone($phone)
     {
         if (empty($phone)) return null;
-        
+
         $phone = preg_replace('/[^\d+]/', '', $phone);
-        
+
+        // Jordan numbers must keep their 962 country code as-is — never let the
+        // Lebanese-prefix guessing below reinterpret them (Jordan's mobile prefixes
+        // like 79 collide with Lebanon's, so order matters: check 962 first).
+        if (preg_match('/^(\+|00)?962(\d{7,9})$/', $phone, $matches)) {
+            return '+962' . $matches[2];
+        }
+
         // Format Lebanese numbers
         if (preg_match('/^(03|70|71|76|78|79|81)(\d{6})$/', $phone, $matches)) {
             return '+961 ' . $matches[1] . ' ' . substr($matches[2], 0, 3) . ' ' . substr($matches[2], 3, 3);
         }
-        
+
         return $phone;
     }
 

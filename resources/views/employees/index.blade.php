@@ -548,6 +548,41 @@
         @endif
     </div>
 </div>
+
+{{-- TOAST NOTIFICATIONS --}}
+@if(session('success'))
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <div class="toast bg-success text-white border-0 fade show" role="alert">
+        <div class="d-flex align-items-center">
+            <div class="toast-body d-flex align-items-center">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <div>
+                    <strong>Success</strong>
+                    <div class="small">{{ session('success') }}</div>
+                </div>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+@endif
+
+@if(session('error'))
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <div class="toast bg-danger text-white border-0 fade show" role="alert">
+        <div class="d-flex align-items-center">
+            <div class="toast-body d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <div>
+                    <strong>Error</strong>
+                    <div class="small">{{ session('error') }}</div>
+                </div>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+@endif
 @endsection
 
 @section('scripts')

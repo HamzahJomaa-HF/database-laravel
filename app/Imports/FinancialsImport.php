@@ -328,6 +328,36 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
             }
         }
 
+        // Last resort before creating a new user: match on first_name + middle_name +
+        // last_name + phone_number (using whichever of these are present in the row).
+        // This prevents duplicate user records when the CSV lacks a unique identifier
+        // but the person already exists in the users table under the same name/phone.
+        if (!empty($row['first_name']) && !empty($row['last_name'])) {
+            $nameQuery = User::where('first_name', trim($row['first_name']))
+                ->where('last_name', trim($row['last_name']));
+
+            if (!empty($row['middle_name'])) {
+                $nameQuery->where('middle_name', trim($row['middle_name']));
+            }
+
+            if (!empty($row['phone_number'])) {
+                $nameQuery->where('phone_number', trim($row['phone_number']));
+            }
+
+            $user = $nameQuery->first();
+            if ($user) {
+                Log::info("User found by first_name + middle_name + last_name + phone_number match", [
+                    'first_name'  => $row['first_name'],
+                    'middle_name' => $row['middle_name'] ?? null,
+                    'last_name'   => $row['last_name'],
+                    'phone_number' => $row['phone_number'] ?? null,
+                    'matched_user_id' => $user->user_id,
+                ]);
+                $this->updateUser($user, $row);
+                return $user;
+            }
+        }
+
         // Check if we are allowed to create new users
         if (!$this->createNewUsers) {
             Log::info('User not found and createNewUsers is disabled');

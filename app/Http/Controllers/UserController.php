@@ -1194,13 +1194,19 @@ class UserController extends Controller
 
                     // istimara_id is a household register number — duplicates are expected and allowed
 
-                    // Check for duplicate by name/phone combination (optional but recommended) - only if phone is provided
+                    // Check for duplicate by first_name + middle_name + last_name + phone_number
+                    // combination (using whichever of middle_name/phone_number are provided)
                     if (!empty($cleanedData['phone_number']) && $cleanedData['phone_number'] !== 'Not Provided') {
-                        $existingUser = User::where('first_name', $cleanedData['first_name'])
+                        $duplicateQuery = User::where('first_name', $cleanedData['first_name'])
                             ->where('last_name', $cleanedData['last_name'])
-                            ->where('phone_number', $cleanedData['phone_number'])
-                            ->first();
-                            
+                            ->where('phone_number', $cleanedData['phone_number']);
+
+                        if (!empty($cleanedData['middle_name'])) {
+                            $duplicateQuery->where('middle_name', $cleanedData['middle_name']);
+                        }
+
+                        $existingUser = $duplicateQuery->first();
+
                         if ($existingUser) {
                             throw new \Exception("User already exists with same name and phone (ID: {$existingUser->user_id})");
                         }
@@ -1402,9 +1408,15 @@ class UserController extends Controller
                 $original = $cleanValue;
                 // Remove all non-numeric characters except +
                 $cleanValue = preg_replace('/[^\d+]/', '', $cleanValue);
-                
+
+                // Jordan numbers must keep their 962 country code as-is — never let the
+                // Lebanese-prefix guessing below reinterpret them (Jordan's mobile prefixes
+                // like 79 collide with Lebanon's, so order matters: check 962 first).
+                if (preg_match('/^(\+|00)?962(\d{7,9})$/', $cleanValue, $matches)) {
+                    $cleanValue = '+962' . $matches[2];
+                }
                 // Format Lebanese numbers
-                if (preg_match('/^(03|70|71|76|78|79|81)(\d{6})$/', $cleanValue, $matches)) {
+                elseif (preg_match('/^(03|70|71|76|78|79|81)(\d{6})$/', $cleanValue, $matches)) {
                     $cleanValue = '+961 ' . $matches[1] . ' ' . substr($matches[2], 0, 3) . ' ' . substr($matches[2], 3, 3);
                 } elseif (preg_match('/^\+?961(3|70|71|76|78|79|81)(\d{6})$/', $cleanValue, $matches)) {
                     $cleanValue = '+961 ' . $matches[1] . ' ' . substr($matches[2], 0, 3) . ' ' . substr($matches[2], 3, 3);

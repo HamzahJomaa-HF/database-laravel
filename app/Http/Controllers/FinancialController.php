@@ -487,9 +487,6 @@ class FinancialController extends Controller
             ->whereNotNull('tx_date')
             ->groupBy('month')->orderBy('month')->get();
 
-        // ── OMT: dynamic numeric JSONB breakdown ────────────────────────────
-        $omtBreakdown = $this->getDynamicNumericBreakdown('omt', null);
-
         // ── OMT: total sent per activity ─────────────────────────────────────
         $omtByActivity = ActivityFinancial::where('financial_type','omt')
             ->join('activities', 'activity_financials.activity_id', '=', 'activities.activity_id')
@@ -527,7 +524,7 @@ class FinancialController extends Controller
 
         return view('financials.visualization', compact(
             'page','kpis','byType','byStatus','monthly',
-            'omtBreakdown','omtByActivity',
+            'omtByActivity',
             'medicineByDisease','medicineCostBreakdown',
             'hospitalByOperation','hospitalCostBreakdown'
         ));

@@ -82,10 +82,6 @@
 
 @section('content')
 @php
-    // ── OMT breakdown ────────────────────────────────────
-    $omtLabels = array_map(fn($k) => ucwords(str_replace('_',' ',$k)), array_keys($omtBreakdown));
-    $omtVals   = array_values($omtBreakdown);
-
     // ── OMT per activity ─────────────────────────────────
     $omtActLabels  = $omtByActivity->pluck('activity')->map(fn($a)=>$a??'Unknown')->toArray();
     $omtActTotals  = $omtByActivity->pluck('total')->map(fn($v)=>(float)$v)->toArray();
@@ -145,33 +141,11 @@
 
         <div class="kpi-grid">
             <div class="kpi-card" style="border-color:#b45309;">
-                <div class="label">OMT Total</div>
+                <div class="label">OMT Total Sent</div>
                 <div class="value">${{ number_format($kpis['omt_total'],2) }}</div>
-                <div class="sub">{{ $byType->get('omt')->cnt ?? 0 }} records</div>
-            </div>
-            @forelse(array_slice($omtBreakdown, 0, 5, true) as $field => $val)
-            <div class="kpi-card" style="border-color:#f59e0b;">
-                <div class="label">{{ ucwords(str_replace('_',' ',$field)) }}</div>
-                <div class="value">${{ number_format($val,2) }}</div>
-            </div>
-            @empty
-            @endforelse
-        </div>
-
-        @if(count($omtLabels) > 0)
-        <div class="charts-grid">
-            <div class="chart-panel">
-                <div class="chart-title"><i class="fas fa-chart-pie"></i> Cost Category Breakdown</div>
-                <canvas id="chartOmtDonut" height="220"></canvas>
-            </div>
-            <div class="chart-panel">
-                <div class="chart-title"><i class="fas fa-chart-bar"></i> Cost Categories (Bar)</div>
-                <canvas id="chartOmtBar" height="220"></canvas>
+                <div class="sub">{{ $byType->get('omt')->cnt ?? 0 }} transactions</div>
             </div>
         </div>
-        @else
-        <p class="empty-note"><i class="fas fa-info-circle me-1"></i>No OMT financial data available yet.</p>
-        @endif
 
         @if(count($omtActLabels) > 0)
         <div class="sub-section-title">Amount Sent per Activity</div>
@@ -325,23 +299,6 @@ document.querySelectorAll('.ps-btn').forEach(btn => {
         document.getElementById('section-' + btn.dataset.target).classList.add('active');
     });
 });
-
-// ── OMT: dynamic JSONB cost breakdown ────────────────────────────────────
-@if(count($omtLabels) > 0)
-const omtLabels = @json($omtLabels);
-const omtVals   = @json($omtVals);
-const omtColors = palette(omtLabels.length);
-new Chart(document.getElementById('chartOmtDonut'), {
-    type:'doughnut',
-    data:{ labels:omtLabels, datasets:[{ data:omtVals, backgroundColor:omtColors, hoverOffset:6 }] },
-    options:{ ...donutDefaults, plugins:{ ...donutDefaults.plugins, tooltip:{callbacks:{label:ctx=>fmt(ctx.raw)}} } }
-});
-new Chart(document.getElementById('chartOmtBar'), {
-    type:'bar',
-    data:{ labels:omtLabels, datasets:[{ data:omtVals, backgroundColor:omtColors, borderRadius:6 }] },
-    options:{ ...barDefaults }
-});
-@endif
 
 // ── OMT: amount sent per activity ─────────────────────────────────────────
 @if(count($omtActLabels) > 0)

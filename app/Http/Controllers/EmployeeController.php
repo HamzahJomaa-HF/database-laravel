@@ -162,6 +162,7 @@ class EmployeeController extends Controller
             // CHANGE: project_ids as array for multiple projects
             'project_ids' => 'nullable|array',
             'project_ids.*' => 'exists:projects,project_id',
+            'password' => 'nullable|string|min:8|confirmed',
         ]);
 
         if ($validator->fails()) {
@@ -182,6 +183,20 @@ class EmployeeController extends Controller
             'end_date' => $request->end_date,
             'role_id' => $request->role_id,
         ]);
+
+        // Update password if a new one was provided
+        if ($request->filled('password')) {
+            if ($employee->credentials) {
+                $employee->credentials->update([
+                    'password_hash' => Hash::make($request->password),
+                ]);
+            } else {
+                $employee->credentials()->create([
+                    'password_hash' => Hash::make($request->password),
+                    'is_active' => true,
+                ]);
+            }
+        }
 
         // SYNC PROJECT ASSOCIATIONS (Add/Remove multiple projects)
         if ($request->has('project_ids')) {

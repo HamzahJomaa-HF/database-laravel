@@ -436,16 +436,22 @@
                 <a href="{{ route('employees.index') }}" class="btn btn-outline-primary">
                     <i class="fas fa-times"></i> Cancel
                 </a>
-                @if($employee->is_active)
+                @if($employee->isActive())
                     <form action="{{ route('employees.deactivate', $employee->employee_id) }}" method="POST" class="d-inline" id="deactivateForm">
                         @csrf
-                        @method('PATCH')
+                        @method('PUT')
                         <button type="submit" class="btn btn-warning" onclick="return confirmDeactivate()">
                             <i class="fas fa-user-slash"></i> Deactivate
                         </button>
                     </form>
                 @else
-                   
+                    <form action="{{ route('employees.activate', $employee->employee_id) }}" method="POST" class="d-inline" id="activateForm">
+                        @csrf
+                        @method('PUT')
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-user-check"></i> Activate
+                        </button>
+                    </form>
                 @endif
                 <button type="submit" form="editEmployeeForm" class="btn btn-primary">
                     <i class="fas fa-save"></i> Update
