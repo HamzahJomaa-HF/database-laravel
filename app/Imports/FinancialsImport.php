@@ -554,14 +554,43 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
     private function parseDate($date)
     {
         if (empty($date)) return null;
+
         try {
-            $formats = ['Y-m-d', 'm/d/Y', 'm/d/y', 'd/m/Y', 'd/m/y'];
-            foreach ($formats as $format) {
-                $parsed = Carbon::createFromFormat($format, trim($date));
-                if ($parsed) return $parsed->format('Y-m-d');
+            // Excel stores date-formatted cells as a serial day-count number
+            // (e.g. 45312), not a string — convert those directly.
+            if (is_numeric($date)) {
+                return Carbon::create(1899, 12, 30)->addDays((int) $date)->format('Y-m-d');
             }
-            return Carbon::parse(trim($date))->format('Y-m-d');
+
+            $date = trim($date);
+
+            // ISO format — unambiguous, validated so an impossible date (e.g. month 13)
+            // never gets silently accepted.
+            if (preg_match('/^(\d{4})-(\d{1,2})-(\d{1,2})$/', $date, $m) && checkdate((int) $m[2], (int) $m[3], (int) $m[1])) {
+                return sprintf('%04d-%02d-%02d', $m[1], $m[2], $m[3]);
+            }
+
+            // Slash/dash separated numeric dates. d/m/Y (day-first, the regional
+            // convention here) is tried before the US m/d/Y convention, and both are
+            // validated with checkdate() — Carbon's createFromFormat() does NOT reject
+            // an out-of-range guess like month=15, it silently overflows into the wrong
+            // date instead of failing, so we can't rely on it to disambiguate safely.
+            if (preg_match('#^(\d{1,2})[/\-](\d{1,2})[/\-](\d{2,4})$#', $date, $m)) {
+                [$a, $b, $y] = [(int) $m[1], (int) $m[2], (int) $m[3]];
+                if ($y < 100) $y += $y < 70 ? 2000 : 1900;
+
+                if (checkdate($b, $a, $y)) {
+                    return sprintf('%04d-%02d-%02d', $y, $b, $a); // d/m/Y
+                }
+                if (checkdate($a, $b, $y)) {
+                    return sprintf('%04d-%02d-%02d', $y, $a, $b); // fallback: m/d/Y
+                }
+            }
+
+            // Anything else (e.g. "January 15, 2024") — let Carbon's free-form parser try.
+            return Carbon::parse($date)->format('Y-m-d');
         } catch (\Exception $e) {
+            Log::warning("[IMPORT-DATE-UNPARSEABLE] Could not parse tx_date value: '{$date}'");
             return null;
         }
     }
@@ -571,12 +600,21 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
         if (empty($status)) return 'pending';
         $status = strtolower(trim($status));
         $mapping = [
-            'paid' => 'paid', 'pay' => 'paid',
-            'pending' => 'pending', 'pend' => 'pending',
-            'partial' => 'partial', 'part' => 'partial',
-            'overdue' => 'overdue', 'over' => 'overdue', 'late' => 'overdue'
+            'paid' => 'paid', 'pay' => 'paid', 'complete' => 'paid', 'completed' => 'paid',
+            'pending' => 'pending', 'pend' => 'pending', 'unpaid' => 'pending', 'not paid' => 'pending',
+            'partial' => 'partial', 'part' => 'partial', 'partially paid' => 'partial',
+            'overdue' => 'overdue', 'over' => 'overdue', 'late' => 'overdue',
         ];
-        return $mapping[$status] ?? 'pending';
+
+        if (isset($mapping[$status])) {
+            return $mapping[$status];
+        }
+
+        // Value doesn't match a known synonym — store exactly what the cell contains
+        // (the column is a free-text string, not a DB enum) instead of silently
+        // relabeling it as 'pending', which would misrepresent the imported data.
+        Log::warning("[IMPORT-PAYMENT-STATUS-UNRECOGNIZED] Using raw cell value as-is: '{$status}'");
+        return $status;
     }
 
     private function normalizeBoolean($value)

@@ -999,78 +999,57 @@ class UserController extends Controller
                 throw new \Exception('Cannot open file');
             }
 
-            // Skip header row
+            // Read the header row and map each expected field to whichever column
+            // carries that name — NEVER by fixed position. A CSV/Excel export can
+            // easily end up with reordered, missing, or extra columns, and matching
+            // by position would silently shuffle values into the wrong fields.
             $header = fgetcsv($handle);
-            
-            // Expected number of columns (38 with original_name)
-            $expectedColumns = 38;
-            
+            if (!$header) {
+                throw new \Exception('File is empty or missing a header row');
+            }
+
+            $headerIndex = [];
+            foreach ($header as $idx => $col) {
+                $headerIndex[$this->normalizeHeaderName($col)] = $idx;
+            }
+
+            $requiredHeaders = ['first_name', 'last_name'];
+            $missingHeaders = array_diff($requiredHeaders, array_keys($headerIndex));
+            if (!empty($missingHeaders)) {
+                throw new \Exception('Missing required column(s) in header row: ' . implode(', ', $missingHeaders));
+            }
+
+            $expectedFields = [
+                'prefix', 'is_high_profile', 'scope', 'first_name', 'last_name', 'gender',
+                'position_1', 'organization_1', 'organization_type_1', 'status_1', 'address',
+                'phone_number', 'sector', 'middle_name', 'mother_name', 'dob', 'office_phone',
+                'extension_number', 'home_phone', 'email', 'position_2', 'organization_2',
+                'organization_type_2', 'status_2', 'identification_id', 'register_number',
+                'marital_status', 'employment_status', 'passport_number', 'register_place',
+                'type', 'default_cop_id', 'person_id', 'istimara_id', 'original_name',
+            ];
+
             $rowNumber = 1; // Start counting after header
-            
+
             while (($data = fgetcsv($handle)) !== FALSE) {
                 $results['total']++;
                 $rowNumber++;
-                
+
                 try {
                     // Skip empty rows
                     if (empty(array_filter($data))) {
                         continue;
                     }
 
-                    // Check if we have enough columns
-                    if (count($data) < $expectedColumns) {
-                        throw new \Exception("Row has insufficient columns. Expected {$expectedColumns}, got " . count($data));
+                    // Look up each field's value by the header's column index — a row
+                    // with fewer trailing columns than the header just yields null for
+                    // whatever wasn't present, it never gets misaligned.
+                    $rawData = [];
+                    foreach ($expectedFields as $field) {
+                        $rawData[$field] = isset($headerIndex[$field]) ? ($data[$headerIndex[$field]] ?? null) : null;
                     }
 
-                    // Map all CSV columns to database fields
-                    $cleanedData = $this->cleanImportData([
-                        // Basic Information (1-12)
-                        'prefix' => $data[0] ?? null,
-                        'is_high_profile' => $data[1] ?? false,
-                        'scope' => $data[2] ?? null,
-                        'first_name' => $data[3] ?? null,
-                        'last_name' => $data[4] ?? null,
-                        'gender' => $data[5] ?? null,
-                        'position_1' => $data[6] ?? null,
-                        'organization_1' => $data[7] ?? null,
-                        'organization_type_1' => $data[8] ?? null,
-                        'status_1' => $data[9] ?? null,
-                        'address' => $data[10] ?? null,
-                        'phone_number' => $data[11] ?? null,
-                        
-                        // Personal Details (13-20)
-                        'sector' => $data[12] ?? null,
-                        'middle_name' => $data[13] ?? null,
-                        'mother_name' => $data[14] ?? null,
-                        'dob' => $data[15] ?? null,
-                        'office_phone' => $data[16] ?? null,
-                        'extension_number' => $data[17] ?? null,
-                        'home_phone' => $data[18] ?? null,
-                        'email' => $data[19] ?? null,
-                        
-                        // Secondary Position (20-24)
-                        'position_2' => $data[20] ?? null,
-                        'organization_2' => $data[21] ?? null,
-                        'organization_type_2' => $data[22] ?? null,
-                        'status_2' => $data[23] ?? null,
-                        
-                        // Identification (24-31)
-                        'identification_id' => $data[24] ?? null,
-                        'register_number' => $data[25] ?? null,
-                        'marital_status' => $data[26] ?? null,
-                        'employment_status' => $data[27] ?? null,
-                        'passport_number' => $data[28] ?? null,
-                        'register_place' => $data[29] ?? null,
-                        'type' => $data[30] ?? null,
-                        'default_cop_id' => $data[31] ?? null,
-                        
-                        // person_id, istimara_id, original_name (32-34)
-                        'person_id' => $data[32] ?? null,
-                        'istimara_id' => $data[33] ?? null,
-                        'original_name' => $data[34] ?? null,
-
-                        // Note: created_at, updated_at, deleted_at (columns 35-37) are auto-generated
-                    ]);
+                    $cleanedData = $this->cleanImportData($rawData);
                     
                     // Validate required fields - ONLY first_name and last_name are required
                     $requiredFields = ['first_name', 'last_name'];
@@ -1242,6 +1221,20 @@ class UserController extends Controller
         }
 
         return $this->handleImportResults($results);
+    }
+
+    /**
+     * Normalize a CSV header cell into a canonical field name for matching
+     * (strips BOM, trims, lowercases, collapses spaces/hyphens to underscores)
+     * so headers like "First Name", "first-name", " First_Name " all resolve
+     * to 'first_name'.
+     */
+    private function normalizeHeaderName($header)
+    {
+        $header = trim(str_replace("\xEF\xBB\xBF", '', (string) $header));
+        $header = strtolower($header);
+        $header = preg_replace('/[\s\-]+/', '_', $header);
+        return trim($header, '_');
     }
 
     /**
