@@ -746,21 +746,20 @@
                         <div class="search-input-container" style="flex: 1; min-width: 200px;">
                             <input type="text" class="search-input" placeholder="Search by user..." value="{{ request('user_search') }}" id="userSearchInput">
                         </div>
+                        <div class="search-input-container" style="flex: 1; min-width: 200px;">
+                            <input type="text" class="search-input" placeholder="Search by OMT number..." value="{{ request('omt_search') }}" id="omtSearchInput">
+                        </div>
+                        <div class="search-input-container" style="flex: 1; min-width: 200px;">
+                            <input type="text" class="search-input" placeholder="Search by phone number..." value="{{ request('phone_search') }}" id="phoneSearchInput">
+                        </div>
                     </div>
-                    
+
                     <div class="filters-container">
-                        <select class="filter-select" id="financialTypeFilter">
-                            <option value="">All Types</option>
-                            <option value="omt" {{ request('financial_type') == 'omt' ? 'selected' : '' }}>OMT</option>
-                            <option value="medical" {{ request('financial_type') == 'medical' ? 'selected' : '' }}>Medical</option>
-                        </select>
-                        
                         <select class="filter-select" id="paymentStatusFilter">
                             <option value="">All Status</option>
                             <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>Paid</option>
-                            <option value="pending" {{ request('payment_status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                            <option value="partial" {{ request('payment_status') == 'partial' ? 'selected' : '' }}>Partial</option>
-                            <option value="overdue" {{ request('payment_status') == 'overdue' ? 'selected' : '' }}>Overdue</option>
+                            <option value="unpaid" {{ request('payment_status') == 'unpaid' ? 'selected' : '' }}>Unpaid</option>
+                            <option value="changed" {{ request('payment_status') == 'changed' ? 'selected' : '' }}>Changed</option>
                         </select>
                         
                         <div style="display: flex; gap: 0.5rem; align-items: center;">
@@ -832,6 +831,9 @@
                             <td>
                                 @if($financial->user)
                                     <strong>{{ $financial->user->first_name }} {{ $financial->user->last_name }}</strong>
+                                    @if($financial->user->phone_number)
+                                        <span class="text-muted">&mdash; {{ $financial->user->phone_number }}</span>
+                                    @endif
                                     <br>
                                     <small class="text-muted">{{ $financial->user->email }}</small>
                                 @else
@@ -856,9 +858,8 @@
                                 @php
                                     $statusColor = match($financial->payment_status) {
                                         'paid' => 'success',
-                                        'pending' => 'warning',
-                                        'partial' => 'info',
-                                        'overdue' => 'danger',
+                                        'unpaid' => 'warning',
+                                        'changed' => 'info',
                                         default => 'secondary'
                                     };
                                 @endphp
@@ -1000,18 +1001,20 @@
 
     const activitySearchInput = document.getElementById('activitySearchInput');
     const userSearchInput = document.getElementById('userSearchInput');
-    const financialTypeFilter = document.getElementById('financialTypeFilter');
+    const omtSearchInput = document.getElementById('omtSearchInput');
+    const phoneSearchInput = document.getElementById('phoneSearchInput');
     const paymentStatusFilter = document.getElementById('paymentStatusFilter');
     const startDateFilter = document.getElementById('startDateFilter');
     const endDateFilter = document.getElementById('endDateFilter');
-    
+
     let searchTimeout;
-    
+
     function applyFilters() {
         const params = new URLSearchParams();
         if (activitySearchInput?.value) params.set('activity_search', activitySearchInput.value);
         if (userSearchInput?.value) params.set('user_search', userSearchInput.value);
-        if (financialTypeFilter?.value) params.set('financial_type', financialTypeFilter.value);
+        if (omtSearchInput?.value) params.set('omt_search', omtSearchInput.value);
+        if (phoneSearchInput?.value) params.set('phone_search', phoneSearchInput.value);
         if (paymentStatusFilter?.value) params.set('payment_status', paymentStatusFilter.value);
         if (startDateFilter?.value) params.set('start_date', startDateFilter.value);
         if (endDateFilter?.value) params.set('end_date', endDateFilter.value);
@@ -1194,10 +1197,9 @@
                     <div class="details-item">
                         <span class="details-label">Payment Status:</span>
                         <select class="edit-select" id="edit_payment_status">
-                            <option value="pending" ${currentPaymentStatus === 'pending' ? 'selected' : ''}>Pending</option>
-                            <option value="partial" ${currentPaymentStatus === 'partial' ? 'selected' : ''}>Partial</option>
                             <option value="paid" ${currentPaymentStatus === 'paid' ? 'selected' : ''}>Paid</option>
-                            <option value="overdue" ${currentPaymentStatus === 'overdue' ? 'selected' : ''}>Overdue</option>
+                            <option value="unpaid" ${currentPaymentStatus === 'unpaid' ? 'selected' : ''}>Unpaid</option>
+                            <option value="changed" ${currentPaymentStatus === 'changed' ? 'selected' : ''}>Changed</option>
                         </select>
                     </div>
                     <div class="details-item">
@@ -1292,7 +1294,7 @@
                     
                     const statusBadge = row.querySelector('.status-badge');
                     if (statusBadge) {
-                        const statusColor = updatedPaymentStatus === 'paid' ? 'success' : (updatedPaymentStatus === 'pending' ? 'warning' : (updatedPaymentStatus === 'partial' ? 'info' : 'danger'));
+                        const statusColor = updatedPaymentStatus === 'paid' ? 'success' : (updatedPaymentStatus === 'unpaid' ? 'warning' : (updatedPaymentStatus === 'changed' ? 'info' : 'secondary'));
                         statusBadge.className = `badge bg-${statusColor} status-badge`;
                         statusBadge.textContent = updatedPaymentStatus.charAt(0).toUpperCase() + updatedPaymentStatus.slice(1);
                     }
@@ -1380,7 +1382,14 @@
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(applyFilters, 500);
         });
-        if (financialTypeFilter) financialTypeFilter.addEventListener('change', applyFilters);
+        if (omtSearchInput) omtSearchInput.addEventListener('keyup', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(applyFilters, 500);
+        });
+        if (phoneSearchInput) phoneSearchInput.addEventListener('keyup', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(applyFilters, 500);
+        });
         if (paymentStatusFilter) paymentStatusFilter.addEventListener('change', applyFilters);
         if (startDateFilter) startDateFilter.addEventListener('change', applyFilters);
         if (endDateFilter) endDateFilter.addEventListener('change', applyFilters);

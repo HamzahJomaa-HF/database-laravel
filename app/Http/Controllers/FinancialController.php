@@ -99,6 +99,20 @@ class FinancialController extends Controller
             });
         }
 
+        // OMT number search (financial_data is JSONB; omt_number lives there for OMT records)
+        if ($request->filled('omt_search')) {
+            $omtSearch = $request->omt_search;
+            $query->whereRaw("financial_data->>'omt_number' ILIKE ?", ["%{$omtSearch}%"]);
+        }
+
+        // Phone number search
+        if ($request->filled('phone_search')) {
+            $phoneSearch = $request->phone_search;
+            $query->whereHas('user', function ($userQuery) use ($phoneSearch) {
+                $userQuery->where('phone_number', 'ilike', "%{$phoneSearch}%");
+            });
+        }
+
         // Handle pagination
         $perPage = $request->get('per_page', 15);
         $financials = $query->paginate($perPage);
@@ -117,6 +131,12 @@ class FinancialController extends Controller
         }
         if ($request->filled('user_search')) {
             $totalsQuery->whereHas('user', fn($q) => $q->where('first_name', 'ilike', "%{$request->user_search}%")->orWhere('last_name', 'ilike', "%{$request->user_search}%"));
+        }
+        if ($request->filled('omt_search')) {
+            $totalsQuery->whereRaw("financial_data->>'omt_number' ILIKE ?", ["%{$request->omt_search}%"]);
+        }
+        if ($request->filled('phone_search')) {
+            $totalsQuery->whereHas('user', fn($q) => $q->where('phone_number', 'ilike', "%{$request->phone_search}%"));
         }
 
         $summaryRaw = (clone $totalsQuery)->selectRaw("
