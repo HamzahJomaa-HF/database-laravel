@@ -331,30 +331,35 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
             }
         }
 
-        // Try to find by email
+        // Try to find by email — also require last_name (and first_name, if present) to
+        // match. Email alone isn't guaranteed unique to one person in this dataset, so a
+        // bare email match risks attaching the record to an unrelated user.
         if (!empty($row['email'])) {
             $user = User::where('email', $row['email'])->first();
-            if ($user) {
+            if ($user && $this->nameMatches($user, $row)) {
                 Log::info("User found by email: {$row['email']}");
                 $this->updateUser($user, $row);
                 return $user;
             }
         }
 
-        // Try to find by identification_id
+        // Try to find by identification_id — same name-match guard as above.
         if (!empty($row['identification_id'])) {
             $user = User::where('identification_id', $row['identification_id'])->first();
-            if ($user) {
+            if ($user && $this->nameMatches($user, $row)) {
                 Log::info("User found by identification_id: {$row['identification_id']}");
                 $this->updateUser($user, $row);
                 return $user;
             }
         }
 
-        // Try to find by phone
+        // Try to find by phone — same name-match guard as above. Phone numbers can be
+        // shared between family members or reused across records, so a phone match alone
+        // does not prove it is the same person (this caused wrong-user assignment in
+        // production: a row was matched to an unrelated existing user purely by phone).
         if (!empty($row['phone_number'])) {
             $user = User::where('phone_number', $row['phone_number'])->first();
-            if ($user) {
+            if ($user && $this->nameMatches($user, $row)) {
                 Log::info("User found by phone: {$row['phone_number']}");
                 $this->updateUser($user, $row);
                 return $user;
@@ -411,6 +416,29 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
             Log::error('User data that caused error: ' . json_encode($userData ?? []));
             throw new \Exception('Failed to create user: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Verifies a candidate match's name lines up with the CSV row before trusting a
+     * single-field lookup (phone/email/identification_id) as proof it's the same person —
+     * those fields aren't guaranteed unique to one person in this dataset. Requires
+     * last_name to match, and first_name too if the row provides one.
+     */
+    private function nameMatches(User $user, array $row): bool
+    {
+        if (empty($row['last_name'])) {
+            return false;
+        }
+
+        if (strcasecmp(trim((string) $user->last_name), trim($row['last_name'])) !== 0) {
+            return false;
+        }
+
+        if (!empty($row['first_name']) && strcasecmp(trim((string) $user->first_name), trim($row['first_name'])) !== 0) {
+            return false;
+        }
+
+        return true;
     }
 
     private function updateUser($user, $row)
