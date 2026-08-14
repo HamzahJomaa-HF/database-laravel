@@ -321,16 +321,6 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
             }
         }
 
-        // Try to find by istimara_id
-        if (!empty($row['istimara_id'])) {
-            $user = User::where('istimara_id', $row['istimara_id'])->first();
-            if ($user) {
-                Log::info("User found by istimara_id: {$row['istimara_id']}");
-                $this->updateUser($user, $row);
-                return $user;
-            }
-        }
-
         // Try to find by email — also require last_name (and first_name, if present) to
         // match. Email alone isn't guaranteed unique to one person in this dataset, so a
         // bare email match risks attaching the record to an unrelated user.
