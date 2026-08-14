@@ -278,6 +278,39 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
             'last_name' => $row['last_name'] ?? null
         ]);
 
+        // Primary match: first_name + middle_name + last_name + dob + phone_number,
+        // all together in a single comparison. All five fields must be present in the
+        // row for this match to run — if any is missing, skip it (treated as no-match)
+        // rather than risk merging two different people on a partial comparison.
+        if (
+            !empty($row['first_name']) && !empty($row['middle_name']) && !empty($row['last_name']) &&
+            !empty($row['dob']) && !empty($row['phone_number'])
+        ) {
+            $parsedDob = $this->parseDate($row['dob']);
+
+            if ($parsedDob) {
+                $user = User::where('first_name', trim($row['first_name']))
+                    ->where('middle_name', trim($row['middle_name']))
+                    ->where('last_name', trim($row['last_name']))
+                    ->where('phone_number', trim($row['phone_number']))
+                    ->whereDate('dob', $parsedDob)
+                    ->first();
+
+                if ($user) {
+                    Log::info("User found by first_name + middle_name + last_name + dob + phone_number match", [
+                        'first_name' => $row['first_name'],
+                        'middle_name' => $row['middle_name'],
+                        'last_name' => $row['last_name'],
+                        'dob' => $parsedDob,
+                        'phone_number' => $row['phone_number'],
+                        'matched_user_id' => $user->user_id,
+                    ]);
+                    $this->updateUser($user, $row);
+                    return $user;
+                }
+            }
+        }
+
         // Try to find by person_id
         if (!empty($row['person_id'])) {
             $user = User::where('person_id', $row['person_id'])->first();
@@ -323,42 +356,6 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
             $user = User::where('phone_number', $row['phone_number'])->first();
             if ($user) {
                 Log::info("User found by phone: {$row['phone_number']}");
-                $this->updateUser($user, $row);
-                return $user;
-            }
-        }
-
-        // Last resort before creating a new user: match on first_name + middle_name +
-        // last_name + phone_number + dob (using whichever of these are present in the row).
-        // This prevents duplicate user records when the CSV lacks a unique identifier
-        // but the person already exists in the users table under the same name/phone/dob.
-        if (!empty($row['first_name']) && !empty($row['last_name'])) {
-            $nameQuery = User::where('first_name', trim($row['first_name']))
-                ->where('last_name', trim($row['last_name']));
-
-            if (!empty($row['middle_name'])) {
-                $nameQuery->where('middle_name', trim($row['middle_name']));
-            }
-
-            if (!empty($row['phone_number'])) {
-                $nameQuery->where('phone_number', trim($row['phone_number']));
-            }
-
-            $parsedDob = !empty($row['dob']) ? $this->parseDate($row['dob']) : null;
-            if ($parsedDob) {
-                $nameQuery->whereDate('dob', $parsedDob);
-            }
-
-            $user = $nameQuery->first();
-            if ($user) {
-                Log::info("User found by first_name + middle_name + last_name + phone_number + dob match", [
-                    'first_name'  => $row['first_name'],
-                    'middle_name' => $row['middle_name'] ?? null,
-                    'last_name'   => $row['last_name'],
-                    'phone_number' => $row['phone_number'] ?? null,
-                    'dob' => $parsedDob,
-                    'matched_user_id' => $user->user_id,
-                ]);
                 $this->updateUser($user, $row);
                 return $user;
             }
