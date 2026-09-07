@@ -365,6 +365,37 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
             }
         }
 
+        // Fallback: name-only match (first_name + middle_name + last_name, whichever
+        // of first_name/middle_name are present on this row). Financial import rows
+        // often don't repeat the recipient's phone on every transaction — without this,
+        // every row for the same person with a blank phone_number creates another
+        // duplicate users row instead of reusing the one already on file. Weak match
+        // (two different people can share a name), so it's tried last, after every
+        // stronger identifier has failed to find anyone.
+        if (!empty($row['last_name'])) {
+            $nameQuery = User::where('last_name', trim($row['last_name']));
+
+            if (!empty($row['first_name'])) {
+                $nameQuery->where('first_name', trim($row['first_name']));
+            }
+            if (!empty($row['middle_name'])) {
+                $nameQuery->where('middle_name', trim($row['middle_name']));
+            }
+
+            $user = $nameQuery->first();
+
+            if ($user) {
+                Log::info("User found by name-only fallback (no stronger identifier on this row)", [
+                    'first_name' => $row['first_name'] ?? null,
+                    'middle_name' => $row['middle_name'] ?? null,
+                    'last_name' => $row['last_name'],
+                    'matched_user_id' => $user->user_id,
+                ]);
+                $this->updateUser($user, $row);
+                return $user;
+            }
+        }
+
         // Check if we are allowed to create new users
         if (!$this->createNewUsers) {
             Log::info('User not found and createNewUsers is disabled');

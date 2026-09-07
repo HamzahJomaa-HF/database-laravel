@@ -832,7 +832,7 @@
                                 @if($financial->user)
                                     <strong>{{ $financial->user->first_name }} {{ $financial->user->last_name }}</strong>
                                     @if($financial->user->phone_number)
-                                        <span class="text-muted">&mdash; {{ $financial->user->phone_number }}</span>
+                                        <span class="text-muted">&mdash; {{ str_replace('+', '', $financial->user->phone_number) }}</span>
                                     @endif
                                     <br>
                                     <small class="text-muted">{{ $financial->user->email }}</small>
