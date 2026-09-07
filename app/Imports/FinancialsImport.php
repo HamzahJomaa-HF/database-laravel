@@ -6,6 +6,7 @@ use App\Models\ActivityFinancial;
 use App\Models\User;
 use App\Models\Nationality;
 use App\Models\Diploma;
+use App\Support\Concerns\NormalizesPhoneForMatching;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\SkipsOnError;
@@ -18,6 +19,7 @@ use Carbon\Carbon;
 class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
 {
     use SkipsErrors;
+    use NormalizesPhoneForMatching;
 
     private $activityId;
     private $financialType;
@@ -287,14 +289,19 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
             !empty($row['dob']) && !empty($row['phone_number'])
         ) {
             $parsedDob = $this->parseDate($row['dob']);
+            $rowPhoneCore = $this->normalizePhoneCore($row['phone_number']);
 
-            if ($parsedDob) {
+            if ($parsedDob && $rowPhoneCore !== null) {
+                // Phone formats vary (96181968927 / 81968927 / 9613098741 / 03098741 /
+                // 3098741 all refer to the same subscriber), so compare normalized
+                // cores in PHP rather than the raw stored string.
                 $user = User::where('first_name', trim($row['first_name']))
                     ->where('middle_name', trim($row['middle_name']))
                     ->where('last_name', trim($row['last_name']))
-                    ->where('phone_number', trim($row['phone_number']))
+                    ->whereNotNull('phone_number')
                     ->whereDate('dob', $parsedDob)
-                    ->first();
+                    ->get()
+                    ->first(fn ($candidate) => $this->normalizePhoneCore($candidate->phone_number) === $rowPhoneCore);
 
                 if ($user) {
                     Log::info("User found by first_name + middle_name + last_name + dob + phone_number match", [
@@ -348,7 +355,9 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
         // does not prove it is the same person (this caused wrong-user assignment in
         // production: a row was matched to an unrelated existing user purely by phone).
         if (!empty($row['phone_number'])) {
-            $user = User::where('phone_number', $row['phone_number'])->first();
+            $phoneCore = $this->normalizePhoneCore($row['phone_number']);
+            $matchedUserId = $this->findUserIdByPhoneCore($phoneCore);
+            $user = $matchedUserId ? User::find($matchedUserId) : null;
             if ($user && $this->nameMatches($user, $row)) {
                 Log::info("User found by phone: {$row['phone_number']}");
                 $this->updateUser($user, $row);
@@ -370,6 +379,7 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
             Log::info('User data prepared:', $userData);
             
             $user = User::create($userData);
+            $this->indexUserPhone($user->user_id, $user->phone_number);
             $this->results['users_created']++;
             Log::info("User created successfully: {$user->user_id}");
 
@@ -478,6 +488,7 @@ class FinancialsImport implements ToModel, WithHeadingRow, SkipsOnError
 
         if ($updated) {
             $user->save();
+            $this->indexUserPhone($user->user_id, $user->phone_number);
             $this->results['users_updated']++;
             Log::info("User updated: {$user->user_id}");
         }

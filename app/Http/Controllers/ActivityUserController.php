@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Cop;
 use App\Models\Nationality;
 use App\Models\Diploma;
+use App\Support\Concerns\NormalizesPhoneForMatching;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -17,6 +18,8 @@ use PhpOffice\PhpSpreadsheet\Reader\Xlsx;
 
 class ActivityUserController extends Controller
 {
+    use NormalizesPhoneForMatching;
+
     /**
      * Display a listing of activity-user relationships.
      */
@@ -1150,7 +1153,8 @@ class ActivityUserController extends Controller
         if (!empty($userData['email']))                                                        $identifierParts[] = 'em:'  . strtolower(trim($userData['email']));
         if (!empty($userData['identification_id']))                                            $identifierParts[] = 'iid:' . $userData['identification_id'];
         if (!empty($userData['passport_number']))                                              $identifierParts[] = 'pp:'  . $userData['passport_number'];
-        if (!empty($userData['phone_number']) && $userData['phone_number'] !== 'Not Provided') $identifierParts[] = 'ph:'  . $userData['phone_number'];
+        $rowPhoneCore = $this->normalizePhoneCore($userData['phone_number'] ?? null);
+        if ($rowPhoneCore !== null) $identifierParts[] = 'ph:' . $rowPhoneCore;
 
         $cacheKey = !empty($identifierParts) ? implode('|', $identifierParts) : null;
 
@@ -1187,9 +1191,12 @@ class ActivityUserController extends Controller
             if ($user) { $matchedBy = 'passport_number:' . $userData['passport_number']; $matchStrength = 'strong'; }
         }
 
-        if (!$user && !empty($userData['phone_number']) && $userData['phone_number'] !== 'Not Provided') {
-            $user = User::where('phone_number', $userData['phone_number'])->first();
-            if ($user) { $matchedBy = 'phone_number:' . $userData['phone_number']; $matchStrength = 'weak'; }
+        if (!$user && $rowPhoneCore !== null) {
+            $matchedUserId = $this->findUserIdByPhoneCore($rowPhoneCore);
+            if ($matchedUserId) {
+                $user = User::find($matchedUserId);
+                if ($user) { $matchedBy = 'phone_number:' . $userData['phone_number']; $matchStrength = 'weak'; }
+            }
         }
 
         if ($user) {
@@ -1206,23 +1213,29 @@ class ActivityUserController extends Controller
             // last_name + phone_number, using whichever of middle_name/phone_number
             // are actually present on this row. Tried before the plain name-only
             // match so a precise combo hit is preferred over a bare name match.
-            if (!empty($userData['middle_name']) || (!empty($userData['phone_number']) && $userData['phone_number'] !== 'Not Provided')) {
+            if (!empty($userData['middle_name']) || $rowPhoneCore !== null) {
                 $comboQuery = User::where('first_name', $userData['first_name'])
                     ->where('last_name', $userData['last_name']);
 
                 if (!empty($userData['middle_name'])) {
                     $comboQuery->where('middle_name', $userData['middle_name']);
                 }
-                if (!empty($userData['phone_number']) && $userData['phone_number'] !== 'Not Provided') {
-                    $comboQuery->where('phone_number', $userData['phone_number']);
-                }
 
-                $user = $comboQuery->first();
+                if ($rowPhoneCore !== null) {
+                    // Phone formats vary (96181968927 / 81968927 / 03098741 / 3098741 all
+                    // refer to the same subscriber), so compare normalized cores in PHP
+                    // rather than the raw stored string.
+                    $user = $comboQuery->whereNotNull('phone_number')
+                        ->get()
+                        ->first(fn ($candidate) => $this->normalizePhoneCore($candidate->phone_number) === $rowPhoneCore);
+                } else {
+                    $user = $comboQuery->first();
+                }
 
                 if ($user) {
                     $matchedBy     = "first_name='{$userData['first_name']}' last_name='{$userData['last_name']}'"
                         . (!empty($userData['middle_name']) ? " middle_name='{$userData['middle_name']}'" : '')
-                        . (!empty($userData['phone_number']) && $userData['phone_number'] !== 'Not Provided' ? " phone_number='{$userData['phone_number']}'" : '');
+                        . ($rowPhoneCore !== null ? " phone_number='{$userData['phone_number']}'" : '');
                     $matchStrength = 'weak';
                     $matchInfo     = ['method' => 'name_phone_combo_fallback', 'matched_by' => $matchedBy];
                     Log::warning('[IMPORT-NAME-COMBO-MATCH] Matched by name + middle_name/phone combo', [
@@ -1312,6 +1325,7 @@ class ActivityUserController extends Controller
 
             if ($updated) {
                 $user->save();
+                $this->indexUserPhone($user->user_id, $user->phone_number);
                 $results['merged_users']++;
                 Log::info('[IMPORT-USER-MERGED] Updated existing user fields', [
                     'user_id'        => $user->user_id,
@@ -1328,6 +1342,7 @@ class ActivityUserController extends Controller
 
         // No match — create new user
         $user = User::create($userData);
+        $this->indexUserPhone($user->user_id, $user->phone_number);
         $results['new_users']++;
         $matchInfo = ['method' => 'created_new', 'matched_by' => null];
         Log::info('[IMPORT-USER-CREATED] New user created', [
