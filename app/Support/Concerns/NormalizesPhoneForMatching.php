@@ -30,14 +30,26 @@ trait NormalizesPhoneForMatching
             return null;
         }
 
-        if (str_starts_with($digits, '00961')) {
-            $digits = substr($digits, 5);
-        } elseif (str_starts_with($digits, '961')) {
-            $digits = substr($digits, 3);
-        }
-
-        if (str_starts_with($digits, '0')) {
-            $digits = substr($digits, 1);
+        // Strip the international access code (00), the 961 country code, and
+        // any leading trunk zero — in whatever order/combination they show up
+        // (961XXXXXXXX, 0961XXXXXXXX, 00961XXXXXXXX, 0XXXXXXX, 961 0XXXXXXX)
+        // — until only the bare subscriber number is left. A single pass in a
+        // fixed order misses cases like a stray 0 typed before the country
+        // code, or one left between the country code and the number.
+        for ($i = 0; $i < 4 && strlen($digits) > 4; $i++) {
+            if (str_starts_with($digits, '00')) {
+                $digits = substr($digits, 2);
+                continue;
+            }
+            if (str_starts_with($digits, '961')) {
+                $digits = substr($digits, 3);
+                continue;
+            }
+            if (str_starts_with($digits, '0')) {
+                $digits = substr($digits, 1);
+                continue;
+            }
+            break;
         }
 
         return $digits !== '' ? $digits : null;
