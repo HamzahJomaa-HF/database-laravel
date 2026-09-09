@@ -14,6 +14,29 @@ use Illuminate\Support\Str;
 class FinancialController extends Controller
 {
     /**
+     * Splits a typed search phrase into words and requires each word to match
+     * somewhere among the given columns — so a full name or multi-word title
+     * (e.g. "John Smith", split across first_name/last_name) still matches
+     * instead of needing the whole phrase to appear in a single column.
+     */
+    private function applyMultiWordLike($query, array $columns, string $search): void
+    {
+        $words = array_filter(preg_split('/\s+/', trim($search)), fn ($w) => $w !== '');
+
+        foreach ($words as $word) {
+            $query->where(function ($q) use ($columns, $word) {
+                foreach ($columns as $i => $column) {
+                    if ($i === 0) {
+                        $q->where($column, 'ilike', "%{$word}%");
+                    } else {
+                        $q->orWhere($column, 'ilike', "%{$word}%");
+                    }
+                }
+            });
+        }
+    }
+
+    /**
      * Display a listing of financial records.
      */
     public function index(Request $request)
@@ -84,8 +107,7 @@ class FinancialController extends Controller
         if ($request->filled('activity_search')) {
             $activitySearch = $request->activity_search;
             $query->whereHas('activity', function ($activityQuery) use ($activitySearch) {
-                $activityQuery->where('activity_title_en', 'ilike', "%{$activitySearch}%")
-                              ->orWhere('activity_title_ar', 'ilike', "%{$activitySearch}%");
+                $this->applyMultiWordLike($activityQuery, ['activity_title_en', 'activity_title_ar'], $activitySearch);
             });
         }
 
@@ -93,9 +115,7 @@ class FinancialController extends Controller
         if ($request->filled('user_search')) {
             $userSearch = $request->user_search;
             $query->whereHas('user', function ($userQuery) use ($userSearch) {
-                $userQuery->where('first_name', 'ilike', "%{$userSearch}%")
-                          ->orWhere('last_name', 'ilike', "%{$userSearch}%")
-                          ->orWhere('email', 'ilike', "%{$userSearch}%");
+                $this->applyMultiWordLike($userQuery, ['first_name', 'middle_name', 'last_name', 'email'], $userSearch);
             });
         }
 
@@ -127,10 +147,10 @@ class FinancialController extends Controller
         if ($request->filled('min_amount'))       $totalsQuery->where('amount', '>=', $request->min_amount);
         if ($request->filled('max_amount'))       $totalsQuery->where('amount', '<=', $request->max_amount);
         if ($request->filled('activity_search')) {
-            $totalsQuery->whereHas('activity', fn($q) => $q->where('activity_title_en', 'ilike', "%{$request->activity_search}%")->orWhere('activity_title_ar', 'ilike', "%{$request->activity_search}%"));
+            $totalsQuery->whereHas('activity', fn($q) => $this->applyMultiWordLike($q, ['activity_title_en', 'activity_title_ar'], $request->activity_search));
         }
         if ($request->filled('user_search')) {
-            $totalsQuery->whereHas('user', fn($q) => $q->where('first_name', 'ilike', "%{$request->user_search}%")->orWhere('last_name', 'ilike', "%{$request->user_search}%"));
+            $totalsQuery->whereHas('user', fn($q) => $this->applyMultiWordLike($q, ['first_name', 'middle_name', 'last_name', 'email'], $request->user_search));
         }
         if ($request->filled('omt_search')) {
             $totalsQuery->whereRaw("financial_data->>'omt_number' ILIKE ?", ["%{$request->omt_search}%"]);
