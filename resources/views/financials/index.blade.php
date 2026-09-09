@@ -758,7 +758,7 @@
                         <select class="filter-select" id="paymentStatusFilter">
                             <option value="">All Status</option>
                             <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>Paid</option>
-                            <option value="unpaid" {{ request('payment_status') == 'unpaid' ? 'selected' : '' }}>Unpaid</option>
+                            <option value="pending" {{ request('payment_status') == 'pending' ? 'selected' : '' }}>Pending</option>
                             <option value="changed" {{ request('payment_status') == 'changed' ? 'selected' : '' }}>Changed</option>
                         </select>
                         
@@ -1009,20 +1009,39 @@
 
     let searchTimeout;
 
+    function setOrDelete(params, key, value) {
+        if (value) {
+            params.set(key, value);
+        } else {
+            params.delete(key);
+        }
+    }
+
     function applyFilters() {
-        const params = new URLSearchParams();
-        if (activitySearchInput?.value) params.set('activity_search', activitySearchInput.value);
-        if (userSearchInput?.value) params.set('user_search', userSearchInput.value);
-        if (omtSearchInput?.value) params.set('omt_search', omtSearchInput.value);
-        if (phoneSearchInput?.value) params.set('phone_search', phoneSearchInput.value);
-        if (paymentStatusFilter?.value) params.set('payment_status', paymentStatusFilter.value);
-        if (startDateFilter?.value) params.set('start_date', startDateFilter.value);
-        if (endDateFilter?.value) params.set('end_date', endDateFilter.value);
+        // Start from the current query string (not a blank one) so context that
+        // isn't one of these inputs — financial_type from the tab/sidebar link,
+        // per_page — survives instead of silently resetting on every keystroke.
+        const params = new URLSearchParams(window.location.search);
+        setOrDelete(params, 'activity_search', activitySearchInput?.value);
+        setOrDelete(params, 'user_search', userSearchInput?.value);
+        setOrDelete(params, 'omt_search', omtSearchInput?.value);
+        setOrDelete(params, 'phone_search', phoneSearchInput?.value);
+        setOrDelete(params, 'payment_status', paymentStatusFilter?.value);
+        setOrDelete(params, 'start_date', startDateFilter?.value);
+        setOrDelete(params, 'end_date', endDateFilter?.value);
+        params.delete('page'); // a fresh filter should start back at page 1
         window.location.href = '{{ route("financials.index") }}?' + params.toString();
     }
-    
+
     function resetFilters() {
-        window.location.href = '{{ route("financials.index") }}';
+        // Keep financial_type (and per_page) so Reset clears search/filter
+        // values without kicking the user out of the OMT/education tab they're on.
+        const current = new URLSearchParams(window.location.search);
+        const params = new URLSearchParams();
+        if (current.has('financial_type')) params.set('financial_type', current.get('financial_type'));
+        if (current.has('per_page')) params.set('per_page', current.get('per_page'));
+        const query = params.toString();
+        window.location.href = '{{ route("financials.index") }}' + (query ? '?' + query : '');
     }
     
     function changePerPage(value) {
