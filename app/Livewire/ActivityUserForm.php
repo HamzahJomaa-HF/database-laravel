@@ -121,16 +121,26 @@ class ActivityUserForm extends Component
     }
 
     $this->showUserResults = true;
-    
+
+    // Split into words so a full name like "John Smith" matches a user whose
+    // first_name is "John" and last_name is "Smith" — each word just needs to
+    // appear somewhere, rather than the whole typed string needing to appear
+    // in a single column.
+    $words = array_filter(preg_split('/\s+/', trim($this->userSearch)), fn ($w) => $w !== '');
+
     $this->userResults = User::query()
-        ->where(function ($query) {
-            $query->where('first_name', 'ilike', "%{$this->userSearch}%")
-                  ->orWhere('middle_name', 'ilike', "%{$this->userSearch}%")
-                  ->orWhere('last_name', 'ilike', "%{$this->userSearch}%")
-                  ->orWhere('email', 'ilike', "%{$this->userSearch}%")
-                  ->orWhere('phone_number', 'ilike', "%{$this->userSearch}%")
-                  ->orWhere('passport_number', 'ilike', "%{$this->userSearch}%")
-                  ->orWhere('identification_id', 'ilike', "%{$this->userSearch}%");
+        ->where(function ($query) use ($words) {
+            foreach ($words as $word) {
+                $query->where(function ($sub) use ($word) {
+                    $sub->where('first_name', 'ilike', "%{$word}%")
+                        ->orWhere('middle_name', 'ilike', "%{$word}%")
+                        ->orWhere('last_name', 'ilike', "%{$word}%")
+                        ->orWhere('email', 'ilike', "%{$word}%")
+                        ->orWhere('phone_number', 'ilike', "%{$word}%")
+                        ->orWhere('passport_number', 'ilike', "%{$word}%")
+                        ->orWhere('identification_id', 'ilike', "%{$word}%");
+                });
+            }
         })
         ->orderBy('first_name')
         ->limit(10)
@@ -169,14 +179,22 @@ class ActivityUserForm extends Component
     }
 
     $this->showActivityResults = true;
-    
+
+    // Same word-split matching as user search — a multi-word title like
+    // "Youth Leadership Workshop" shouldn't need to appear verbatim in one column.
+    $words = array_filter(preg_split('/\s+/', trim($this->activitySearch)), fn ($w) => $w !== '');
+
     $this->activityResults = Activity::query()
-        ->where(function ($query) {
-            $query->where('activity_title_en', 'ilike', "%{$this->activitySearch}%")
-                  ->orWhere('activity_title_ar', 'ilike', "%{$this->activitySearch}%")
-                  ->orWhere('activity_type', 'ilike', "%{$this->activitySearch}%")
-                  ->orWhere('venue', 'ilike', "%{$this->activitySearch}%")
-                  ->orWhere('folder_name', 'ilike', "%{$this->activitySearch}%");
+        ->where(function ($query) use ($words) {
+            foreach ($words as $word) {
+                $query->where(function ($sub) use ($word) {
+                    $sub->where('activity_title_en', 'ilike', "%{$word}%")
+                        ->orWhere('activity_title_ar', 'ilike', "%{$word}%")
+                        ->orWhere('activity_type', 'ilike', "%{$word}%")
+                        ->orWhere('venue', 'ilike', "%{$word}%")
+                        ->orWhere('folder_name', 'ilike', "%{$word}%");
+                });
+            }
         })
         ->orderBy('activity_title_en')
         ->limit(10)
