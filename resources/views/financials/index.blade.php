@@ -758,7 +758,7 @@
                         <select class="filter-select" id="paymentStatusFilter">
                             <option value="">All Status</option>
                             <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>Paid</option>
-                            <option value="pending" {{ request('payment_status') == 'pending' ? 'selected' : '' }}>Unpaid</option>
+                            <option value="unpaid" {{ request('payment_status') == 'unpaid' ? 'selected' : '' }}>Unpaid</option>
                             <option value="changed" {{ request('payment_status') == 'changed' ? 'selected' : '' }}>Changed</option>
                         </select>
                         

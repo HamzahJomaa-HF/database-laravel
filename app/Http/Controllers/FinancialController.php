@@ -19,6 +19,22 @@ class FinancialController extends Controller
      * (e.g. "John Smith", split across first_name/last_name) still matches
      * instead of needing the whole phrase to appear in a single column.
      */
+    /**
+     * The "not yet paid" status is stored under two different literal values
+     * depending on how a record got there — bulk imports normalize to
+     * 'pending' (matching the documented payment_status enum), while the
+     * inline edit modal on this page writes 'unpaid'. Treat them as the same
+     * status when filtering so "Unpaid" catches records stored either way.
+     */
+    private function applyPaymentStatusFilter($query, string $status): void
+    {
+        if ($status === 'unpaid' || $status === 'pending') {
+            $query->whereIn('payment_status', ['unpaid', 'pending']);
+        } else {
+            $query->where('payment_status', $status);
+        }
+    }
+
     private function applyMultiWordLike($query, array $columns, string $search): void
     {
         $words = array_filter(preg_split('/\s+/', trim($search)), fn ($w) => $w !== '');
@@ -56,7 +72,7 @@ class FinancialController extends Controller
 
         // Filter by payment status
         if ($request->filled('payment_status')) {
-            $query->where('payment_status', $request->payment_status);
+            $this->applyPaymentStatusFilter($query, $request->payment_status);
         }
 
         // Filter by activity
@@ -141,7 +157,7 @@ class FinancialController extends Controller
         $totalsQuery = ActivityFinancial::query();
 
         if ($request->filled('financial_type'))   $totalsQuery->where('financial_type', $request->financial_type);
-        if ($request->filled('payment_status'))   $totalsQuery->where('payment_status', $request->payment_status);
+        if ($request->filled('payment_status'))   $this->applyPaymentStatusFilter($totalsQuery, $request->payment_status);
         if ($request->filled('start_date'))       $totalsQuery->whereDate('tx_date', '>=', $request->start_date);
         if ($request->filled('end_date'))         $totalsQuery->whereDate('tx_date', '<=', $request->end_date);
         if ($request->filled('min_amount'))       $totalsQuery->where('amount', '>=', $request->min_amount);
