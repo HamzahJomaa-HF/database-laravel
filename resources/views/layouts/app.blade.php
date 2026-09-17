@@ -280,7 +280,6 @@
                                     <div class="text-muted small">{{ Auth::user()->employee_type }}</div>
                                 </div>
                                 <div class="position-relative">
-                                    <img src="https://placehold.co/40x40/4361ee/FFFFFF?text=AD" class="rounded-circle border border-2 border-white shadow" alt="User Avatar">
                                     <span class="position-absolute bottom-0 end-0 p-1 bg-success border border-2 border-white rounded-circle">
                                         <span class="visually-hidden">Online</span>
                                     </span>
