@@ -37,8 +37,7 @@
     33 => 'Termwind\\Laravel\\TermwindServiceProvider',
     34 => 'Rishadblack\\WireTomselect\\WireTomselectServiceProvider',
     35 => 'App\\Providers\\AppServiceProvider',
-    36 => 'App\\Providers\\RouteServiceProvider',
-    37 => 'App\\Providers\\AppServiceProvider',
+    36 => 'App\\Providers\\AppServiceProvider',
   ),
   'eager' => 
   array (
@@ -64,8 +63,7 @@
     19 => 'Termwind\\Laravel\\TermwindServiceProvider',
     20 => 'Rishadblack\\WireTomselect\\WireTomselectServiceProvider',
     21 => 'App\\Providers\\AppServiceProvider',
-    22 => 'App\\Providers\\RouteServiceProvider',
-    23 => 'App\\Providers\\AppServiceProvider',
+    22 => 'App\\Providers\\AppServiceProvider',
   ),
   'deferred' => 
   array (

@@ -1149,7 +1149,10 @@
         }
         
         // Apply formatting to all phone inputs
-        formatPhoneNumber('phone_number');
+        // phone_number is intentionally left unformatted here — the server
+        // normalizes it (strips a leading 0 and prefixes 961 for 01/03/07/09
+        // numbers) on save, and this client-side formatter would mangle it
+        // first (e.g. "+961 03 098 741", keeping the 0) before that ever runs.
         formatPhoneNumber('office_phone');
         formatPhoneNumber('home_phone');
         

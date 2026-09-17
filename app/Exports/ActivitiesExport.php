@@ -12,6 +12,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterSheet;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class ActivitiesExport implements FromQuery, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithEvents
 {
@@ -26,6 +27,17 @@ class ActivitiesExport implements FromQuery, WithHeadings, WithMapping, WithStyl
     public function query()
     {
         $query = Activity::query();
+
+        // Scope activities to the logged-in employee's own focal-point assignments,
+        // unless they are an admin/super admin (who see everything) — matches the
+        // scoping applied in ActivityController::index() so the export total
+        // matches what the employee sees on screen.
+        $employee = Auth::guard('employee')->user();
+        if ($employee && !$employee->hasFullAccess()) {
+            $query->whereHas('focalPoints', function ($q) use ($employee) {
+                $q->where('employee_id', $employee->employee_id);
+            });
+        }
 
         // Apply filters
         if (isset($this->filters['title']) && !empty($this->filters['title'])) {

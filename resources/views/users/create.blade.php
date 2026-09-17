@@ -1203,8 +1203,60 @@
         });
     }
     
-    // Apply formatting to all phone inputs
-    formatPhoneNumber('phone_number');
+    // ============================================
+    // PHONE NUMBER FORMATTING — phone_number field only, on this create page.
+    // - 0 followed by 1/3/7/9 (01/03/07/09...): drop the leading 0, prefix "961 ".
+    //   e.g. 03098741 -> 961 3 098 741
+    // - 70/71/76/78/79/81... (no leading 0): prefix "961 " as-is.
+    //   e.g. 81968927 -> 961 81 968 927
+    // - Any other number: left exactly as typed.
+    // This only runs here, not on the edit page — edits keep the phone number
+    // exactly as stored/typed.
+    // ============================================
+    function formatLebanesePhoneNumber(inputId) {
+        const input = document.getElementById(inputId);
+        if (!input) return function() {};
+
+        function groupDigits(digits, sizes) {
+            const groups = [];
+            let idx = 0;
+            for (const size of sizes) {
+                if (idx >= digits.length) break;
+                groups.push(digits.substring(idx, idx + size));
+                idx += size;
+            }
+            if (idx < digits.length) {
+                groups.push(digits.substring(idx));
+            }
+            return groups.join(' ');
+        }
+
+        function applyFormatting() {
+            const raw = input.value.trim();
+            if (!raw) return;
+
+            const digits = raw.replace(/\D/g, '');
+            if (!digits) return;
+
+            const zeroPrefixSecondDigits = ['1', '3', '7', '9'];
+            const mobilePrefixes = ['70', '71', '76', '78', '79', '81'];
+
+            if (digits[0] === '0' && zeroPrefixSecondDigits.includes(digits[1])) {
+                input.value = '961 ' + groupDigits(digits.substring(1), [1, 3, 3]);
+            } else if (mobilePrefixes.some(p => digits.startsWith(p))) {
+                input.value = '961 ' + groupDigits(digits, [2, 3, 3]);
+            }
+            // Any other number is left exactly as typed.
+        }
+
+        input.addEventListener('blur', applyFormatting);
+
+        return applyFormatting;
+    }
+
+    const applyPhoneFormatting = formatLebanesePhoneNumber('phone_number');
+
+    // Apply formatting to the other phone inputs
     formatPhoneNumber('office_phone');
     formatPhoneNumber('home_phone');
         
@@ -1215,6 +1267,8 @@
         
         if (form) {
             form.addEventListener('submit', function(e) {
+                applyPhoneFormatting();
+
                 if (!form.checkValidity()) {
                     e.preventDefault();
                     e.stopPropagation();

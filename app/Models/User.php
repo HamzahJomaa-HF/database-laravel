@@ -114,13 +114,51 @@ class User extends Model
             if (empty($user->type)) {
                 $user->type = self::TYPE_STAKEHOLDER;
             }
-            
+
+            if (!empty($user->phone_number)) {
+                $user->phone_number = self::formatPhoneNumber($user->phone_number);
+            }
+
             // REMOVED: mobile_phone to phone_number sync logic
         });
 
         static::updating(function ($user) {
+            // Phone numbers are only normalized on creation, not on edits —
+            // an existing phone_number is left exactly as the user typed it.
+
             // REMOVED: mobile_phone to phone_number sync logic
         });
+    }
+
+    /**
+     * Applied only when a user is created (see static::creating() above), not
+     * on later edits. Lebanese local numbers starting with a trunk 0 followed
+     * by 1, 3, 7 or 9 (e.g. 03098741) are stored in international form: the
+     * leading 0 is dropped and the 961 country code is prefixed (e.g.
+     * 9613098741). Mobile numbers already given without the trunk zero
+     * (70/71/76/78/79/81...) just get the 961 country code prefixed as-is
+     * (e.g. 81968927 -> 96181968927). Any other number is left exactly as
+     * entered.
+     */
+    public static function formatPhoneNumber(string $phone): string
+    {
+        $digits = preg_replace('/\D/', '', $phone);
+
+        if ($digits === '') {
+            return $phone;
+        }
+
+        if ($digits[0] === '0' && isset($digits[1]) && in_array($digits[1], ['1', '3', '7', '9'], true)) {
+            return '961' . substr($digits, 1);
+        }
+
+        foreach (['70', '71', '76', '78', '79', '81'] as $mobilePrefix) {
+            if (str_starts_with($digits, $mobilePrefix)) {
+                return '961' . $digits;
+            }
+        }
+
+        return $phone;
     }
 
     // Relationships
