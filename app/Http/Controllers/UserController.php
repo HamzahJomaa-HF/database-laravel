@@ -314,6 +314,8 @@ class UserController extends Controller
                 'invited' => $request->boolean('activity_invited', false),
                 'attended' => $request->boolean('activity_attended', false),
             ]);
+
+            return redirect()->route('activity-users.index')->with('success', 'User created and Activity-User relationship created successfully!');
         }
 
         return redirect()->route('users.index')->with('success', 'User created successfully.');
