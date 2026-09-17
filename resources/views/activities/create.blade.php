@@ -502,23 +502,30 @@
         <div class="row">
             <div class="col-md-12">
                 <div class="form-group mb-0">
-                    <label for="focal_points_select" class="form-label fw-semibold mb-2">Select Focal Points</label>
+                    <label for="focal_points_select" class="form-label fw-semibold mb-2">Select Focal Points <span class="text-danger">*</span></label>
                     
                     @php
                         use Illuminate\Support\Facades\DB;
                         
-                        // Get all active employees
+                        // Get all active employees, excluding Super Admin/Admin roles
+                        // (they already have full access, so they can't be assigned as a focal point)
                         $employees = DB::table('employees')
-                            ->whereNull('deleted_at')
-                            ->orderBy('first_name')
-                            ->get(['employee_id', 'first_name', 'last_name', 'email', 'employee_type']);
+                            ->leftJoin('roles', 'roles.role_id', '=', 'employees.role_id')
+                            ->whereNull('employees.deleted_at')
+                            ->where(function ($q) {
+                                $q->whereNull('roles.role_name')
+                                    ->orWhere('roles.role_name', 'not ilike', '%admin%');
+                            })
+                            ->orderBy('employees.first_name')
+                            ->get(['employees.employee_id', 'employees.first_name', 'employees.last_name', 'employees.email', 'employees.employee_type']);
                         
                         // Get old selections (if form was submitted with errors)
                         $selectedFocalPoints = old('focal_points', []);
                     @endphp
                     
-                    <select id="focal_points_select" 
+                    <select id="focal_points_select"
                             multiple
+                            required
                             class="form-control @error('focal_points') is-invalid @enderror"
                             name="focal_points[]">
                         
@@ -530,9 +537,9 @@
                                     $type = $employee->employee_type ?? 'Unknown Type';
                                 @endphp
                                 
-                                <option value="{{ $employee->employee_id }}" 
+                                <option value="{{ $employee->employee_id }}"
                                         {{ $isSelected ? 'selected' : '' }}>
-                                    {{ $displayName }} - {{ $employee->email }} ({{ $type }})
+                                    {{ $displayName }}
                                 </option>
                             @endforeach
                         @else

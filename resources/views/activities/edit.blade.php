@@ -524,10 +524,17 @@
                         use Illuminate\Support\Facades\DB;
                         
                         // Get all active employees
+                        // Excludes Super Admin/Admin roles — they already have full access,
+                        // so they can't be assigned as a focal point.
                         $employees = DB::table('employees')
-                            ->whereNull('deleted_at')
-                            ->orderBy('first_name')
-                            ->get(['employee_id', 'first_name', 'last_name', 'email', 'employee_type']);
+                            ->leftJoin('roles', 'roles.role_id', '=', 'employees.role_id')
+                            ->whereNull('employees.deleted_at')
+                            ->where(function ($q) {
+                                $q->whereNull('roles.role_name')
+                                    ->orWhere('roles.role_name', 'not ilike', '%admin%');
+                            })
+                            ->orderBy('employees.first_name')
+                            ->get(['employees.employee_id', 'employees.first_name', 'employees.last_name', 'employees.email', 'employees.employee_type']);
                         
                         // Get selected focal points from controller (employee IDs)
                         // This is now passed from the edit method
@@ -552,9 +559,9 @@
                                     $type = $employee->employee_type ?? 'Unknown Type';
                                 @endphp
                                 
-                                <option value="{{ $employee->employee_id }}" 
+                                <option value="{{ $employee->employee_id }}"
                                         {{ $isSelected ? 'selected' : '' }}>
-                                    {{ $displayName }} - {{ $employee->email }} ({{ $type }})
+                                    {{ $displayName }}
                                 </option>
                             @endforeach
                         @else

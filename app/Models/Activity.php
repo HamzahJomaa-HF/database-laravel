@@ -193,7 +193,7 @@ class Activity extends Model
     public function focalPoints()
     {
         return $this->belongsToMany(
-            RpFocalPoint::class,
+            RpFocalpoint::class,
             'activity_focal_points',
             'activity_id',
             'rp_focalpoints_id',

@@ -3,59 +3,42 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use App\Models\Activity;
+use Carbon\Carbon;
 
 class ActivitySeeder extends Seeder
 {
     public function run(): void
     {
-        // // Activity 1
-        // DB::table('activities')->insert([
-        //     'activity_id' => Str::uuid(),
-        //     'external_id' => 'ACT_2025_12_001',
-        //     'folder_name' => 'ACT001',
-        //     'activity_title_en' => 'Teachers Training Workshop',
-        //     'activity_title_ar' => 'ورشة تدريب المعلمين',
-        //     'activity_type' => 'workshop',
-        //     'content_network' => 'Training for RHHS teachers on modern teaching methodologies',
-        //     'start_date' => '2025-03-15',
-        //     'end_date' => '2025-03-17',
-        //     'venue' => 'Rafic Hariri High School - Main Hall',
-        //     'created_at' => now(),
-        //     'updated_at' => now(),
-        // ]);
+        $activityTypes = ['workshop', 'campaign', 'training', 'conference', 'seminar'];
+        $venues = [
+            'Rafic Hariri High School - Main Hall',
+            'Hariri Social & Medical Center',
+            'Cisco Academy - Vocational Training Center',
+            'Anamilouna - Women Empowerment Center',
+            'Community Outreach & Support Office',
+        ];
 
-        // // Activity 2
-        // DB::table('activities')->insert([
-        //     'activity_id' => Str::uuid(),
-        //     'external_id' => 'ACT_2025_12_002',
-        //     'folder_name' => 'ACT002',
-        //     'activity_title_en' => 'Health Awareness Campaign',
-        //     'activity_title_ar' => 'حملة التوعية الصحية',
-        //     'activity_type' => 'campaign',
-        //     'content_network' => 'Community health awareness about diabetes and hypertension',
-        //     'start_date' => '2025-04-10',
-        //     'end_date' => '2025-04-12',
-        //     'venue' => 'Hariri Social & Medical Center',
-        //     'created_at' => now(),
-        //     'updated_at' => now(),
-        // ]);
+        for ($i = 1; $i <= 50; $i++) {
+            $type = $activityTypes[($i - 1) % count($activityTypes)];
+            $venue = $venues[($i - 1) % count($venues)];
+            $startDate = Carbon::now()->addDays(rand(-180, 180));
+            $endDate = (clone $startDate)->addDays(rand(1, 5));
 
-        // // Activity 3
-        // DB::table('activities')->insert([
-        //     'activity_id' => Str::uuid(),
-        //     'external_id' => 'ACT_2025_12_003',
-        //     'folder_name' => 'ACT003',
-        //     'activity_title_en' => 'Digital Skills Training for Youth',
-        //     'activity_title_ar' => 'تدريب المهارات الرقمية للشباب',
-        //     'activity_type' => 'training',
-        //     'content_network' => 'Basic digital literacy and computer skills for unemployed youth',
-        //     'start_date' => '2025-05-05',
-        //     'end_date' => '2025-05-09',
-        //     'venue' => 'Cisco Academy - Vocational Training Center',
-        //     'created_at' => now(),
-        //     'updated_at' => now(),
-        // ]);
+            Activity::create([
+                'external_id' => 'ACT_SEED_' . str_pad($i, 3, '0', STR_PAD_LEFT),
+                'folder_name' => 'ACT' . str_pad($i, 3, '0', STR_PAD_LEFT),
+                'activity_title_en' => ucfirst($type) . ' Activity ' . $i,
+                'activity_title_ar' => 'نشاط رقم ' . $i,
+                'activity_type' => $type,
+                'content_network' => 'Seeded activity for testing purposes #' . $i,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'venue' => $venue,
+                'maximum_capacity' => rand(20, 100),
+            ]);
+        }
+
+        $this->command->info('✅ Successfully seeded 50 activities!');
     }
 }

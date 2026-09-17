@@ -14,6 +14,36 @@ class ActivitySelector extends Component
     public $selectedActivity = null;
     public $selectedActivityId = null;
 
+    public function mount()
+    {
+        // Restore the previous selection after a failed form submission
+        // (e.g. Activity Assignment validation failed on another field),
+        // so the user doesn't have to re-search and re-select the activity.
+        $oldActivityId = old('activity_id');
+        if ($oldActivityId) {
+            $activity = Activity::find($oldActivityId);
+            if ($activity) {
+                $title = $activity->activity_title_en ?: $activity->activity_title_ar;
+
+                $this->selectedActivity = [
+                    'id' => $activity->activity_id,
+                    'title' => $title,
+                    'title_en' => $activity->activity_title_en,
+                    'title_ar' => $activity->activity_title_ar,
+                    'type' => $activity->activity_type,
+                    'folder_name' => $activity->folder_name,
+                    'start_date' => $activity->start_date,
+                    'start_date_formatted' => $activity->start_date ? date('M d, Y', strtotime($activity->start_date)) : '',
+                    'end_date' => $activity->end_date,
+                    'end_date_formatted' => $activity->end_date ? date('M d, Y', strtotime($activity->end_date)) : '',
+                    'venue' => $activity->venue,
+                    'max_capacity' => $activity->maximum_capacity,
+                ];
+                $this->selectedActivityId = $activity->activity_id;
+            }
+        }
+    }
+
     public function updatedActivitySearch()
     {
         if (strlen($this->activitySearch) < 1) {

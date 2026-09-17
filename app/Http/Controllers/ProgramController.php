@@ -44,7 +44,7 @@ class ProgramController extends Controller
             });
         }
 
-        $programs = $query->paginate(20);
+        $programs = $query->paginate($request->get('per_page', 20));
 
         // Get available program types for filter dropdown
         $programTypes = Program::distinct()->pluck('program_type')->filter()->values();

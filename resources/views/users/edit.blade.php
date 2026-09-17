@@ -141,8 +141,10 @@
             </div>
 
             <div class="col-md-3">
-                <label for="original_name" class="form-label fw-semibold">Original Name</label>
-                <input type="text" name="original_name" id="original_name"
+                <label for="original_name" class="form-label fw-semibold">
+                    Original Name <span class="text-danger">*</span>
+                </label>
+                <input type="text" name="original_name" id="original_name" required
                        class="form-control @error('original_name') is-invalid @enderror"
                        value="{{ old('original_name', $user->original_name) }}"
                        placeholder="Original Name (e.g. in Arabic)">

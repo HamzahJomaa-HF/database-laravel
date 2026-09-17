@@ -10,6 +10,7 @@ use App\Models\Activity;
 use App\Models\User;
 use App\Models\Cop;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -49,6 +50,19 @@ class ActivityUserForm extends Component
         'invited' => 'boolean',
         'attended' => 'boolean',
     ];
+
+    // Scopes an Activity query to only the activities the logged-in employee
+    // is a focal point on, unless they're an admin/super admin (who see everything).
+    protected function scopeActivitiesToFocalPoint($query)
+    {
+        $employee = Auth::guard('employee')->user();
+        if ($employee && !$employee->hasFullAccess()) {
+            $query->whereHas('focalPoints', function ($q) use ($employee) {
+                $q->where('employee_id', $employee->employee_id);
+            });
+        }
+        return $query;
+    }
 
     public function mount($id = null)
 {
@@ -184,7 +198,7 @@ class ActivityUserForm extends Component
     // "Youth Leadership Workshop" shouldn't need to appear verbatim in one column.
     $words = array_filter(preg_split('/\s+/', trim($this->activitySearch)), fn ($w) => $w !== '');
 
-    $this->activityResults = Activity::query()
+    $this->activityResults = $this->scopeActivitiesToFocalPoint(Activity::query())
         ->where(function ($query) use ($words) {
             foreach ($words as $word) {
                 $query->where(function ($sub) use ($word) {
@@ -263,9 +277,9 @@ class ActivityUserForm extends Component
     // Select activity
    public function selectActivity($activityId)
 {
-     
-    
-    $activity = Activity::find($activityId);
+
+
+    $activity = $this->scopeActivitiesToFocalPoint(Activity::query())->find($activityId);
     if ($activity) {
         $title = $activity->activity_title_en ?: $activity->activity_title_ar;
         $startDateStr = $activity->start_date ? date('M d, Y', strtotime($activity->start_date)) : '';
@@ -331,6 +345,15 @@ class ActivityUserForm extends Component
 
     
     $this->validate();
+
+    $allowed = $this->scopeActivitiesToFocalPoint(Activity::query())
+        ->where('activity_id', $this->activity_id)
+        ->exists();
+
+    if (!$allowed) {
+        session()->flash('error', 'You are not authorized to assign users to this activity.');
+        return;
+    }
 
     try {
         DB::beginTransaction();

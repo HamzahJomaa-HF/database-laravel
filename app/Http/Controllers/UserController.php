@@ -141,7 +141,7 @@ class UserController extends Controller
         // Eager load the default CoP relationship
         $users = $query->with('defaultCop')
             ->orderBy('last_name', 'asc')
-            ->paginate(20)
+            ->paginate($request->get('per_page', 20))
             ->appends($request->all()); // FIXED: Preserve query parameters for pagination links
 
         // Check if any search/filter was applied
@@ -164,7 +164,7 @@ class UserController extends Controller
         $diplomas = Diploma::orderBy('diploma_name')->get();
         $nationalities = Nationality::orderBy('name')->get();
         $cops = Cop::orderBy('cop_name')->get();
-        
+
         return view('users.create', compact('diplomas', 'nationalities', 'cops'));
     }
 
@@ -174,27 +174,30 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $rules = [
-            // Required fields from new structure
-            'prefix' => 'nullable|string|max:50',
-            'is_high_profile' => 'required|boolean',
-            'scope' => ['required', Rule::in(['International', 'Regional', 'National', 'Local'])],
-            'default_cop_id' => 'nullable|exists:cops,cop_id',
+            // Only these four fields are required to create a user
             'first_name' => 'required|string|max:255',
+            'middle_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'gender' => ['required', Rule::in(['Male', 'Female', 'Other'])],
-            'position_1' => 'required|string|max:255',
-            'organization_1' => 'required|string|max:255',
+            'phone_number' => 'required|string|max:20',
+
+            // Everything below is now optional — sensible defaults are applied
+            // after validation for the NOT NULL database columns among them.
+            'prefix' => 'nullable|string|max:50',
+            'is_high_profile' => 'nullable|boolean',
+            'scope' => ['nullable', Rule::in(['International', 'Regional', 'National', 'Local'])],
+            'default_cop_id' => 'nullable|exists:cops,cop_id',
+            'gender' => ['nullable', Rule::in(['Male', 'Female', 'Other'])],
+            'position_1' => 'nullable|string|max:255',
+            'organization_1' => 'nullable|string|max:255',
             'organization_type_1' => [
-                'required',
+                'nullable',
                 Rule::in(['Public Sector', 'Private Sector', 'Academia', 'UN', 'INGOs', 'Civil Society', 'NGOs', 'Activist'])
             ],
-            'status_1' => 'required|string|max:255',
-            'address' => 'required|string',
-            'phone_number' => 'required|string|max:20',
-            
+            'status_1' => 'nullable|string|max:255',
+            'address' => 'nullable|string',
+
             // Optional fields from new structure
             'sector' => 'nullable|string|max:255',
-            'middle_name' => 'nullable|string|max:255',
             'dob' => 'nullable|date',
             'office_phone' => 'nullable|string|max:20',
             'extension_number' => 'nullable|string|max:20',
@@ -212,7 +215,7 @@ class UserController extends Controller
             
             // Keep existing fields for backward compatibility
             'mother_name' => 'nullable|string|max:255',
-            'original_name' => 'nullable|string|max:255',
+            'original_name' => 'required|string|max:255',
             'marital_status' => 'nullable|string|max:50',
             'employment_status' => 'nullable|string|max:50',
             'identification_id' => 'nullable|string|max:50|unique:users,identification_id',
@@ -229,9 +232,30 @@ class UserController extends Controller
             'diplomas.*' => 'exists:diploma,diploma_id',
             'nationalities' => 'nullable|array',
             'nationalities.*' => 'exists:nationality,nationality_id',
+
+            // Optional activity assignment (created alongside the user, if provided).
+            // The whole section is optional, but as soon as ANY field in it is
+            // touched, the fields identifying the assignment (which activity, which
+            // role) become required — an activity can't be half-assigned.
+            'activity_id' => 'nullable|required_with:activity_role,activity_invited,activity_attended|exists:activities,activity_id',
+            'activity_role' => 'nullable|required_with:activity_id,activity_invited,activity_attended|string|max:255|in:Stakeholder,Beneficiary',
+            'activity_invited' => 'sometimes|boolean',
+            'activity_attended' => 'sometimes|boolean',
         ];
 
-        $request->validate($rules);
+        $request->validate($rules, [
+            'activity_id.required_with' => 'Please select an activity, or clear the other Activity Assignment fields to skip it.',
+            'activity_role.required_with' => 'Please select a type for the activity assignment, or clear the other Activity Assignment fields to skip it.',
+        ]);
+
+        // Duplicate-person guard: block creation if the submitted details match an
+        // existing user under any one of the three identity conditions below.
+        $duplicateReason = $this->matchesExistingUser($request);
+        if ($duplicateReason) {
+            return back()
+                ->withErrors(['duplicate' => "Cannot create this user — a matching user already exists ({$duplicateReason})."])
+                ->withInput();
+        }
 
         // Prepare user data
         $userData = $request->only([
@@ -255,17 +279,41 @@ class UserController extends Controller
 
         // REMOVED: Default type setting - type will be null if not provided
 
+        // Only first_name, middle_name, last_name, and phone_number are required
+        // from the form now — the fields below still have NOT NULL database
+        // columns, so fall back to the same defaults used by the CSV import.
+        $userData['is_high_profile'] = $userData['is_high_profile'] ?? false;
+        $userData['scope'] = $userData['scope'] ?? 'National';
+        $userData['gender'] = $userData['gender'] ?? 'Other';
+        $userData['position_1'] = $userData['position_1'] ?? 'Not Specified';
+        $userData['organization_1'] = $userData['organization_1'] ?? 'Not Specified';
+        $userData['organization_type_1'] = $userData['organization_type_1'] ?? 'Private Sector';
+        $userData['status_1'] = $userData['status_1'] ?? 'Active';
+        $userData['address'] = $userData['address'] ?? 'Not Provided';
+
         // Create user
         $user = User::create($userData);
-        
+
         // Sync diplomas with existing diploma records
         if ($request->has('diplomas')) {
             $user->diplomas()->sync($request->diplomas);
         }
-        
+
         // Sync nationalities with existing nationality records
         if ($request->has('nationalities')) {
             $user->nationalities()->sync($request->nationalities);
+        }
+
+        // Optionally assign the new user to an activity (activity_users table)
+        if ($request->filled('activity_id')) {
+            ActivityUser::create([
+                'activity_user_id' => (string) Str::uuid(),
+                'user_id' => $user->user_id,
+                'activity_id' => $request->activity_id,
+                'type' => $request->activity_role,
+                'invited' => $request->boolean('activity_invited', false),
+                'attended' => $request->boolean('activity_attended', false),
+            ]);
         }
 
         return redirect()->route('users.index')->with('success', 'User created successfully.');
@@ -338,7 +386,7 @@ class UserController extends Controller
             
             // Keep existing fields for backward compatibility
             'mother_name' => 'nullable|string|max:255',
-            'original_name' => 'nullable|string|max:255',
+            'original_name' => 'required|string|max:255',
             'marital_status' => 'nullable|string|max:50',
             'employment_status' => 'nullable|string|max:50',
             'identification_id' => [
@@ -1221,6 +1269,102 @@ class UserController extends Controller
         }
 
         return $this->handleImportResults($results);
+    }
+
+    /**
+     * Check the submitted form data against an existing user using three
+     * possible identity conditions. A condition only applies when ALL of its
+     * fields were actually submitted; if any applicable condition matches an
+     * existing user exactly, the caller should refuse to create the new user.
+     *
+     * Condition 1: dob + phone_number + first_name + middle_name + last_name
+     * Condition 2: (identification_id OR passport_number) + first_name + middle_name + last_name
+     * Condition 3: register_number + register_place + dob + phone_number + first_name + middle_name + last_name
+     * Condition 4: phone_number + first_name + middle_name + last_name
+     *
+     * Returns a human-readable description of the matched condition, or null if none matched.
+     */
+    private function matchesExistingUser(Request $request)
+    {
+        $firstName = $request->first_name;
+        $middleName = $request->middle_name;
+        $lastName = $request->last_name;
+
+        // Condition 1
+        if ($request->filled('dob') && $request->filled('phone_number')
+            && $request->filled('first_name') && $request->filled('middle_name') && $request->filled('last_name')) {
+            $exists = User::whereDate('dob', $request->dob)
+                ->where('phone_number', $request->phone_number)
+                ->where('first_name', 'ilike', $firstName)
+                ->where('middle_name', 'ilike', $middleName)
+                ->where('last_name', 'ilike', $lastName)
+                ->exists();
+
+            if ($exists) {
+                return 'same date of birth, phone number, and full name';
+            }
+        }
+
+        // Condition 2
+        if ($request->filled('first_name') && $request->filled('middle_name') && $request->filled('last_name')) {
+            if ($request->filled('identification_id')) {
+                $exists = User::where('identification_id', $request->identification_id)
+                    ->where('first_name', 'ilike', $firstName)
+                    ->where('middle_name', 'ilike', $middleName)
+                    ->where('last_name', 'ilike', $lastName)
+                    ->exists();
+
+                if ($exists) {
+                    return 'same identification ID and full name';
+                }
+            }
+
+            if ($request->filled('passport_number')) {
+                $exists = User::where('passport_number', $request->passport_number)
+                    ->where('first_name', 'ilike', $firstName)
+                    ->where('middle_name', 'ilike', $middleName)
+                    ->where('last_name', 'ilike', $lastName)
+                    ->exists();
+
+                if ($exists) {
+                    return 'same passport number and full name';
+                }
+            }
+        }
+
+        // Condition 3
+        if ($request->filled('register_number') && $request->filled('register_place')
+            && $request->filled('dob') && $request->filled('phone_number')
+            && $request->filled('first_name') && $request->filled('middle_name') && $request->filled('last_name')) {
+            $exists = User::where('register_number', $request->register_number)
+                ->where('register_place', 'ilike', $request->register_place)
+                ->whereDate('dob', $request->dob)
+                ->where('phone_number', $request->phone_number)
+                ->where('first_name', 'ilike', $firstName)
+                ->where('middle_name', 'ilike', $middleName)
+                ->where('last_name', 'ilike', $lastName)
+                ->exists();
+
+            if ($exists) {
+                return 'same register number/place, date of birth, phone number, and full name';
+            }
+        }
+
+        // Condition 4
+        if ($request->filled('phone_number')
+            && $request->filled('first_name') && $request->filled('middle_name') && $request->filled('last_name')) {
+            $exists = User::where('phone_number', $request->phone_number)
+                ->where('first_name', 'ilike', $firstName)
+                ->where('middle_name', 'ilike', $middleName)
+                ->where('last_name', 'ilike', $lastName)
+                ->exists();
+
+            if ($exists) {
+                return 'same phone number and full name';
+            }
+        }
+
+        return null;
     }
 
     /**

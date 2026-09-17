@@ -34,7 +34,7 @@ class ActionPlanController extends Controller
             $query = $this->applyFilters($query, $request);
             
             // Get paginated results
-            $actionPlans = $query->paginate(20)->withQueryString();
+            $actionPlans = $query->paginate($request->get('per_page', 20))->withQueryString();
 
             // Check if any search/filter is applied
             $hasSearch = $this->hasSearchApplied($request);

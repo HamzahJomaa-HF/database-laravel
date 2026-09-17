@@ -14,12 +14,12 @@ class RoleController extends Controller
     /**
      * Display a listing of roles.
      */
-    public function index()
+    public function index(Request $request)
     {
         $roles = Role::with('moduleAccesses')
             ->withCount('employees')
             ->latest()
-            ->paginate(10);
+            ->paginate($request->get('per_page', 20));
 
         return view('roles.index', compact('roles'));
     }

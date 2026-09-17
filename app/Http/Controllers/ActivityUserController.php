@@ -9,6 +9,7 @@ use App\Models\Nationality;
 use App\Models\Diploma;
 use App\Support\Concerns\NormalizesPhoneForMatching;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -28,6 +29,15 @@ class ActivityUserController extends Controller
         // ... (keep your existing index method exactly as is)
         $query = ActivityUser::with(['user', 'activity', 'cop'])
             ->orderBy('created_at', 'desc');
+
+        // Scope to the logged-in employee's own focal-point activities,
+        // unless they are an admin/super admin (who see everything).
+        $employee = Auth::guard('employee')->user();
+        if ($employee && !$employee->hasFullAccess()) {
+            $query->whereHas('activity.focalPoints', function ($q) use ($employee) {
+                $q->where('employee_id', $employee->employee_id);
+            });
+        }
 
         // Filter by activity if provided
         if ($request->filled('activity_id')) {
@@ -443,6 +453,15 @@ class ActivityUserController extends Controller
     {
         $query = ActivityUser::with(['user', 'activity', 'cop'])
             ->orderBy('created_at', 'desc');
+
+        // Scope to the logged-in employee's own focal-point activities,
+        // unless they are an admin/super admin (who see everything).
+        $employee = Auth::guard('employee')->user();
+        if ($employee && !$employee->hasFullAccess()) {
+            $query->whereHas('activity.focalPoints', function ($q) use ($employee) {
+                $q->where('employee_id', $employee->employee_id);
+            });
+        }
 
         if ($request->filled('activity_id')) {
             $query->where('activity_id', $request->activity_id);

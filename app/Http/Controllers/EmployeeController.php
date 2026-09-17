@@ -16,12 +16,14 @@ class EmployeeController extends Controller
     /**
      * Display a listing of employees.
      */
-    public function index()
+    public function index(Request $request)
     {
+        $perPage = $request->get('per_page', 20);
+
         $employees = Employee::with(['role.moduleAccesses', 'credentials', 'projectEmployees.project'])
 
             ->latest()
-            ->paginate(20);
+            ->paginate($perPage);
         
         $roles = Role::all();
         

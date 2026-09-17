@@ -92,11 +92,13 @@
             </div>
 
             <div class="col-md-3">
-                <label for="middle_name" class="form-label fw-semibold">Middle Name</label>
-                <input type="text" name="middle_name" id="middle_name" 
-                       class="form-control @error('middle_name') is-invalid @enderror" 
-                       value="{{ old('middle_name') }}" 
-                       placeholder="Middle Name">
+                <label for="middle_name" class="form-label fw-semibold">
+                    Middle Name <span class="text-danger">*</span>
+                </label>
+                <input type="text" name="middle_name" id="middle_name"
+                       class="form-control @error('middle_name') is-invalid @enderror"
+                       value="{{ old('middle_name') }}"
+                       placeholder="Middle Name" required>
                 @error('middle_name')
                     <div class="invalid-feedback d-block">{{ $message }}</div>
                 @enderror
@@ -127,8 +129,10 @@
             </div>
 
             <div class="col-md-3">
-                <label for="original_name" class="form-label fw-semibold">Original Name</label>
-                <input type="text" name="original_name" id="original_name"
+                <label for="original_name" class="form-label fw-semibold">
+                    Original Name <span class="text-danger">*</span>
+                </label>
+                <input type="text" name="original_name" id="original_name" required
                        class="form-control @error('original_name') is-invalid @enderror"
                        value="{{ old('original_name') }}"
                        placeholder="Original Name (e.g. in Arabic)">
@@ -139,10 +143,8 @@
 
             {{-- Row 2 --}}
             <div class="col-md-3">
-                <label for="gender" class="form-label fw-semibold">
-                    Gender <span class="text-danger">*</span>
-                </label>
-                <select name="gender" id="gender" class="form-control form-select @error('gender') is-invalid @enderror" required>
+                <label for="gender" class="form-label fw-semibold">Gender</label>
+                <select name="gender" id="gender" class="form-control form-select @error('gender') is-invalid @enderror">
                     <option value="">Select Gender</option>
                     <option value="Male" {{ old('gender')=='Male' ? 'selected':'' }}>Male</option>
                     <option value="Female" {{ old('gender')=='Female' ? 'selected':'' }}>Female</option>
@@ -178,13 +180,11 @@
             </div>
             
             <div class="col-md-3">
-                <label for="address" class="form-label fw-semibold">
-                    Address <span class="text-danger">*</span>
-                </label>
-                <input type="text" name="address" id="address" 
-                       class="form-control @error('address') is-invalid @enderror" 
-                       value="{{ old('address') }}" 
-                       placeholder="Address" required>
+                <label for="address" class="form-label fw-semibold">Address</label>
+                <input type="text" name="address" id="address"
+                       class="form-control @error('address') is-invalid @enderror"
+                       value="{{ old('address') }}"
+                       placeholder="Address">
                 @error('address')
                     <div class="invalid-feedback d-block">{{ $message }}</div>
                 @enderror
@@ -358,10 +358,8 @@
                             <div class="section-body">
                                 <div class="row g-3">
                                     <div class="col-md-3">
-                                        <label for="is_high_profile" class="form-label fw-semibold">
-                                            High Profile <span class="text-danger">*</span>
-                                        </label>
-                                        <select name="is_high_profile" id="is_high_profile" class="form-control form-select @error('is_high_profile') is-invalid @enderror" required>
+                                        <label for="is_high_profile" class="form-label fw-semibold">High Profile</label>
+                                        <select name="is_high_profile" id="is_high_profile" class="form-control form-select @error('is_high_profile') is-invalid @enderror">
                                             <option value="0" {{ old('is_high_profile')==='0' ? 'selected':'' }}>No</option>
                                             <option value="1" {{ old('is_high_profile')==='1' ? 'selected':'' }}>Yes</option>
                                         </select>
@@ -371,10 +369,8 @@
                                     </div>
 
                                     <div class="col-md-3">
-                                        <label for="scope" class="form-label fw-semibold">
-                                            Scope <span class="text-danger">*</span>
-                                        </label>
-                                        <select name="scope" id="scope" class="form-control form-select @error('scope') is-invalid @enderror" required>
+                                        <label for="scope" class="form-label fw-semibold">Scope</label>
+                                        <select name="scope" id="scope" class="form-control form-select @error('scope') is-invalid @enderror">
                                             <option value="">Select Scope</option>
                                             <option value="International" {{ old('scope')=='International' ? 'selected':'' }}>International</option>
                                             <option value="Regional" {{ old('scope')=='Regional' ? 'selected':'' }}>Regional</option>
@@ -427,36 +423,30 @@
                                 <div class="row g-3">
                                     {{-- Row 1 --}}
                                     <div class="col-md-3">
-                                        <label for="position_1" class="form-label fw-semibold">
-                                            Position <span class="text-danger">*</span>
-                                        </label>
-                                        <input type="text" name="position_1" id="position_1" 
-                                               class="form-control @error('position_1') is-invalid @enderror" 
-                                               value="{{ old('position_1') }}" 
-                                               placeholder="Position" required>
+                                        <label for="position_1" class="form-label fw-semibold">Position</label>
+                                        <input type="text" name="position_1" id="position_1"
+                                               class="form-control @error('position_1') is-invalid @enderror"
+                                               value="{{ old('position_1') }}"
+                                               placeholder="Position">
                                         @error('position_1')
                                             <div class="invalid-feedback d-block">{{ $message }}</div>
                                         @enderror
                                     </div>
 
                                     <div class="col-md-3">
-                                        <label for="organization_1" class="form-label fw-semibold">
-                                            Organization <span class="text-danger">*</span>
-                                        </label>
-                                        <input type="text" name="organization_1" id="organization_1" 
-                                               class="form-control @error('organization_1') is-invalid @enderror" 
-                                               value="{{ old('organization_1') }}" 
-                                               placeholder="Organization" required>
+                                        <label for="organization_1" class="form-label fw-semibold">Organization</label>
+                                        <input type="text" name="organization_1" id="organization_1"
+                                               class="form-control @error('organization_1') is-invalid @enderror"
+                                               value="{{ old('organization_1') }}"
+                                               placeholder="Organization">
                                         @error('organization_1')
                                             <div class="invalid-feedback d-block">{{ $message }}</div>
                                         @enderror
                                     </div>
 
                                     <div class="col-md-3">
-                                        <label for="organization_type_1" class="form-label fw-semibold">
-                                            Organization Type <span class="text-danger">*</span>
-                                        </label>
-                                        <select name="organization_type_1" id="organization_type_1" class="form-control form-select @error('organization_type_1') is-invalid @enderror" required>
+                                        <label for="organization_type_1" class="form-label fw-semibold">Organization Type</label>
+                                        <select name="organization_type_1" id="organization_type_1" class="form-control form-select @error('organization_type_1') is-invalid @enderror">
                                             <option value="">Select Organization Type</option>
                                             <option value="Public Sector" {{ old('organization_type_1')=='Public Sector' ? 'selected':'' }}>Public Sector</option>
                                             <option value="Private Sector" {{ old('organization_type_1')=='Private Sector' ? 'selected':'' }}>Private Sector</option>
@@ -474,10 +464,8 @@
 
                                     {{-- Row 2 --}}
                                     <div class="col-md-3">
-                                        <label for="status_1" class="form-label fw-semibold">
-                                            Status <span class="text-danger">*</span>
-                                        </label>
-                                        <select name="status_1" id="status_1" class="form-control form-select @error('status_1') is-invalid @enderror" required>
+                                        <label for="status_1" class="form-label fw-semibold">Status</label>
+                                        <select name="status_1" id="status_1" class="form-control form-select @error('status_1') is-invalid @enderror">
                                             <option value="">Select Status</option>
                                             <option value="Active" {{ old('status_1')=='Active' ? 'selected':'' }}>Active</option>
                                             <option value="Inactive" {{ old('status_1')=='Inactive' ? 'selected':'' }}>Inactive</option>
@@ -661,8 +649,82 @@
                             </div>
                         </div>
 
+                        {{-- ============================================ --}}
+                        {{-- SECTION 9: ACTIVITY ASSIGNMENT (Optional) --}}
+                        {{-- ============================================ --}}
+                        @php
+                            $activityAssignmentHasInput = old('activity_id') || old('activity_role') || old('activity_invited') || old('activity_attended')
+                                || $errors->has('activity_id') || $errors->has('activity_role');
+                        @endphp
+                        <div class="section-card mb-5">
+                            <div class="section-header d-flex align-items-center justify-content-between"
+                                 data-bs-toggle="collapse"
+                                 data-bs-target="#activityAssignmentCollapse"
+                                 role="button"
+                                 aria-expanded="{{ $activityAssignmentHasInput ? 'true' : 'false' }}"
+                                 aria-controls="activityAssignmentCollapse"
+                                 style="cursor: pointer;">
+                                <div>
+                                    <h6 class="mb-0 fw-semibold">Activity Assignment</h6>
+                                    <span class="text-muted small">Optionally assign this user to an activity now</span>
+                                </div>
+                                <i class="bi bi-chevron-down" id="activityAssignmentChevron"></i>
+                            </div>
+                            <div class="collapse {{ $activityAssignmentHasInput ? 'show' : '' }}" id="activityAssignmentCollapse">
+                                <div class="section-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-12">
+                                            <div class="form-group mb-0">
+                                                <label class="form-label fw-semibold mb-2" id="activity_label">Activity</label>
+
+                                                @livewire('activity-selector')
+
+                                                @error('activity_id')
+                                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                                @enderror
+                                                <div id="activity_id_client_error" class="text-danger small mt-1" style="display: none;">
+                                                    Please select an activity, or clear the other Activity Assignment fields to skip it.
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group mb-0">
+                                                <label for="activity_role" class="form-label fw-semibold mb-2" id="activity_role_label">Type in Activity</label>
+                                                <select id="activity_role"
+                                                        name="activity_role"
+                                                        class="form-control @error('activity_role') is-invalid @enderror">
+                                                    <option value="">-- None --</option>
+                                                    <option value="Stakeholder" {{ old('activity_role') == 'Stakeholder' ? 'selected' : '' }}>Stakeholder</option>
+                                                    <option value="Beneficiary" {{ old('activity_role') == 'Beneficiary' ? 'selected' : '' }}>Beneficiary</option>
+                                                </select>
+                                                @error('activity_role')
+                                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 d-flex align-items-center gap-4">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="activity_invited" name="activity_invited" value="1" {{ old('activity_invited') ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="activity_invited">Invited</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="activity_attended" name="activity_attended" value="1" {{ old('activity_attended') ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="activity_attended">Attended</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <div class="form-text">
+                                                <i class="bi bi-info-circle me-1"></i>
+                                                This section is entirely optional — leave it blank to skip assigning the user. But once you fill in any one field here (activity, type, invited, or attended), the activity and type become required together.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         {{-- ======================== --}}
-                        {{-- SECTION 9: ACTION BUTTONS --}}
+                        {{-- SECTION 10: ACTION BUTTONS --}}
                         {{-- ======================== --}}
                         <div class="card bg-light border-0">
                             <div class="card-body py-3">
@@ -706,6 +768,10 @@
         background: #f8f9fa;
         padding: 1rem 1.5rem;
         border-bottom: 1px solid #e0e0e0;
+    }
+
+    #activityAssignmentChevron {
+        transition: transform 0.2s ease;
     }
     
     .section-body {
@@ -924,6 +990,15 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Chevron toggle for the collapsible Activity Assignment section
+        const activityAssignmentCollapse = document.getElementById('activityAssignmentCollapse');
+        const activityAssignmentChevron = document.getElementById('activityAssignmentChevron');
+        if (activityAssignmentCollapse && activityAssignmentChevron) {
+            activityAssignmentCollapse.addEventListener('show.bs.collapse', () => activityAssignmentChevron.style.transform = 'rotate(180deg)');
+            activityAssignmentCollapse.addEventListener('hide.bs.collapse', () => activityAssignmentChevron.style.transform = 'rotate(0deg)');
+            if (activityAssignmentCollapse.classList.contains('show')) activityAssignmentChevron.style.transform = 'rotate(180deg)';
+        }
+
         // Initialize the custom multiple select for nationalities
         $('#nationalities_select').select2({
             placeholder: 'Select nationalities...',
@@ -1148,11 +1223,77 @@
                     submitBtn.classList.add('loading');
                     submitBtn.disabled = true;
                 }
-                
+
                 form.classList.add('was-validated');
             });
         }
-        
+
+        // Activity Assignment: optional as a whole, but as soon as any one field
+        // in it is touched, the activity and its type become required together
+        // (the hidden activity_id input can't use native "required" — hidden
+        // inputs are excluded from constraint validation — so it's checked here).
+        (function() {
+            const activityHiddenInput = document.getElementById('activity_id_hidden');
+            const activityRoleSelect = document.getElementById('activity_role');
+            const activityInvited = document.getElementById('activity_invited');
+            const activityAttended = document.getElementById('activity_attended');
+            const activityLabel = document.getElementById('activity_label');
+            const activityRoleLabel = document.getElementById('activity_role_label');
+            const activityClientError = document.getElementById('activity_id_client_error');
+            const requiredMark = ' <span class="text-danger activity-required-mark">*</span>';
+
+            function activitySectionTouched() {
+                return !!(activityHiddenInput && activityHiddenInput.value) ||
+                       !!(activityRoleSelect && activityRoleSelect.value) ||
+                       !!(activityInvited && activityInvited.checked) ||
+                       !!(activityAttended && activityAttended.checked);
+            }
+
+            function setRequiredMark(label, show) {
+                if (!label) return;
+                const hasMark = label.querySelector('.activity-required-mark');
+                if (show && !hasMark) {
+                    label.insertAdjacentHTML('beforeend', requiredMark);
+                } else if (!show && hasMark) {
+                    hasMark.remove();
+                }
+            }
+
+            function updateActivityRequirement() {
+                const touched = activitySectionTouched();
+                if (activityRoleSelect) {
+                    activityRoleSelect.required = touched;
+                }
+                setRequiredMark(activityLabel, touched);
+                setRequiredMark(activityRoleLabel, touched);
+                if (!touched && activityClientError) {
+                    activityClientError.style.display = 'none';
+                }
+            }
+
+            window.addEventListener('activity-selected', updateActivityRequirement);
+            window.addEventListener('activity-cleared', updateActivityRequirement);
+            if (activityRoleSelect) activityRoleSelect.addEventListener('change', updateActivityRequirement);
+            if (activityInvited) activityInvited.addEventListener('change', updateActivityRequirement);
+            if (activityAttended) activityAttended.addEventListener('change', updateActivityRequirement);
+
+            // Run once on load in case old() input pre-populated any of these fields
+            updateActivityRequirement();
+
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    if (activitySectionTouched() && activityHiddenInput && !activityHiddenInput.value) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (activityClientError) {
+                            activityClientError.style.display = 'block';
+                            activityClientError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }
+                });
+            }
+        })();
+
         // Reset button handler
         if (resetBtn) {
             resetBtn.addEventListener('click', function() {

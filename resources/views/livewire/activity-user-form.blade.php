@@ -45,11 +45,23 @@
                         {{-- User Search --}}
                         <div class="form-group">
                             <label>Search User</label>
-                            <input type="text" 
-                                   class="form-control" 
-                                   wire:model.live.debounce.300ms="userSearch" 
-                                   placeholder="Type to search..."
-                                   autocomplete="off">
+                            <div class="d-flex align-items-center gap-2">
+                                <input type="text"
+                                       class="form-control"
+                                       wire:model.live.debounce.300ms="userSearch"
+                                       placeholder="Type to search..."
+                                       autocomplete="off">
+                                <a href="{{ route('users.create') }}"
+                                   class="btn btn-sm btn-outline-primary text-nowrap"
+                                   title="User not found? Create a new user">
+                                    <i class="fas fa-user-plus"></i> New
+                                </a>
+                            </div>
+                            @if($showUserResults && count($userResults) === 0 && strlen($userSearch) > 0)
+                                <small class="text-danger d-block mt-1">
+                                    No matching user — click "New" to create one.
+                                </small>
+                            @endif
                         </div>
 
                         {{-- User Search Results --}}

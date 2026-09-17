@@ -308,16 +308,95 @@
 
                     {{-- Pagination --}}
                     @if($users->hasPages())
-                    <div class="card-footer bg-white border-0 pt-3">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="text-muted small">
-                                Showing <strong>{{ $users->firstItem() ?? 0 }}</strong> to 
-                                <strong>{{ $users->lastItem() ?? 0 }}</strong> of 
-                                <strong>{{ $users->total() }}</strong> entries
-                            </div>
-                            <div>
-                                {{ $users->links('pagination::bootstrap-5') }}
-                            </div>
+                    <div class="pagination-container">
+                        <div class="pagination-info">
+                            Showing {{ $users->firstItem() }} to {{ $users->lastItem() }} of {{ $users->total() }} entries
+                        </div>
+
+                        <div class="pagination-numbers">
+                            {{-- First Page --}}
+                            @if($users->onFirstPage())
+                                <button class="pagination-nav-button" disabled title="First Page">
+                                    <i class="fas fa-angle-double-left"></i>
+                                </button>
+                            @else
+                                <a href="{{ $users->appends(request()->query())->url(1) }}" class="pagination-nav-button" title="First Page">
+                                    <i class="fas fa-angle-double-left"></i>
+                                </a>
+                            @endif
+
+                            {{-- Previous Page --}}
+                            @if($users->onFirstPage())
+                                <button class="pagination-nav-button" disabled title="Previous Page">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                            @else
+                                <a href="{{ $users->appends(request()->query())->previousPageUrl() }}" class="pagination-nav-button" title="Previous Page">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            @endif
+
+                            {{-- Page Numbers with dynamic range --}}
+                            @php
+                                $currentPage = $users->currentPage();
+                                $lastPage = $users->lastPage();
+                                $start = max(1, $currentPage - 2);
+                                $end = min($lastPage, $currentPage + 2);
+
+                                if ($start > 1) {
+                                    echo '<a href="' . $users->appends(request()->query())->url(1) . '" class="pagination-button">1</a>';
+                                    if ($start > 2) {
+                                        echo '<span class="pagination-ellipsis">...</span>';
+                                    }
+                                }
+
+                                for ($i = $start; $i <= $end; $i++) {
+                                    if ($i == $currentPage) {
+                                        echo '<span class="pagination-button active">' . $i . '</span>';
+                                    } else {
+                                        echo '<a href="' . $users->appends(request()->query())->url($i) . '" class="pagination-button">' . $i . '</a>';
+                                    }
+                                }
+
+                                if ($end < $lastPage) {
+                                    if ($end < $lastPage - 1) {
+                                        echo '<span class="pagination-ellipsis">...</span>';
+                                    }
+                                    echo '<a href="' . $users->appends(request()->query())->url($lastPage) . '" class="pagination-button">' . $lastPage . '</a>';
+                                }
+                            @endphp
+
+                            {{-- Next Page --}}
+                            @if($users->hasMorePages())
+                                <a href="{{ $users->appends(request()->query())->nextPageUrl() }}" class="pagination-nav-button" title="Next Page">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            @else
+                                <button class="pagination-nav-button" disabled title="Next Page">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            @endif
+
+                            {{-- Last Page --}}
+                            @if($users->hasMorePages())
+                                <a href="{{ $users->appends(request()->query())->url($users->lastPage()) }}" class="pagination-nav-button" title="Last Page">
+                                    <i class="fas fa-angle-double-right"></i>
+                                </a>
+                            @else
+                                <button class="pagination-nav-button" disabled title="Last Page">
+                                    <i class="fas fa-angle-double-right"></i>
+                                </button>
+                            @endif
+                        </div>
+
+                        <div class="pagination-perpage">
+                            <label class="text-muted small me-2">Rows per page:</label>
+                            <select class="filter-select" onchange="changePerPage(this.value)">
+                                <option value="10" {{ $users->perPage() == 10 ? 'selected' : '' }}>10</option>
+                                <option value="25" {{ $users->perPage() == 25 ? 'selected' : '' }}>25</option>
+                                <option value="50" {{ $users->perPage() == 50 ? 'selected' : '' }}>50</option>
+                                <option value="100" {{ $users->perPage() == 100 ? 'selected' : '' }}>100</option>
+                            </select>
                         </div>
                     </div>
                     @endif
@@ -602,11 +681,93 @@
             transform: translateY(0);
         }
     }
+
+    /* Pagination (matches Activity Users) */
+    :root {
+        --primary-color: #2563eb;
+        --secondary-color: #64748b;
+        --border-color: #e5e7eb;
+    }
+
+    .pagination-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .pagination-numbers {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .pagination-button {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        background-color: white;
+        color: #374151;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .pagination-button:hover {
+        background-color: #f3f4f6;
+    }
+
+    .pagination-button.active {
+        background-color: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .pagination-nav-button {
+        padding: 0.5rem;
+        border: 1px solid var(--border-color);
+        background-color: white;
+        color: #374151;
+        border-radius: 0.375rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .pagination-nav-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .pagination-nav-button:hover:not(:disabled) {
+        background-color: #f3f4f6;
+    }
+
+    .pagination-info {
+        font-size: 0.875rem;
+        color: var(--secondary-color);
+    }
+
+    .filter-select {
+        padding: 0.625rem 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        background-color: white;
+        color: #374151;
+        min-width: 150px;
+    }
 </style>
 @endsection
 
 @section('scripts')
 <script>
+function changePerPage(value) {
+    const params = new URLSearchParams(window.location.search);
+    params.set('per_page', value);
+    window.location.href = '{{ route("users.index") }}?' + params.toString();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Chevron toggle for filter collapse
     const filterCollapse = document.getElementById('filterCollapse');

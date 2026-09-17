@@ -604,40 +604,88 @@
         <!-- Pagination -->
         @if($portfolios->hasPages())
         <div class="pagination-container">
-            <div class="pagination-numbers">
-                @if($portfolios->onFirstPage())
-                    <button class="pagination-nav-button" disabled>
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                @else
-                    <a href="{{ $portfolios->previousPageUrl() }}" class="pagination-nav-button">
-                        <i class="fas fa-chevron-left"></i>
-                    </a>
-                @endif
-                
-                @foreach(range(1, min(5, $portfolios->lastPage())) as $page)
-                    <a href="{{ $portfolios->url($page) }}" 
-                       class="pagination-button {{ $portfolios->currentPage() == $page ? 'active' : '' }}">
-                        {{ $page }}
-                    </a>
-                @endforeach
-                
-                @if($portfolios->hasMorePages())
-                    <a href="{{ $portfolios->nextPageUrl() }}" class="pagination-nav-button">
-                        <i class="fas fa-chevron-right"></i>
-                    </a>
-                @else
-                    <button class="pagination-nav-button" disabled>
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                @endif
-            </div>
-            
             <div class="pagination-info">
                 Showing {{ $portfolios->firstItem() }} to {{ $portfolios->lastItem() }} of {{ $portfolios->total() }} entries
             </div>
-            
-            <div>
+
+            <div class="pagination-numbers">
+                {{-- First Page --}}
+                @if($portfolios->onFirstPage())
+                    <button class="pagination-nav-button" disabled title="First Page">
+                        <i class="fas fa-angle-double-left"></i>
+                    </button>
+                @else
+                    <a href="{{ $portfolios->appends(request()->query())->url(1) }}" class="pagination-nav-button" title="First Page">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                @endif
+
+                {{-- Previous Page --}}
+                @if($portfolios->onFirstPage())
+                    <button class="pagination-nav-button" disabled title="Previous Page">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                @else
+                    <a href="{{ $portfolios->appends(request()->query())->previousPageUrl() }}" class="pagination-nav-button" title="Previous Page">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                @endif
+
+                {{-- Page Numbers with dynamic range --}}
+                @php
+                    $currentPage = $portfolios->currentPage();
+                    $lastPage = $portfolios->lastPage();
+                    $start = max(1, $currentPage - 2);
+                    $end = min($lastPage, $currentPage + 2);
+
+                    if ($start > 1) {
+                        echo '<a href="' . $portfolios->appends(request()->query())->url(1) . '" class="pagination-button">1</a>';
+                        if ($start > 2) {
+                            echo '<span class="pagination-ellipsis">...</span>';
+                        }
+                    }
+
+                    for ($i = $start; $i <= $end; $i++) {
+                        if ($i == $currentPage) {
+                            echo '<span class="pagination-button active">' . $i . '</span>';
+                        } else {
+                            echo '<a href="' . $portfolios->appends(request()->query())->url($i) . '" class="pagination-button">' . $i . '</a>';
+                        }
+                    }
+
+                    if ($end < $lastPage) {
+                        if ($end < $lastPage - 1) {
+                            echo '<span class="pagination-ellipsis">...</span>';
+                        }
+                        echo '<a href="' . $portfolios->appends(request()->query())->url($lastPage) . '" class="pagination-button">' . $lastPage . '</a>';
+                    }
+                @endphp
+
+                {{-- Next Page --}}
+                @if($portfolios->hasMorePages())
+                    <a href="{{ $portfolios->appends(request()->query())->nextPageUrl() }}" class="pagination-nav-button" title="Next Page">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                @else
+                    <button class="pagination-nav-button" disabled title="Next Page">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                @endif
+
+                {{-- Last Page --}}
+                @if($portfolios->hasMorePages())
+                    <a href="{{ $portfolios->appends(request()->query())->url($portfolios->lastPage()) }}" class="pagination-nav-button" title="Last Page">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                @else
+                    <button class="pagination-nav-button" disabled title="Last Page">
+                        <i class="fas fa-angle-double-right"></i>
+                    </button>
+                @endif
+            </div>
+
+            <div class="pagination-perpage">
+                <label class="text-muted small me-2">Rows per page:</label>
                 <select class="filter-select" onchange="changePerPage(this.value)">
                     <option value="10" {{ $portfolios->perPage() == 10 ? 'selected' : '' }}>10</option>
                     <option value="25" {{ $portfolios->perPage() == 25 ? 'selected' : '' }}>25</option>

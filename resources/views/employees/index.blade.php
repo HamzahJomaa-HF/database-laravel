@@ -503,40 +503,88 @@
         <!-- Pagination -->
         @if($employees->hasPages())
         <div class="pagination-container">
-            <div class="pagination-numbers">
-                @if($employees->onFirstPage())
-                    <button class="pagination-nav-button" disabled>
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                @else
-                    <a href="{{ $employees->previousPageUrl() }}" class="pagination-nav-button">
-                        <i class="fas fa-chevron-left"></i>
-                    </a>
-                @endif
-                
-                @foreach(range(1, min(5, $employees->lastPage())) as $page)
-                    <a href="{{ $employees->url($page) }}" 
-                       class="pagination-button {{ $employees->currentPage() == $page ? 'active' : '' }}">
-                        {{ $page }}
-                    </a>
-                @endforeach
-                
-                @if($employees->hasMorePages())
-                    <a href="{{ $employees->nextPageUrl() }}" class="pagination-nav-button">
-                        <i class="fas fa-chevron-right"></i>
-                    </a>
-                @else
-                    <button class="pagination-nav-button" disabled>
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                @endif
-            </div>
-            
             <div class="pagination-info">
                 Showing {{ $employees->firstItem() }} to {{ $employees->lastItem() }} of {{ $employees->total() }} entries
             </div>
-            
-            <div>
+
+            <div class="pagination-numbers">
+                {{-- First Page --}}
+                @if($employees->onFirstPage())
+                    <button class="pagination-nav-button" disabled title="First Page">
+                        <i class="fas fa-angle-double-left"></i>
+                    </button>
+                @else
+                    <a href="{{ $employees->appends(request()->query())->url(1) }}" class="pagination-nav-button" title="First Page">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                @endif
+
+                {{-- Previous Page --}}
+                @if($employees->onFirstPage())
+                    <button class="pagination-nav-button" disabled title="Previous Page">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                @else
+                    <a href="{{ $employees->appends(request()->query())->previousPageUrl() }}" class="pagination-nav-button" title="Previous Page">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                @endif
+
+                {{-- Page Numbers with dynamic range --}}
+                @php
+                    $currentPage = $employees->currentPage();
+                    $lastPage = $employees->lastPage();
+                    $start = max(1, $currentPage - 2);
+                    $end = min($lastPage, $currentPage + 2);
+
+                    if ($start > 1) {
+                        echo '<a href="' . $employees->appends(request()->query())->url(1) . '" class="pagination-button">1</a>';
+                        if ($start > 2) {
+                            echo '<span class="pagination-ellipsis">...</span>';
+                        }
+                    }
+
+                    for ($i = $start; $i <= $end; $i++) {
+                        if ($i == $currentPage) {
+                            echo '<span class="pagination-button active">' . $i . '</span>';
+                        } else {
+                            echo '<a href="' . $employees->appends(request()->query())->url($i) . '" class="pagination-button">' . $i . '</a>';
+                        }
+                    }
+
+                    if ($end < $lastPage) {
+                        if ($end < $lastPage - 1) {
+                            echo '<span class="pagination-ellipsis">...</span>';
+                        }
+                        echo '<a href="' . $employees->appends(request()->query())->url($lastPage) . '" class="pagination-button">' . $lastPage . '</a>';
+                    }
+                @endphp
+
+                {{-- Next Page --}}
+                @if($employees->hasMorePages())
+                    <a href="{{ $employees->appends(request()->query())->nextPageUrl() }}" class="pagination-nav-button" title="Next Page">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                @else
+                    <button class="pagination-nav-button" disabled title="Next Page">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                @endif
+
+                {{-- Last Page --}}
+                @if($employees->hasMorePages())
+                    <a href="{{ $employees->appends(request()->query())->url($employees->lastPage()) }}" class="pagination-nav-button" title="Last Page">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                @else
+                    <button class="pagination-nav-button" disabled title="Last Page">
+                        <i class="fas fa-angle-double-right"></i>
+                    </button>
+                @endif
+            </div>
+
+            <div class="pagination-perpage">
+                <label class="text-muted small me-2">Rows per page:</label>
                 <select class="filter-select" onchange="changePerPage(this.value)">
                     <option value="10" {{ $employees->perPage() == 10 ? 'selected' : '' }}>10</option>
                     <option value="25" {{ $employees->perPage() == 25 ? 'selected' : '' }}>25</option>

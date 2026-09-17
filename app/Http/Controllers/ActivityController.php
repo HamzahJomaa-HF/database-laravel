@@ -21,6 +21,7 @@ use App\Models\PortfolioActivity;
 use App\Exports\ActivitiesExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
 
 class ActivityController extends Controller
 {
@@ -31,6 +32,15 @@ class ActivityController extends Controller
     {
         // Start query
         $query = Activity::query();
+
+        // Scope activities to the logged-in employee's own focal-point assignments,
+        // unless they are an admin/super admin (who see everything).
+        $employee = Auth::guard('employee')->user();
+        if ($employee && !$employee->hasFullAccess()) {
+            $query->whereHas('focalPoints', function ($q) use ($employee) {
+                $q->where('employee_id', $employee->employee_id);
+            });
+        }
 
         // Check if any search parameters exist
         $hasSearch = $request->anyFilled([
@@ -45,8 +55,8 @@ class ActivityController extends Controller
         // Apply filters
         if ($request->filled('title')) {
             $query->where(function ($q) use ($request) {
-                $q->where('activity_title_en', 'like', '%' . $request->title . '%')
-                    ->orWhere('activity_title_ar', 'like', '%' . $request->title . '%');
+                $q->where('activity_title_en', 'ilike', '%' . $request->title . '%')
+                    ->orWhere('activity_title_ar', 'ilike', '%' . $request->title . '%');
             });
         }
 
@@ -55,7 +65,7 @@ class ActivityController extends Controller
         }
 
         if ($request->filled('venue')) {
-            $query->where('venue', 'like', '%' . $request->venue . '%');
+            $query->where('venue', 'ilike', '%' . $request->venue . '%');
         }
 
         // Fixed status filter logic
@@ -87,7 +97,8 @@ class ActivityController extends Controller
         }
 
         // Get paginated results
-        $activities = $query->orderBy('start_date', 'desc')->paginate(50);
+        $perPage = $request->get('per_page', 20);
+        $activities = $query->orderBy('start_date', 'desc')->paginate($perPage);
 
         // Preserve query parameters for pagination links
         $activities->appends($request->all());
@@ -145,9 +156,9 @@ class ActivityController extends Controller
                 'experts' => 'nullable|string',
                 'rp_component_id' => 'nullable|exists:rp_components,rp_components_id',
                 'rp_activities' => 'nullable|array',
-                'focal_points' => 'nullable|array',
+                'focal_points' => 'required|array|min:1',
                 'operational_support' => 'nullable|array',
-                'portfolios.*' => 'exists:portfolios,portfolio_id', 
+                'portfolios.*' => 'exists:portfolios,portfolio_id',
                 'maximum_capacity' => 'nullable|integer|min:0',
             ]);
 
@@ -156,6 +167,23 @@ class ActivityController extends Controller
             $focalPoints = $request->input('focal_points', []);
             $operationalSupport = $request->input('operational_support', []);
             $portfolios = $request->input('portfolios', []);
+
+            // Super Admin/Admin employees already have full access and cannot be
+            // assigned as a focal point (they'd otherwise bypass the focal-point scoping).
+            if (!empty($focalPoints)) {
+                $hasAdminFocalPoint = DB::table('employees')
+                    ->join('roles', 'roles.role_id', '=', 'employees.role_id')
+                    ->whereIn('employees.employee_id', $focalPoints)
+                    ->where('roles.role_name', 'ilike', '%admin%')
+                    ->exists();
+
+                if ($hasAdminFocalPoint) {
+                    DB::rollBack();
+                    return back()
+                        ->withInput()
+                        ->withErrors(['focal_points' => 'Super Admin/Admin employees cannot be assigned as focal points.']);
+                }
+            }
 
             if (isset($validated['operational_support'])) {
                 $validated['operational_support'] = json_encode($validated['operational_support']);
@@ -414,6 +442,22 @@ class ActivityController extends Controller
         $focalPoints = $request->input('focal_points', []);
         $projects = $request->input('projects', []);
         $portfolios = $request->input('portfolios', []);
+
+        // Super Admin/Admin employees already have full access and cannot be
+        // assigned as a focal point (they'd otherwise bypass the focal-point scoping).
+        if (!empty($focalPoints)) {
+            $hasAdminFocalPoint = DB::table('employees')
+                ->join('roles', 'roles.role_id', '=', 'employees.role_id')
+                ->whereIn('employees.employee_id', $focalPoints)
+                ->where('roles.role_name', 'ilike', '%admin%')
+                ->exists();
+
+            if ($hasAdminFocalPoint) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['focal_points' => 'Super Admin/Admin employees cannot be assigned as focal points.']);
+            }
+        }
 
         unset($validated['rp_activities'], $validated['focal_points'], $validated['projects'], $validated['portfolios']);
 

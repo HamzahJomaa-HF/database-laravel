@@ -49,7 +49,7 @@ class ProjectController extends Controller
             });
         }
 
-        $projects = $query->paginate(20);
+        $projects = $query->paginate($request->get('per_page', 20));
 
         // Get filter data
         $programs = Program::orderBy('name')->get(['program_id', 'name']);
