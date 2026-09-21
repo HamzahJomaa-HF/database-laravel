@@ -58,6 +58,7 @@ class ModuleAccessSeeder extends Seeder
                 'delete' => 'Can delete employees but cannot create or edit',
                 'manage' => 'Can manage all employee operations including activation/deactivation, import, and export',
                 'export' => 'Can export employees only',
+                'import' => 'Can import employees only',
                 'full' => 'Administrator level access with all permissions'
             ],
             'Roles' => [
@@ -139,7 +140,7 @@ class ModuleAccessSeeder extends Seeder
             foreach ($accessLevels as $accessLevel => $description) {
                 
                 // Skip if access_level is not in allowed ENUM values
-$allowedAccessLevels = ['view', 'create', 'edit', 'delete', 'manage', 'full', 'export'];
+$allowedAccessLevels = ['view', 'create', 'edit', 'delete', 'manage', 'full', 'export', 'import'];
                 if (!in_array($accessLevel, $allowedAccessLevels)) {
                     $this->command->warn("Skipping '{$accessLevel}' for module '{$module}' - not in allowed ENUM values");
                     continue;

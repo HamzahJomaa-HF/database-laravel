@@ -169,7 +169,7 @@ Route::middleware(['auth:employee'])->group(function () {
             Route::middleware(['hasPermission:Employees.export,Employees.full'])
                 ->get('/export', [EmployeeController::class, 'export'])->name('export');
 
-            Route::middleware(['hasPermission:Employees.manage,Employees.full'])
+            Route::middleware(['hasPermission:Employees.import,Employees.manage,Employees.full'])
                 ->post('/import', [EmployeeController::class, 'import'])->name('import');
         });
 

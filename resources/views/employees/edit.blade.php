@@ -619,10 +619,12 @@
                                 <div class="col-md-6">
                                     <div class="mb-3 password-field">
                                         <label class="form-label" for="password">New Password</label>
-                                        <input type="password" 
-                                               name="password" 
-                                               id="password" 
-                                               class="form-control" 
+                                        <input type="password"
+                                               name="password"
+                                               id="password"
+                                               class="form-control"
+                                               autocomplete="new-password"
+                                               disabled
                                                placeholder="Leave blank to keep current password">
                                         <button type="button" class="password-toggle" onclick="togglePassword('password')">
                                             <i class="fas fa-eye"></i>
@@ -635,10 +637,12 @@
                                 <div class="col-md-6">
                                     <div class="mb-3 password-field">
                                         <label class="form-label" for="password_confirmation">Confirm New Password</label>
-                                        <input type="password" 
-                                               name="password_confirmation" 
-                                               id="password_confirmation" 
-                                               class="form-control" 
+                                        <input type="password"
+                                               name="password_confirmation"
+                                               id="password_confirmation"
+                                               class="form-control"
+                                               autocomplete="new-password"
+                                               disabled
                                                placeholder="Confirm new password">
                                         <button type="button" class="password-toggle" onclick="togglePassword('password_confirmation')">
                                             <i class="fas fa-eye"></i>
@@ -773,19 +777,27 @@
         const section = document.getElementById('passwordChangeSection');
         const toggleIcon = this.querySelector('i');
         
+        const passwordField = document.getElementById('password');
+        const passwordConfirmField = document.getElementById('password_confirmation');
+
         if (section.style.display === 'none' || section.style.display === '') {
             section.style.display = 'block';
             toggleIcon.classList.remove('fa-key');
             toggleIcon.classList.add('fa-times');
             this.innerHTML = '<i class="fas fa-times"></i> Cancel Password Change';
+            // Only enable (and submit) the password fields once the user opts in
+            passwordField.disabled = false;
+            passwordConfirmField.disabled = false;
         } else {
             section.style.display = 'none';
             toggleIcon.classList.remove('fa-times');
             toggleIcon.classList.add('fa-key');
             this.innerHTML = '<i class="fas fa-key"></i> Change Password (Optional)';
-            // Clear password fields when hiding
-            document.getElementById('password').value = '';
-            document.getElementById('password_confirmation').value = '';
+            // Clear and disable password fields when hiding so they are never submitted
+            passwordField.value = '';
+            passwordConfirmField.value = '';
+            passwordField.disabled = true;
+            passwordConfirmField.disabled = true;
         }
     });
 

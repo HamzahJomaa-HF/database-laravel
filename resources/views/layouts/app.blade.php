@@ -335,23 +335,29 @@
         document.addEventListener('DOMContentLoaded', function() {
             const searchInput = document.querySelector('.search-input');
             const searchClear = document.querySelector('.search-clear');
-            
+            if (!searchInput) {
+                return;
+            }
+
             // Show/hide clear button based on input
             searchInput.addEventListener('input', function() {
+                if (!searchClear) return;
                 if (this.value.length > 0) {
                     searchClear.style.display = 'block';
                 } else {
                     searchClear.style.display = 'none';
                 }
             });
-            
+
             // Clear search input
-            searchClear.addEventListener('click', function() {
-                searchInput.value = '';
-                searchInput.focus();
-                this.style.display = 'none';
-            });
-            
+            if (searchClear) {
+                searchClear.addEventListener('click', function() {
+                    searchInput.value = '';
+                    searchInput.focus();
+                    this.style.display = 'none';
+                });
+            }
+
             // Search functionality (example)
             searchInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {

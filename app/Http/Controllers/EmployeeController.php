@@ -9,6 +9,7 @@ use App\Models\ProjectEmployee;
 use App\Models\CredentialsEmployee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class EmployeeController extends Controller
@@ -152,6 +153,13 @@ class EmployeeController extends Controller
      */
     public function update(Request $request, Employee $employee)
     {
+        Log::info('[EMPLOYEE-UPDATE] Request received', [
+            'employee_id' => $employee->employee_id,
+            'current_role_id' => $employee->role_id,
+            'submitted_role_id' => $request->role_id,
+            'input' => $request->except(['password', 'password_confirmation', '_token']),
+        ]);
+
         $validator = Validator::make($request->all(), [
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
@@ -168,66 +176,101 @@ class EmployeeController extends Controller
         ]);
 
         if ($validator->fails()) {
+            Log::warning('[EMPLOYEE-UPDATE] Validation failed', [
+                'employee_id' => $employee->employee_id,
+                'errors' => $validator->errors()->toArray(),
+            ]);
+
             return redirect()->back()
                 ->withErrors($validator)
                 ->withInput()
                 ->with('old_project_ids', $request->project_ids); // Pass selected projects back
         }
 
-        // Update employee
-        $employee->update([
-            'first_name' => $request->first_name,
-            'last_name' => $request->last_name,
-            'email' => $request->email,
-            'phone_number' => $request->phone_number,
-            'employee_type' => $request->employee_type,
-            'start_date' => $request->start_date,
-            'end_date' => $request->end_date,
-            'role_id' => $request->role_id,
-        ]);
+        try {
+            // Update employee
+            $employee->update([
+                'first_name' => $request->first_name,
+                'last_name' => $request->last_name,
+                'email' => $request->email,
+                'phone_number' => $request->phone_number,
+                'employee_type' => $request->employee_type,
+                'start_date' => $request->start_date,
+                'end_date' => $request->end_date,
+                'role_id' => $request->role_id,
+            ]);
 
-        // Update password if a new one was provided
-        if ($request->filled('password')) {
-            if ($employee->credentials) {
-                $employee->credentials->update([
-                    'password_hash' => Hash::make($request->password),
+            Log::info('[EMPLOYEE-UPDATE] Employee row updated', [
+                'employee_id' => $employee->employee_id,
+                'role_id_after' => $employee->fresh()->role_id,
+            ]);
+
+            // Update password if a new one was provided
+            if ($request->filled('password')) {
+                if ($employee->credentials) {
+                    $employee->credentials->update([
+                        'password_hash' => Hash::make($request->password),
+                    ]);
+                } else {
+                    $employee->credentials()->create([
+                        'password_hash' => Hash::make($request->password),
+                        'is_active' => true,
+                    ]);
+                }
+                Log::info('[EMPLOYEE-UPDATE] Password updated', ['employee_id' => $employee->employee_id]);
+            }
+
+            // SYNC PROJECT ASSOCIATIONS (Add/Remove multiple projects)
+            if ($request->has('project_ids')) {
+                // Get current project IDs
+                $currentProjectIds = $employee->projectEmployees()->pluck('project_id')->toArray();
+                $newProjectIds = $request->project_ids;
+
+                // Find projects to add
+                $projectsToAdd = array_diff($newProjectIds, $currentProjectIds);
+
+                // Find projects to remove
+                $projectsToRemove = array_diff($currentProjectIds, $newProjectIds);
+
+                // Add new projects
+                foreach ($projectsToAdd as $projectId) {
+                    ProjectEmployee::create([
+                        'employee_id' => $employee->employee_id,
+                        'project_id' => $projectId,
+                    ]);
+                }
+
+                // Remove old projects
+                ProjectEmployee::where('employee_id', $employee->employee_id)
+                    ->whereIn('project_id', $projectsToRemove)
+                    ->delete();
+
+                Log::info('[EMPLOYEE-UPDATE] Project associations synced', [
+                    'employee_id' => $employee->employee_id,
+                    'added' => array_values($projectsToAdd),
+                    'removed' => array_values($projectsToRemove),
                 ]);
             } else {
-                $employee->credentials()->create([
-                    'password_hash' => Hash::make($request->password),
-                    'is_active' => true,
+                // Remove all projects if none selected
+                $employee->projectEmployees()->delete();
+                Log::info('[EMPLOYEE-UPDATE] No project_ids submitted - cleared all project associations', [
+                    'employee_id' => $employee->employee_id,
                 ]);
             }
+        } catch (\Throwable $e) {
+            Log::error('[EMPLOYEE-UPDATE] Exception while updating employee', [
+                'employee_id' => $employee->employee_id,
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            throw $e;
         }
 
-        // SYNC PROJECT ASSOCIATIONS (Add/Remove multiple projects)
-        if ($request->has('project_ids')) {
-            // Get current project IDs
-            $currentProjectIds = $employee->projectEmployees()->pluck('project_id')->toArray();
-            $newProjectIds = $request->project_ids;
-            
-            // Find projects to add
-            $projectsToAdd = array_diff($newProjectIds, $currentProjectIds);
-            
-            // Find projects to remove
-            $projectsToRemove = array_diff($currentProjectIds, $newProjectIds);
-            
-            // Add new projects
-            foreach ($projectsToAdd as $projectId) {
-                ProjectEmployee::create([
-                    'employee_id' => $employee->employee_id,
-                    'project_id' => $projectId,
-                ]);
-            }
-            
-            // Remove old projects
-            ProjectEmployee::where('employee_id', $employee->employee_id)
-                ->whereIn('project_id', $projectsToRemove)
-                ->delete();
-        } else {
-            // Remove all projects if none selected
-            $employee->projectEmployees()->delete();
-        }
+        Log::info('[EMPLOYEE-UPDATE] Success - redirecting to employees.index', [
+            'employee_id' => $employee->employee_id,
+        ]);
 
         return redirect()->route('employees.index')
             ->with('success', 'Employee updated successfully.');

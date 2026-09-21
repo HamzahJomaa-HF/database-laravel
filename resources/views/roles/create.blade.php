@@ -354,6 +354,8 @@
                     'edit'   => 'Can Edit',
                     'delete' => 'Can Delete',
                     'manage' => 'Can Manage (Full CRUD)',
+                    'export' => 'Can Export',
+                    'import' => 'Can Import',
                     'full'   => 'Full Access (Admin)',
                 ];
             @endphp
