@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Database\Eloquent\SoftDeletes; 
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ActivityUser extends Model
 {
@@ -36,7 +36,7 @@ class ActivityUser extends Model
             if (empty($model->activity_user_id)) {
                 $model->activity_user_id = (string) Str::uuid();
             }
-            
+
             // Generate external_id in AU_YYYY_MM_001 format if not provided
             if (empty($model->external_id)) {
                 $model->external_id = self::generateSequentialId();
@@ -51,12 +51,12 @@ class ActivityUser extends Model
     {
         $year = now()->format('Y');
         $month = now()->format('m');
-        
+
         // Find the highest sequence number for this year and month
         $lastRecord = static::where('external_id', 'like', "AU_{$year}_{$month}_%")
             ->orderBy('external_id', 'desc')
             ->first();
-        
+
         if ($lastRecord) {
             // Extract the number part and increment
             $parts = explode('_', $lastRecord->external_id);
@@ -65,7 +65,7 @@ class ActivityUser extends Model
         } else {
             $nextNumber = 1;
         }
-        
+
         return sprintf("AU_%s_%s_%03d", $year, $month, $nextNumber);
     }
 
@@ -85,5 +85,21 @@ class ActivityUser extends Model
     public function cop()
     {
         return $this->belongsTo(Cop::class, 'cop_id', 'cop_id');
+    }
+
+    /**
+     * Scopes the query to the activity-user rows visible to the given
+     * employee, mirroring Activity::scopeVisibleTo() one hop through
+     * the parent activity's focal points.
+     */
+    public function scopeVisibleTo($query, ?Employee $employee)
+    {
+        if ($employee && !$employee->canSeeAllFor('Activities')) {
+            $query->whereHas('activity.focalPoints', function ($q) use ($employee) {
+                $q->where('employee_id', $employee->employee_id);
+            });
+        }
+
+        return $query;
     }
 }

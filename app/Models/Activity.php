@@ -201,5 +201,35 @@ class Activity extends Model
             'rp_focalpoints_id'
         )->withTimestamps();
     }
+
+    /**
+     * Scopes the query to the activities visible to the given employee:
+     * everything for an employee who can see all Activities records
+     * (super admin, or a role granted 'full' access to Activities),
+     * otherwise only activities they're a focal point on.
+     */
+    public function scopeVisibleTo($query, ?Employee $employee)
+    {
+        if ($employee && !$employee->canSeeAllFor('Activities')) {
+            $query->whereHas('focalPoints', function ($q) use ($employee) {
+                $q->where('employee_id', $employee->employee_id);
+            });
+        }
+
+        return $query;
+    }
+
+    /**
+     * Whether the given employee may access this specific activity
+     * (used for single-record actions like show/edit/update/destroy).
+     */
+    public function isVisibleTo(Employee $employee): bool
+    {
+        if ($employee->canSeeAllFor('Activities')) {
+            return true;
+        }
+
+        return $this->focalPoints()->where('employee_id', $employee->employee_id)->exists();
+    }
 }
 

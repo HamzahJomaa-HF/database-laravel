@@ -138,6 +138,15 @@ class Employee extends Authenticatable
         return $this->hasPermission($module);
     }
 
+    // ✅ Check if employee should see ALL records of a module, bypassing any
+    // record-level (e.g. focal-point) scoping — either because they're a
+    // super admin / broad full-access employee, or because their role was
+    // explicitly granted 'full' access to this specific module.
+    public function canSeeAllFor(string $module): bool
+    {
+        return $this->hasFullAccess() || $this->hasPermission($module, 'full');
+    }
+
     protected static function boot()
     {
         parent::boot();

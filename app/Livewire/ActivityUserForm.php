@@ -52,16 +52,11 @@ class ActivityUserForm extends Component
     ];
 
     // Scopes an Activity query to only the activities the logged-in employee
-    // is a focal point on, unless they're an admin/super admin (who see everything).
+    // is a focal point on, unless they can see all Activities records.
     protected function scopeActivitiesToFocalPoint($query)
     {
         $employee = Auth::guard('employee')->user();
-        if ($employee && !$employee->hasFullAccess()) {
-            $query->whereHas('focalPoints', function ($q) use ($employee) {
-                $q->where('employee_id', $employee->employee_id);
-            });
-        }
-        return $query;
+        return $query->visibleTo($employee);
     }
 
     public function mount($id = null)

@@ -34,13 +34,10 @@ class ActivityController extends Controller
         $query = Activity::query();
 
         // Scope activities to the logged-in employee's own focal-point assignments,
-        // unless they are an admin/super admin (who see everything).
+        // unless they can see all Activities records (admin/super admin, or a role
+        // granted 'full' access to the Activities module).
         $employee = Auth::guard('employee')->user();
-        if ($employee && !$employee->hasFullAccess()) {
-            $query->whereHas('focalPoints', function ($q) use ($employee) {
-                $q->where('employee_id', $employee->employee_id);
-            });
-        }
+        $query->visibleTo($employee);
 
         // Check if any search parameters exist
         $hasSearch = $request->anyFilled([
@@ -300,6 +297,8 @@ class ActivityController extends Controller
      */
     public function show(Activity $activity)
     {
+        $this->authorize('view', $activity);
+
         return view('activities.show', compact('activity'));
     }
 
@@ -309,7 +308,8 @@ class ActivityController extends Controller
     public function edit($id)
     {
         $activity = Activity::findOrFail($id);
-        
+        $this->authorize('update', $activity);
+
         $projects = ProjectActivity::where('project_activities.activity_id', $id)
             ->leftJoin('projects', 'projects.project_id', '=', 'project_activities.project_id')
             ->leftJoin('programs as p', 'p.program_id', '=', 'projects.program_id')
@@ -418,7 +418,8 @@ class ActivityController extends Controller
     public function update(Request $request, $id)
     {
         $activity = Activity::findOrFail($id);
-        
+        $this->authorize('update', $activity);
+
         $validated = $request->validate([
             'activity_title_en' => 'required|string|max:255',
             'activity_title_ar' => 'nullable|string|max:255',
@@ -573,6 +574,7 @@ class ActivityController extends Controller
     public function destroy($id)
     {
         $activity = Activity::findOrFail($id);
+        $this->authorize('delete', $activity);
         $activity->delete();
         
         return redirect()->route('activities.index')
@@ -908,9 +910,17 @@ class ActivityController extends Controller
             }
 
             $existingActivities = Activity::whereIn('activity_id', $activityIds)->count();
-            
+
             if ($existingActivities !== count($activityIds)) {
                 return back()->with('error', 'One or more activities not found.');
+            }
+
+            $employee = Auth::guard('employee')->user();
+            $visibleCount = Activity::whereIn('activity_id', $activityIds)->visibleTo($employee)->count();
+
+            if ($visibleCount !== count($activityIds)) {
+                DB::rollBack();
+                return back()->with('error', 'You are not authorized to delete one or more of the selected activities.');
             }
 
             Activity::whereIn('activity_id', $activityIds)->delete();

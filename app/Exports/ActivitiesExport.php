@@ -29,15 +29,11 @@ class ActivitiesExport implements FromQuery, WithHeadings, WithMapping, WithStyl
         $query = Activity::query();
 
         // Scope activities to the logged-in employee's own focal-point assignments,
-        // unless they are an admin/super admin (who see everything) — matches the
-        // scoping applied in ActivityController::index() so the export total
-        // matches what the employee sees on screen.
+        // unless they can see all Activities records — matches the scoping applied
+        // in ActivityController::index() so the export total matches what the
+        // employee sees on screen.
         $employee = Auth::guard('employee')->user();
-        if ($employee && !$employee->hasFullAccess()) {
-            $query->whereHas('focalPoints', function ($q) use ($employee) {
-                $q->where('employee_id', $employee->employee_id);
-            });
-        }
+        $query->visibleTo($employee);
 
         // Apply filters
         if (isset($this->filters['title']) && !empty($this->filters['title'])) {

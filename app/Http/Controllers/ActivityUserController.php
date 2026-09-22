@@ -31,13 +31,9 @@ class ActivityUserController extends Controller
             ->orderBy('created_at', 'desc');
 
         // Scope to the logged-in employee's own focal-point activities,
-        // unless they are an admin/super admin (who see everything).
+        // unless they can see all Activities records.
         $employee = Auth::guard('employee')->user();
-        if ($employee && !$employee->hasFullAccess()) {
-            $query->whereHas('activity.focalPoints', function ($q) use ($employee) {
-                $q->where('employee_id', $employee->employee_id);
-            });
-        }
+        $query->visibleTo($employee);
 
         // Filter by activity if provided
         if ($request->filled('activity_id')) {
@@ -279,6 +275,7 @@ class ActivityUserController extends Controller
     {
         // ... (keep your existing edit method)
         $activityUser = ActivityUser::findOrFail($id);
+        $this->authorize('update', $activityUser);
         $cops = Cop::orderBy('cop_name')->get(['cop_id', 'cop_name']);
         $activities = Activity::orderBy('activity_title_en')->get(['activity_id', 'activity_title_en', 'activity_title_ar']);
         $users = User::orderBy('first_name')->get(['user_id', 'first_name', 'middle_name', 'last_name', 'email', 'person_id', 'istimara_id']);
@@ -296,6 +293,7 @@ class ActivityUserController extends Controller
     {
         // ... (keep your existing update method)
         $activityUser = ActivityUser::findOrFail($id);
+        $this->authorize('update', $activityUser);
 
         $validated = $request->validate([
             'user_id' => 'required|exists:users,user_id',
@@ -336,10 +334,11 @@ class ActivityUserController extends Controller
     {
         // ... (keep your existing destroy method)
         $activityUser = ActivityUser::findOrFail($id);
+        $this->authorize('delete', $activityUser);
 
         try {
             DB::beginTransaction();
-            
+
             $activityUser->delete();
             
             DB::commit();
@@ -455,13 +454,9 @@ class ActivityUserController extends Controller
             ->orderBy('created_at', 'desc');
 
         // Scope to the logged-in employee's own focal-point activities,
-        // unless they are an admin/super admin (who see everything).
+        // unless they can see all Activities records.
         $employee = Auth::guard('employee')->user();
-        if ($employee && !$employee->hasFullAccess()) {
-            $query->whereHas('activity.focalPoints', function ($q) use ($employee) {
-                $q->where('employee_id', $employee->employee_id);
-            });
-        }
+        $query->visibleTo($employee);
 
         if ($request->filled('activity_id')) {
             $query->where('activity_id', $request->activity_id);
@@ -614,6 +609,23 @@ class ActivityUserController extends Controller
             DB::beginTransaction();
 
             $count = ActivityUser::whereIn('activity_user_id', $request->activity_user_ids)->count();
+
+            $employee = Auth::guard('employee')->user();
+            $visibleCount = ActivityUser::whereIn('activity_user_id', $request->activity_user_ids)
+                ->visibleTo($employee)
+                ->count();
+
+            if ($visibleCount !== $count) {
+                DB::rollBack();
+                $message = 'You are not authorized to delete one or more of the selected relationships.';
+
+                if ($request->wantsJson()) {
+                    return response()->json(['success' => false, 'message' => $message], 403);
+                }
+
+                return back()->withErrors(['error' => $message]);
+            }
+
             ActivityUser::whereIn('activity_user_id', $request->activity_user_ids)->delete();
 
             DB::commit();
