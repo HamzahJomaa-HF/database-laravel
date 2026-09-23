@@ -551,7 +551,7 @@ class ActivityUserController extends Controller
             'ID', 'User Name', 'User Email', 'User Phone',
             'User Person ID', 'User Istimara ID', 'User Type',
             'Activity Title (EN)', 'Activity Title (AR)', 'Activity Type',
-            'Activity Date', 'Role/Type', 'Invited', 'Attended',
+            'Activity Start Date', 'Activity End Date', 'Role/Type', 'Invited', 'Attended',
             'COP', 'External ID', 'Created At',
         ]);
 
@@ -578,6 +578,7 @@ class ActivityUserController extends Controller
                     $item->activity ? $item->activity->activity_title_ar : '',
                     $item->activity ? $item->activity->activity_type : '',
                     $item->activity ? $item->activity->start_date : '',
+                    $item->activity ? $item->activity->end_date : '',
                     $item->type,
                     $item->invited ? 'Yes' : 'No',
                     $item->attended ? 'Yes' : 'No',
