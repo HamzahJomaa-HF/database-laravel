@@ -663,9 +663,10 @@
                 </div>
                 
                 <div class="card-body p-4">
-                    <form method="POST" 
-                          action="{{ route('activity-users.bulk.destroy') }}" 
-                          id="bulkDeleteForm" 
+                    @canDo('ActivityUsers', 'bulk_delete')
+                    <form method="POST"
+                          action="{{ route('activity-users.bulk.destroy') }}"
+                          id="bulkDeleteForm"
                           class="d-inline">
                         @csrf
                         @method('DELETE')
@@ -674,6 +675,7 @@
                             <i class="fas fa-trash me-1"></i>Delete Selected
                         </button>
                     </form>
+                    @endcanDo
                     <small class="text-muted ms-3">
                         <i class="fas fa-exclamation-triangle me-1"></i>
                         This action cannot be undone
@@ -688,15 +690,21 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="page-title">Activity Users Management</h4>
     <div class="action-buttons">
+        @canDo('ActivityUsers', 'create')
         <a href="{{ route('activity-users.create') }}" class="btn-primary">
             <i class="fas fa-plus"></i> Add Assignment
         </a>
+        @endcanDo
+        @canDo('ActivityUsers', 'import')
         <a href="{{ route('activity-users.import.form') }}" style="background-color: white; color: #2563eb; border: 1px solid #2563eb; padding: 0.625rem 1.25rem; border-radius: 0.375rem; font-weight: 500; font-size: 0.875rem; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; margin-left: 0.75rem;">
             <i class="fas fa-file-import"></i> Import
         </a>
+        @endcanDo
+        @canDo('ActivityUsers', 'export')
         <button type="button" onclick="exportWithCurrentFilters()" style="background-color: white; color: #16a34a; border: 1px solid #16a34a; padding: 0.625rem 1.25rem; border-radius: 0.375rem; font-weight: 500; font-size: 0.875rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; margin-left: 0.75rem;">
             <i class="fas fa-file-export"></i> Export
         </button>
+        @endcanDo
     </div>
 </div>
 
@@ -920,12 +928,15 @@
                                 
                                 <td>
                                     <div class="d-flex gap-2">
-                                        <a href="{{ route('activity-users.edit', $activityUser->activity_user_id) }}" 
+                                        @canDo('ActivityUsers', 'edit')
+                                        <a href="{{ route('activity-users.edit', $activityUser->activity_user_id) }}"
                                            class="btn btn-sm btn-outline-secondary" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <form method="POST" 
-                                              action="{{ route('activity-users.destroy', $activityUser->activity_user_id) }}" 
+                                        @endcanDo
+                                        @canDo('ActivityUsers', 'delete')
+                                        <form method="POST"
+                                              action="{{ route('activity-users.destroy', $activityUser->activity_user_id) }}"
                                               style="display: inline;"
                                               onsubmit="return confirm('Are you sure you want to delete this relationship for {{ $activityUser->user->first_name ?? '' }} {{ $activityUser->user->last_name ?? '' }}?');">
                                             @csrf
@@ -934,6 +945,7 @@
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
+                                        @endcanDo
                                     </div>
                                 </td>
                             </tr>
@@ -945,9 +957,11 @@
                         <i class="fas fa-users empty-state-icon"></i>
                         <h5 class="mb-2">No assignments found</h5>
                         <p class="text-muted">Add your first user-activity assignment to get started</p>
+                        @canDo('ActivityUsers', 'create')
                         <a href="{{ route('activity-users.create') }}" class="btn-primary mt-3">
                             <i class="fas fa-plus"></i> Add Assignment
                         </a>
+                        @endcanDo
                     </div>
                 @endif
             </div>
@@ -1071,12 +1085,14 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                @canDo('ActivityUsers', 'bulk_delete')
                 <form method="POST" id="bulkDeleteModalForm">
                     @csrf
                     @method('DELETE')
                     <input type="hidden" name="activity_user_ids" id="modalSelectedActivityUserIds">
                     <button type="submit" class="btn btn-danger">Delete Selected</button>
                 </form>
+                @endcanDo
             </div>
         </div>
     </div>

@@ -68,6 +68,7 @@
                     <div class="mb-4">
                         <label class="form-label fw-bold">Download Template</label>
                         <div class="d-flex gap-2">
+                            @canDo('Financials', 'download_template')
                             <a href="{{ route('financials.import.template', 'omt') }}" class="btn btn-sm btn-secondary">
                                 <i class="fas fa-file-csv"></i> OMT Template
                             </a>
@@ -77,6 +78,7 @@
                             <a href="{{ route('financials.import.template', 'education') }}" class="btn btn-sm btn-secondary">
                                 <i class="fas fa-file-csv"></i> Education Template
                             </a>
+                            @endcanDo
                         </div>
                     </div>
                     

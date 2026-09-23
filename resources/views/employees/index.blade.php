@@ -353,9 +353,11 @@
                 <a href="{{ route('roles.index') }}" class="btn-outline">
                     <i class="fas fa-user-shield"></i> Roles
                 </a>
-                <a href="{{ route('employees.create') }}" class="btn-primary">
-                    <i class="fas fa-plus"></i> Add Employee
-                </a>
+                @canDo('Employees', 'create')
+                    <a href="{{ route('employees.create') }}" class="btn-primary">
+                        <i class="fas fa-plus"></i> Add Employee
+                    </a>
+                @endcanDo
             </div>
         </div>
 
@@ -448,35 +450,41 @@
                                     @endif
                                 </td>
                                 <td>
-                                    @if($employee->credentials && $employee->credentials->is_active)
-                                        <div class="toggle-container">
-                                            <div class="toggle toggle-on" onclick="toggleStatus('{{ $employee->employee_id }}')">
-                                                <div class="toggle-knob"></div>
+                                    @canDo('Employees', 'toggle_status')
+                                        @if($employee->credentials && $employee->credentials->is_active)
+                                            <div class="toggle-container">
+                                                <div class="toggle toggle-on" onclick="toggleStatus('{{ $employee->employee_id }}')">
+                                                    <div class="toggle-knob"></div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    @else
-                                        <div class="toggle-container">
-                                            <div class="toggle" onclick="toggleStatus('{{ $employee->employee_id }}')">
-                                                <div class="toggle-knob"></div>
+                                        @else
+                                            <div class="toggle-container">
+                                                <div class="toggle" onclick="toggleStatus('{{ $employee->employee_id }}')">
+                                                    <div class="toggle-knob"></div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    @endif
+                                        @endif
+                                    @endcanDo
                                 </td>
                                 <td>{{ $employee->phone_number ?? '-' }}</td>
                                 <td>{{ $employee->employee_type ?? '-' }}</td>
                                 <td>{{ $employee->start_date ? $employee->start_date->format('Y-m-d') : '-' }}</td>
                                 <td>
                                     <div class="d-flex gap-2">
-                                        <button class="btn btn-sm btn-outline-primary" 
-                                                onclick="viewEmployee('{{ $employee->employee_id }}')"
-                                                title="View">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-secondary"
-                                                onclick="editEmployee('{{ $employee->employee_id }}')"
-                                                title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
+                                        @canDo('Employees', 'view')
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                    onclick="viewEmployee('{{ $employee->employee_id }}')"
+                                                    title="View">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        @endcanDo
+                                        @canDo('Employees', 'edit')
+                                            <button class="btn btn-sm btn-outline-secondary"
+                                                    onclick="editEmployee('{{ $employee->employee_id }}')"
+                                                    title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                        @endcanDo
                                         <button class="reset-button btn-sm"
                                                 onclick="resetPassword('{{ $employee->employee_id }}')">
                                             Reset Password
@@ -492,9 +500,11 @@
                         <i class="fas fa-users empty-state-icon"></i>
                         <h5 class="mb-2">No employees found</h5>
                         <p class="text-muted">Add your first employee to get started</p>
-                        <a href="{{ route('employees.create') }}" class="btn-primary mt-3">
-                            <i class="fas fa-plus"></i> Add Employee
-                        </a>
+                        @canDo('Employees', 'create')
+                            <a href="{{ route('employees.create') }}" class="btn-primary mt-3">
+                                <i class="fas fa-plus"></i> Add Employee
+                            </a>
+                        @endcanDo
                     </div>
                 @endif
             </div>

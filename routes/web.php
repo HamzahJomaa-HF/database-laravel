@@ -23,9 +23,6 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\FinancialImportController;
 use App\Http\Controllers\AnalyticsController;
 
-// ANALYTICS DASHBOARD
-Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
-
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -61,7 +58,13 @@ Route::middleware(['auth:employee'])->group(function () {
     // DASHBOARD
     // ------------------------------------------------------------------------
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    
+
+    // ------------------------------------------------------------------------
+    // ANALYTICS DASHBOARD
+    // ------------------------------------------------------------------------
+    Route::middleware(['hasPermission:Analytics.view,Analytics.full'])
+        ->get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
+
     // ============================================================================
     // PROGRAMS/CENTERS MANAGEMENT ROUTES WITH PERMISSIONS
     // ============================================================================
@@ -148,17 +151,17 @@ Route::middleware(['auth:employee'])->group(function () {
                 ->put('/{employee}', [EmployeeController::class, 'update'])->name('update');
             Route::middleware(['hasPermission:Employees.delete,Employees.manage,Employees.full'])
                 ->delete('/{employee}', [EmployeeController::class, 'destroy'])->name('destroy');
-            Route::middleware(['hasPermission:Employees.manage,Employees.full'])
+            Route::middleware(['hasPermission:Employees.activate,Employees.manage,Employees.full'])
                 ->put('/{employee}/activate', [EmployeeController::class, 'activate'])->name('activate');
-            Route::middleware(['hasPermission:Employees.manage,Employees.full'])
+            Route::middleware(['hasPermission:Employees.deactivate,Employees.manage,Employees.full'])
                 ->put('/{employee}/deactivate', [EmployeeController::class, 'deactivate'])->name('deactivate');
-            Route::middleware(['hasPermission:Employees.manage,Employees.full'])
+            Route::middleware(['hasPermission:Employees.restore,Employees.manage,Employees.full'])
                 ->put('/{employee}/restore', [EmployeeController::class, 'restore'])->name('restore');
-            Route::middleware(['hasPermission:Employees.manage,Employees.full'])
+            Route::middleware(['hasPermission:Employees.force_delete,Employees.manage,Employees.full'])
                 ->delete('/{employee}/force-delete', [EmployeeController::class, 'forceDelete'])->name('force-delete');
-            Route::middleware(['hasPermission:Employees.manage,Employees.full'])
+            Route::middleware(['hasPermission:Employees.toggle_status,Employees.manage,Employees.full'])
                 ->put('/{employee}/toggle-status', [EmployeeController::class, 'toggleStatus'])->name('toggle-status');
-            Route::middleware(['hasPermission:Employees.view,Employees.manage,Employees.full'])
+            Route::middleware(['hasPermission:Employees.view_trashed,Employees.view,Employees.manage,Employees.full'])
                 ->get('/trashed', [EmployeeController::class, 'trashed'])->name('trashed');
 
             // Utility routes
@@ -232,7 +235,7 @@ Route::middleware(['auth:employee'])->group(function () {
 Route::prefix('users')->name('users.')->group(function () {
 
     // EXPORT ROUTE - separated from manage/edit/delete
-    Route::middleware(['hasPermission:Users.export,Users.full'])
+    Route::middleware(['hasPermission:Users.export,Users.manage,Users.full'])
         ->get('/export', [UserController::class, 'exportExcel'])
         ->name('export.excel');
 
@@ -247,19 +250,19 @@ Route::prefix('users')->name('users.')->group(function () {
     Route::middleware(['hasPermission:Users.create,Users.manage,Users.full'])
         ->post('/', [UserController::class, 'store'])->name('store');
 
-    Route::middleware(['hasPermission:Users.manage,Users.full'])
+    Route::middleware(['hasPermission:Users.import,Users.manage,Users.full'])
         ->get('/import', [UserController::class, 'importForm'])->name('import.form');
 
-    Route::middleware(['hasPermission:Users.manage,Users.full'])
+    Route::middleware(['hasPermission:Users.import,Users.manage,Users.full'])
         ->post('/import', [UserController::class, 'import'])->name('import');
 
-    Route::middleware(['hasPermission:Users.manage,Users.full'])
+    Route::middleware(['hasPermission:Users.download_template,Users.import,Users.manage,Users.full'])
         ->get('/import/template', [UserController::class, 'downloadTemplate'])->name('import.template');
 
     Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
         ->get('/statistics', [UserController::class, 'statistics'])->name('statistics');
 
-    Route::middleware(['hasPermission:Users.manage,Users.full'])
+    Route::middleware(['hasPermission:Users.bulk_delete,Users.manage,Users.full'])
         ->post('/bulk-delete', [UserController::class, 'bulkDestroy'])->name('bulk.destroy');
 
     Route::middleware(['hasPermission:Users.view,Users.manage,Users.full'])
@@ -322,19 +325,19 @@ Route::prefix('users')->name('users.')->group(function () {
 Route::prefix('activities')->name('activities.')->group(function () {
 
     // EXPORT ROUTE - separated from manage/edit/delete
-    Route::middleware(['hasPermission:Activities.export,Activities.full'])
+    Route::middleware(['hasPermission:Activities.export,Activities.manage,Activities.full'])
         ->get('/export', [ActivityController::class, 'export'])
         ->name('export');
 
     // Each action carries its own required level directly (not nested under a
     // shared outer gate) — see the note above the Employees routes for why.
-    Route::middleware(['hasPermission:Activities.manage,Activities.full'])
+    Route::middleware(['hasPermission:Activities.import,Activities.manage,Activities.full'])
         ->get('/import', [ActivityController::class, 'showImportForm'])->name('import');
 
-    Route::middleware(['hasPermission:Activities.manage,Activities.full'])
+    Route::middleware(['hasPermission:Activities.import,Activities.manage,Activities.full'])
         ->post('/import', [ActivityController::class, 'import'])->name('import.store');
 
-    Route::middleware(['hasPermission:Activities.manage,Activities.full'])
+    Route::middleware(['hasPermission:Activities.download_template,Activities.import,Activities.manage,Activities.full'])
         ->get('/import/template', [ActivityController::class, 'downloadTemplate'])->name('import.template');
 
     Route::middleware(['hasPermission:Activities.view,Activities.manage,Activities.full'])
@@ -355,7 +358,7 @@ Route::prefix('activities')->name('activities.')->group(function () {
     Route::middleware(['hasPermission:Activities.edit,Activities.manage,Activities.full'])
         ->put('/{activity}', [ActivityController::class, 'update'])->name('update');
 
-    Route::middleware(['hasPermission:Activities.delete,Activities.manage,Activities.full'])
+    Route::middleware(['hasPermission:Activities.bulk_delete,Activities.delete,Activities.manage,Activities.full'])
         ->delete('/bulk/destroy', [ActivityController::class, 'bulkDestroy'])->name('bulk.destroy');
 
     Route::middleware(['hasPermission:Activities.delete,Activities.manage,Activities.full'])
@@ -365,10 +368,10 @@ Route::prefix('activities')->name('activities.')->group(function () {
         Route::middleware(['hasPermission:Activities.view,Activities.manage,Activities.full'])
             ->get('/', [ActivityController::class, 'indexChildren'])->name('index');
 
-        Route::middleware(['hasPermission:Activities.create,Activities.manage,Activities.full'])
+        Route::middleware(['hasPermission:Activities.create_child,Activities.create,Activities.manage,Activities.full'])
             ->get('/create', [ActivityController::class, 'createChild'])->name('create');
 
-        Route::middleware(['hasPermission:Activities.create,Activities.manage,Activities.full'])
+        Route::middleware(['hasPermission:Activities.create_child,Activities.create,Activities.manage,Activities.full'])
             ->post('/', [ActivityController::class, 'storeChild'])->name('store');
     });
 
@@ -387,30 +390,30 @@ Route::prefix('activities')->name('activities.')->group(function () {
     // ------------------------------------------------------------------------
     // ACTION PLANS MODULE
     // ------------------------------------------------------------------------
-    Route::middleware(['hasPermission:Reports.view,Reports.create,Reports.full'])
+    Route::middleware(['hasPermission:ActionPlans.view,ActionPlans.manage,ActionPlans.full,Reports.view,Reports.create,Reports.full'])
         ->prefix('action-plans')->name('action-plans.')->group(function () {
             Route::get('/', [ActionPlanController::class, 'index'])->name('index');
-            Route::middleware(['hasPermission:Reports.full'])
+            Route::middleware(['hasPermission:ActionPlans.bulk_delete,ActionPlans.manage,ActionPlans.full,Reports.full'])
                 ->delete('/bulk-destroy', [ActionPlanController::class, 'bulkDestroy'])->name('bulk.destroy');
-            Route::middleware(['hasPermission:Reports.full'])
+            Route::middleware(['hasPermission:ActionPlans.delete,ActionPlans.manage,ActionPlans.full,Reports.full'])
                 ->delete('/{id}', [ActionPlanController::class, 'destroy'])->name('destroy');
-            Route::middleware(['hasPermission:Reports.view,Reports.create,Reports.full'])
+            Route::middleware(['hasPermission:ActionPlans.download,ActionPlans.view,ActionPlans.manage,ActionPlans.full,Reports.view,Reports.create,Reports.full'])
                 ->get('/{actionPlan}/download', [ActionPlanController::class, 'download'])->name('download');
         });
     
     // ------------------------------------------------------------------------
     // REPORTING MODULE
     // ------------------------------------------------------------------------
-    Route::middleware(['hasPermission:reports.view,reports.create,reports.full'])
+    Route::middleware(['hasPermission:reports.view,reports.manage,reports.full'])
         ->prefix('reporting')->name('reporting.')->group(function () {
             Route::get('/import', [ReportingImportController::class, 'index'])->name('import.import');
-            Route::middleware(['hasPermission:reports.create,reports.full'])
+            Route::middleware(['hasPermission:reports.create,reports.manage,reports.full'])
                 ->post('/import', [ReportingImportController::class, 'import'])->name('import.process');
-            Route::middleware(['hasPermission:reports.view,reports.create,reports.full'])
+            Route::middleware(['hasPermission:reports.preview,reports.view,reports.manage,reports.full'])
                 ->post('/import/preview', [ReportingImportController::class, 'preview'])->name('import.preview');
-            Route::middleware(['hasPermission:reports.view,reports.create,reports.full'])
+            Route::middleware(['hasPermission:reports.download_template,reports.view,reports.manage,reports.full'])
                 ->get('/import/template', [ReportingImportController::class, 'downloadTemplate'])->name('import.download-template');
-            Route::middleware(['hasPermission:reports.create,reports.full'])
+            Route::middleware(['hasPermission:reports.create,reports.manage,reports.full'])
                 ->post('/reporting/import/process', [ReportingImportController::class, 'process'])->name('reporting.import.process');
         });
     
@@ -468,19 +471,19 @@ Route::prefix('activities')->name('activities.')->group(function () {
 Route::prefix('activity-users')->name('activity-users.')->group(function () {
 
     // EXPORT ROUTE - separated from manage/edit/delete
-    Route::middleware(['hasPermission:ActivityUsers.export,ActivityUsers.full'])
+    Route::middleware(['hasPermission:ActivityUsers.export,ActivityUsers.manage,ActivityUsers.full'])
         ->get('/export/csv', [ActivityUserController::class, 'export'])
         ->name('export');
 
     // Each action carries its own required level directly (not nested under a
     // shared outer gate) — see the note above the Employees routes for why.
-    Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+    Route::middleware(['hasPermission:ActivityUsers.import,ActivityUsers.manage,ActivityUsers.full'])
         ->get('/import', [ActivityUserController::class, 'importForm'])->name('import.form');
 
-    Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+    Route::middleware(['hasPermission:ActivityUsers.import,ActivityUsers.manage,ActivityUsers.full'])
         ->post('/import', [ActivityUserController::class, 'import'])->name('import.process');
 
-    Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+    Route::middleware(['hasPermission:ActivityUsers.download_template,ActivityUsers.import,ActivityUsers.manage,ActivityUsers.full'])
         ->get('/download-template', [ActivityUserController::class, 'downloadTemplate'])->name('download-template');
 
     Route::middleware(['hasPermission:ActivityUsers.view,ActivityUsers.manage,ActivityUsers.full'])
@@ -501,16 +504,16 @@ Route::prefix('activity-users')->name('activity-users.')->group(function () {
     Route::middleware(['hasPermission:ActivityUsers.delete,ActivityUsers.manage,ActivityUsers.full'])
         ->delete('/{id}', [ActivityUserController::class, 'destroy'])->name('destroy');
 
-    Route::middleware(['hasPermission:ActivityUsers.delete,ActivityUsers.manage,ActivityUsers.full'])
+    Route::middleware(['hasPermission:ActivityUsers.bulk_delete,ActivityUsers.delete,ActivityUsers.manage,ActivityUsers.full'])
         ->delete('/bulk/destroy', [ActivityUserController::class, 'bulkDestroy'])->name('bulk.destroy');
 
-    Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+    Route::middleware(['hasPermission:ActivityUsers.view_trash,ActivityUsers.manage,ActivityUsers.full'])
         ->get('/trash/list', [ActivityUserController::class, 'trash'])->name('trash');
 
-    Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+    Route::middleware(['hasPermission:ActivityUsers.restore,ActivityUsers.manage,ActivityUsers.full'])
         ->post('/{id}/restore', [ActivityUserController::class, 'restore'])->name('restore');
 
-    Route::middleware(['hasPermission:ActivityUsers.manage,ActivityUsers.full'])
+    Route::middleware(['hasPermission:ActivityUsers.force_delete,ActivityUsers.manage,ActivityUsers.full'])
         ->delete('/{id}/force-delete', [ActivityUserController::class, 'forceDelete'])->name('force-delete');
 });
     // ------------------------------------------------------------------------
@@ -524,7 +527,7 @@ Route::prefix('activity-users')->name('activity-users.')->group(function () {
             ->get('/', [FinancialController::class, 'index'])->name('index');
 
         // visualization
-        Route::middleware(['hasPermission:Financials.view,Financials.manage,Financials.full'])
+        Route::middleware(['hasPermission:Financials.visualization,Financials.view,Financials.manage,Financials.full'])
             ->get('/visualization', [FinancialController::class, 'visualization'])->name('visualization');
 
         // medical sub-pages
@@ -540,15 +543,15 @@ Route::prefix('activity-users')->name('activity-users.')->group(function () {
             ->post('/', [FinancialController::class, 'store'])->name('store');
 
         // import (GET form, POST process, GET template)
-        Route::middleware(['hasPermission:Financials.create,Financials.manage,Financials.full'])
+        Route::middleware(['hasPermission:Financials.import,Financials.create,Financials.manage,Financials.full'])
             ->get('/import', [FinancialImportController::class, 'showImportForm'])->name('import.form');
-        Route::middleware(['hasPermission:Financials.create,Financials.manage,Financials.full'])
+        Route::middleware(['hasPermission:Financials.import,Financials.create,Financials.manage,Financials.full'])
             ->post('/import', [FinancialImportController::class, 'import'])->name('import');
-        Route::middleware(['hasPermission:Financials.create,Financials.manage,Financials.full'])
+        Route::middleware(['hasPermission:Financials.download_template,Financials.import,Financials.create,Financials.manage,Financials.full'])
             ->get('/import/template/{type}', [FinancialImportController::class, 'downloadTemplate'])->name('import.template');
 
         // bulk delete (before {financial} wildcard)
-        Route::middleware(['hasPermission:Financials.delete,Financials.manage,Financials.full'])
+        Route::middleware(['hasPermission:Financials.bulk_delete,Financials.delete,Financials.manage,Financials.full'])
             ->delete('/bulk', [FinancialController::class, 'bulkDestroy'])->name('bulk.destroy');
 
         // edit + update + update-details (/{financial}/edit before /{financial})

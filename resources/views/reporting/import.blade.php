@@ -344,16 +344,20 @@
 
                 <!-- Template Download -->
                 <div class="mb-4">
+                    @canDo('reports', 'download_template')
                     <a href="{{ route('reporting.import.download-template') }}" class="btn btn-outline-primary">
                         📥 Download Template
                     </a>
+                    @endcanDo
                 </div>
 
                 <!-- Submit Button -->
                 <div class="d-grid gap-2">
+                    @canDo('reports', 'create')
                     <button type="submit" class="btn btn-primary btn-lg">
                         ⬆️ Upload Excel & Create Action Plan
                     </button>
+                    @endcanDo
                     <a href="{{ url('/') }}" class="btn btn-outline-secondary">
                         ❌ Cancel
                     </a>

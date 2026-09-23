@@ -369,9 +369,11 @@
     <div class="d-flex flex-row w-100 justify-content-between mb-4">
         <h1 class="page-title">Roles Management</h1>
         <div class="buttons-wrapper">
-            <a href="{{ route('roles.create') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Create Role
-            </a>
+            @canDo('Roles', 'create')
+                <a href="{{ route('roles.create') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Create Role
+                </a>
+            @endcanDo
         </div>
     </div>
 
@@ -484,29 +486,35 @@
                                             </td>
                                             <td>
                                                 <div class="action-buttons">
-                                                    <a href="{{ route('roles.show', $role) }}" 
-                                                       class="action-btn" 
-                                                       title="View">
-                                                        
-                                                    </a>
-                                                    <a href="{{ route('roles.edit', $role) }}" 
-                                                       class="action-btn" 
-                                                       title="Edit">
-                                                        <i class="fas fa-edit"></i>
-                                                    </a>
-                                                    
-                                                    <form action="{{ route('roles.destroy', $role) }}" 
-                                                          method="POST" 
-                                                          class="d-inline"
-                                                          onsubmit="return confirm('Are you sure you want to delete this role?')">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" 
-                                                                class="action-btn text-danger" 
-                                                                title="Delete">
-                                                            <i class="fas fa-trash"></i>
-                                                        </button>
-                                                    </form>
+                                                    @canDo('Roles', 'view')
+                                                        <a href="{{ route('roles.show', $role) }}"
+                                                           class="action-btn"
+                                                           title="View">
+
+                                                        </a>
+                                                    @endcanDo
+                                                    @canDo('Roles', 'edit')
+                                                        <a href="{{ route('roles.edit', $role) }}"
+                                                           class="action-btn"
+                                                           title="Edit">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                    @endcanDo
+
+                                                    @canDo('Roles', 'delete')
+                                                        <form action="{{ route('roles.destroy', $role) }}"
+                                                              method="POST"
+                                                              class="d-inline"
+                                                              onsubmit="return confirm('Are you sure you want to delete this role?')">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="submit"
+                                                                    class="action-btn text-danger"
+                                                                    title="Delete">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </form>
+                                                    @endcanDo
                                                 </div>
                                             </td>
                                         </tr>
@@ -618,9 +626,11 @@
                     </div>
                     <h4>No roles found</h4>
                     <p>Create your first role to get started</p>
-                    <a href="{{ route('roles.create') }}" class="btn btn-primary mt-3">
-                        <i class="fas fa-plus"></i> Create Role
-                    </a>
+                    @canDo('Roles', 'create')
+                        <a href="{{ route('roles.create') }}" class="btn btn-primary mt-3">
+                            <i class="fas fa-plus"></i> Create Role
+                        </a>
+                    @endcanDo
                 </div>
             @endif
         </div>

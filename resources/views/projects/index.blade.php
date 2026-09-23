@@ -480,9 +480,11 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h4 class="page-title">Projects Management</h4>
             <div class="action-buttons">
+                @canDo('Projects', 'create')
                 <a href="{{ route('projects.create') }}" class="btn-primary">
                     <i class="fas fa-plus"></i> Create Project
                 </a>
+                @endcanDo
             </div>
         </div>
 
@@ -584,14 +586,17 @@
                                 
                                 <td>
                                     <div class="d-flex gap-2">
-                                        <a href="{{ route('projects.edit', $project->project_id) }}" 
+                                        @canDo('Projects', 'edit')
+                                        <a href="{{ route('projects.edit', $project->project_id) }}"
                                            class="btn-outline-secondary btn-sm"
                                            title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        
-                                        <form action="{{ route('projects.destroy', $project->project_id) }}" 
-                                              method="POST" 
+                                        @endcanDo
+
+                                        @canDo('Projects', 'delete')
+                                        <form action="{{ route('projects.destroy', $project->project_id) }}"
+                                              method="POST"
                                               class="d-inline"
                                               onsubmit="return confirm('Are you sure you want to delete this project? This action cannot be undone.');">
                                             @csrf
@@ -600,6 +605,7 @@
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
+                                        @endcanDo
                                     </div>
                                 </td>
                             </tr>
@@ -612,9 +618,11 @@
                         <h5 class="mb-2">No projects found</h5>
                         <p class="text-muted">Create your first project to get started</p>
                         <div class="d-flex gap-2 justify-content-center mt-3">
+                            @canDo('Projects', 'create')
                             <a href="{{ route('projects.create') }}" class="btn-primary">
                                 <i class="fas fa-plus"></i> Create Project
                             </a>
+                            @endcanDo
                         </div>
                     </div>
                 @endif

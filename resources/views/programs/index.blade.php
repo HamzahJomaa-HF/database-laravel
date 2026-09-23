@@ -449,15 +449,21 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h4 class="page-title">Programs Management</h4>
             <div class="action-buttons">
+                @canDo('Programs', 'create')
                 <a href="{{ route('createCenter') }}" class="btn-outline">
                     <i class="fas fa-building"></i> Create Center
                 </a>
+                @endcanDo
+                @canDo('Programs', 'create')
                 <a href="{{ route('create.flagshiplocal') }}" class="btn-outline">
                     <i class="fas fa-flag"></i> Create Flagship/Local
                 </a>
+                @endcanDo
+                @canDo('Programs', 'create')
                 <a href="{{ route('create.subprogram') }}" class="btn-outline">
                     <i class="fas fa-project-diagram"></i> Create Sub-Program
                 </a>
+                @endcanDo
             </div>
         </div>
 
@@ -539,34 +545,37 @@
                                 
                                 <td>
     <div class="d-flex gap-2">
+        @canDo('Programs', 'edit')
         @if($program->type === 'Center' && $program->program_type === 'Center')
-    <a href="{{ route('editCenter', $program->program_id) }}" 
+    <a href="{{ route('editCenter', $program->program_id) }}"
        class="btn-outline-secondary btn-sm"
        title="Edit">
         <i class="fas fa-edit"></i>
     </a>
 @elseif(in_array($program->program_type, ['Flagship', 'Local Program']))
-    <a href="{{ route('edit.flagshiplocal', $program->program_id) }}" 
+    <a href="{{ route('edit.flagshiplocal', $program->program_id) }}"
        class="btn-outline-secondary btn-sm"
        title="Edit">
         <i class="fas fa-edit"></i>
     </a>
 @elseif(in_array($program->program_type, ['Sub-Program', 'Center Program']))
-    <a href="{{ route('edit.subprogram', $program->program_id) }}" 
+    <a href="{{ route('edit.subprogram', $program->program_id) }}"
        class="btn-outline-secondary btn-sm"
        title="Edit">
         <i class="fas fa-edit"></i>
     </a>
 @else
-    <a href="{{ route('editCenter', $program->program_id) }}" 
+    <a href="{{ route('editCenter', $program->program_id) }}"
        class="btn-outline-secondary btn-sm"
        title="Edit">
         <i class="fas fa-edit"></i>
     </a>
 @endif
-        
-        <form action="{{ route('programs.destroy', $program->program_id) }}" 
-              method="POST" 
+        @endcanDo
+
+        @canDo('Programs', 'delete')
+        <form action="{{ route('programs.destroy', $program->program_id) }}"
+              method="POST"
               class="d-inline"
               onsubmit="return confirm('Are you sure you want to delete this program? This action cannot be undone.');">
             @csrf
@@ -575,6 +584,7 @@
                 <i class="fas fa-trash"></i>
             </button>
         </form>
+        @endcanDo
     </div>
 </td>
                             </tr>
@@ -587,12 +597,16 @@
                         <h5 class="mb-2">No programs found</h5>
                         <p class="text-muted">Create your first program to get started</p>
                         <div class="d-flex gap-2 justify-content-center mt-3">
+                            @canDo('Programs', 'create')
                             <a href="{{ route('createCenter') }}" class="btn-primary">
                                 <i class="fas fa-building"></i> Create Center
                             </a>
+                            @endcanDo
+                            @canDo('Programs', 'create')
                             <a href="{{ route('create.flagshiplocal') }}" class="btn-outline">
                                 <i class="fas fa-flag"></i> Create Flagship/Local
                             </a>
+                            @endcanDo
                         </div>
                     </div>
                 @endif

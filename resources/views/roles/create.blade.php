@@ -357,6 +357,29 @@
                     'export' => 'Can Export',
                     'import' => 'Can Import',
                     'full'   => 'Full Access (Admin)',
+                    'download_template' => 'Can Download Import Template',
+                    'bulk_delete' => 'Can Bulk Delete',
+                    'activate' => 'Can Activate',
+                    'deactivate' => 'Can Deactivate',
+                    'toggle_status' => 'Can Toggle Status',
+                    'restore' => 'Can Restore',
+                    'force_delete' => 'Can Permanently Delete',
+                    'view_trashed' => 'Can View Trashed',
+                    'view_trash' => 'Can View Trash',
+                    'create_child' => 'Can Add Child Activities',
+                    'visualization' => 'Can View Visualization',
+                    'preview' => 'Can Preview Import',
+                    'download' => 'Can Download',
+                ];
+
+                // Per-module overrides — some access_level keys mean something more
+                // specific in one module than the generic label above conveys.
+                $moduleAccessLabels = [
+                    'Activities' => [
+                        'view' => 'View All Activities (Org-Wide)',
+                        'view_own' => 'View My Assigned Activities (Focal Point)',
+                        'view_all' => 'View All Activities, Read-Only (Overrides Focal Point Scope)',
+                    ],
                 ];
             @endphp
             <!-- Permissions Tab -->
@@ -364,9 +387,9 @@
                 <div class="card">
                     <div class="card-body">
                         <p class="text-muted mb-4">Select the permissions this role should have for each module</p>
-                        
+
                             <div class="module-group">
-                                <h3 class="module-group-title">Core Modules</h3>
+                                <h3 class="module-group-title">Modules</h3>
 
                                 <div class="permissions-container">
                                     @foreach($permissionsByModule as $module => $permissions)
@@ -386,11 +409,13 @@
                                                                 <input type="checkbox"
                                                                     name="module_access_ids[]"
                                                                     id="{{ $id }}"
+                                                                    data-level="{{ $level }}"
                                                                     value="{{ $permission->access_id }}"
-                                                                    class="form-check-input permission-checkbox">
+                                                                    class="form-check-input permission-checkbox"
+                                                                    title="{{ $permission->description }}">
 
                                                                 <label class="form-check-label" for="{{ $id }}">
-                                                                    {{ $accessLabels[$level] ?? ucfirst($level) }}
+                                                                    {{ $moduleAccessLabels[$module][$level] ?? $accessLabels[$level] ?? ucwords(str_replace('_', ' ', $level)) }}
                                                                 </label>
                                                             </div>
                                                         </div>
@@ -402,68 +427,6 @@
                                     @endforeach
                                 </div>
                             </div>
-
-
-                        <!-- Additional Modules -->
-                        <div class="module-group">
-                            <h3 class="module-group-title">Additional Modules</h3>
-                            <div class="permissions-container">
-                                <!-- Dashboard -->
-                                <div class="resource-container">
-                                    <div class="permission-title">Dashboard</div>
-                                    <div class="permission-options">
-                                        <div class="permission-checkboxes">
-                                            @php
-                                                $dashboardPermissions = \App\Models\ModuleAccess::where('module', 'Dashboard')->get();
-                                            @endphp
-                                            @foreach($dashboardPermissions as $permission)
-                                            <div class="permission-checkbox-item">
-                                                <div class="form-check">
-                                                    <input type="checkbox" name="module_access_ids[]" 
-                                                           id="dashboard_{{ $permission->access_level }}" 
-                                                           value="{{ $permission->access_id }}"
-                                                           class="form-check-input permission-checkbox">
-                                                    <label class="form-check-label" for="dashboard_{{ $permission->access_level }}">
-                                                        {{ $permission->access_level === 'none' ? 'No Access' : 
-                                                           ($permission->access_level === 'view' ? 'Can View Dashboard' :
-                                                           ($permission->access_level === 'full' ? 'Full Dashboard Access' : $permission->access_level)) }}
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Reports -->
-                                <div class="resource-container">
-                                    <div class="permission-title">Reports</div>
-                                    <div class="permission-options">
-                                        <div class="permission-checkboxes">
-                                            @php
-                                                $reportsPermissions = \App\Models\ModuleAccess::where('module', 'Reports')->get();
-                                            @endphp
-                                            @foreach($reportsPermissions as $permission)
-                                            <div class="permission-checkbox-item">
-                                                <div class="form-check">
-                                                    <input type="checkbox" name="module_access_ids[]" 
-                                                           id="reports_{{ $permission->access_level }}" 
-                                                           value="{{ $permission->access_id }}"
-                                                           class="form-check-input permission-checkbox">
-                                                    <label class="form-check-label" for="reports_{{ $permission->access_level }}">
-                                                        {{ $permission->access_level === 'none' ? 'No Access' : 
-                                                           ($permission->access_level === 'view' ? 'Can View Reports' :
-                                                           ($permission->access_level === 'create' ? 'Can Generate Reports' :
-                                                           ($permission->access_level === 'full' ? 'Full Reports Access' : $permission->access_level))) }}
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -484,51 +447,31 @@
 
 @section('scripts')
 <script>
-    // Quick permission selection
+    // Quick permission selection — matches on the checkbox's data-level attribute,
+    // which always equals the exact access_level string (not the display label),
+    // so it works for every button-level permission, not just the original CRUD set.
     function selectAllPermissions(accessLevel) {
-        // Get all permissions with the specified access level
         const checkboxes = document.querySelectorAll('.permission-checkbox');
-        
+
         checkboxes.forEach(checkbox => {
-            // Extract access level from label text
-            const label = checkbox.closest('.form-check').querySelector('.form-check-label').textContent.trim();
-            const checkboxAccessLevel = getAccessLevelFromLabel(label);
-            
-            // Check if this checkbox matches the selected access level
-            if (checkboxAccessLevel === accessLevel) {
-                checkbox.checked = true;
-            } else {
-                checkbox.checked = false;
-            }
+            checkbox.checked = checkbox.dataset.level === accessLevel;
         });
-        
+
         // Update quick select button states
         document.querySelectorAll('.quick-select-btn').forEach(btn => {
             btn.classList.remove('active');
         });
-        
+
         // Highlight the clicked button
         const clickedBtn = document.querySelector(`.quick-select-btn[onclick*="${accessLevel}"]`);
         if (clickedBtn) {
             clickedBtn.classList.add('active');
         }
-        
+
         // Show success message
         showToast(`${accessLevel.charAt(0).toUpperCase() + accessLevel.slice(1)} permissions applied to all modules`);
     }
-    
-    // Helper function to extract access level from label text
-    function getAccessLevelFromLabel(label) {
-        if (label.includes('No Access')) return 'none';
-        if (label.includes('View Only') || label.includes('View Dashboard') || label.includes('View Reports')) return 'view';
-        if (label.includes('Can Create') || label.includes('Generate Reports')) return 'create';
-        if (label.includes('Can Edit')) return 'edit';
-        if (label.includes('Can Delete')) return 'delete';
-        if (label.includes('Full CRUD')) return 'manage';
-        if (label.includes('Admin') || label.includes('Full Dashboard') || label.includes('Full Reports')) return 'full';
-        return 'none';
-    }
-    
+
     // Initialize tab functionality
     document.addEventListener('DOMContentLoaded', function() {
         const tabTriggers = document.querySelectorAll('[data-bs-toggle="tab"]');

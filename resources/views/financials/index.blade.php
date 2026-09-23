@@ -703,6 +703,7 @@
                     </div>
                 </div>
                 <div class="card-body">
+                    @canDo('Financials', 'bulk_delete')
                     <form method="POST" action="{{ route('financials.bulk.destroy') }}" id="bulkDeleteForm" class="d-inline"
                           onsubmit="return confirm('Delete the selected records? This cannot be undone.')">
                         @csrf
@@ -712,6 +713,7 @@
                             <i class="fas fa-trash me-1"></i>Delete Selected
                         </button>
                     </form>
+                    @endcanDo
                     <small class="text-muted ms-3">
                         <i class="fas fa-exclamation-triangle me-1"></i>
                         This action cannot be undone
@@ -726,12 +728,16 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h4 class="page-title">Financial Management</h4>
             <div class="action-buttons">
+                @canDo('Financials', 'visualization')
                 <a href="{{ route('financials.visualization') }}" class="btn btn-outline-primary me-2" style="background-color:white;border-color:#7c3aed;color:#7c3aed;">
                     <i class="fas fa-chart-pie me-1"></i> Visualization
                 </a>
+                @endcanDo
+                @canDo('Financials', 'import')
                 <a href="{{ route('financials.import.form') }}" class="btn btn-outline-primary">
                     <i class="fas fa-file-import me-1"></i> Import
                 </a>
+                @endcanDo
             </div>
         </div>
 

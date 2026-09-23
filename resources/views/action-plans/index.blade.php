@@ -45,9 +45,10 @@ Here's the Action Plan index blade based on your Activities index, but adapted f
                 </div>
                 
                 <div class="card-body p-3">
-                    <form method="POST" 
-                          action="{{ route('action-plans.bulk.destroy') }}" 
-                          id="bulkDeleteForm" 
+                    @canDo('ActionPlans', 'bulk_delete')
+                    <form method="POST"
+                          action="{{ route('action-plans.bulk.destroy') }}"
+                          id="bulkDeleteForm"
                           class="d-inline">
                         @csrf
                         @method('DELETE')
@@ -56,6 +57,7 @@ Here's the Action Plan index blade based on your Activities index, but adapted f
                             <i class="bi bi-trash me-1"></i>Delete Selected
                         </button>
                     </form>
+                    @endcanDo
                     <small class="text-muted ms-3">
                         <i class="bi bi-exclamation-triangle me-1"></i>
                         This will delete action plans and their Excel files permanently
@@ -283,12 +285,14 @@ Here's the Action Plan index blade based on your Activities index, but adapted f
     </div>
     
     {{-- Download Button --}}
-    <a href="{{ route('action-plans.download', $actionPlan->action_plan_id) }}" 
+    @canDo('ActionPlans', 'download')
+    <a href="{{ route('action-plans.download', $actionPlan->action_plan_id) }}"
        class="btn btn-sm btn-outline-success"
        title="Download original Excel file">
         <i class="bi bi-download me-1"></i>Download
     </a>
-    
+    @endcanDo
+
     {{-- Debug info (optional - remove in production) --}}
     @if(!$actionPlan->excel_path)
     <span class="badge bg-warning ms-1" title="File path not set in database">⚠️</span>
@@ -366,19 +370,21 @@ Here's the Action Plan index blade based on your Activities index, but adapted f
                                     <td>
                                         <div class="text-center">
                                             <div class="btn-group" role="group">
-                                               
-                                                <form method="POST" 
-                                                      action="{{ route('action-plans.destroy', $actionPlan->action_plan_id) }}" 
+
+                                                @canDo('ActionPlans', 'delete')
+                                                <form method="POST"
+                                                      action="{{ route('action-plans.destroy', $actionPlan->action_plan_id) }}"
                                                       class="d-inline"
                                                       onsubmit="return confirm('Are you sure you want to delete this action plan? This will also delete the Excel file.');">
-                                                    @csrf 
+                                                    @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" 
+                                                    <button type="submit"
                                                             class="btn btn-sm btn-outline-danger"
                                                             title="Delete">
                                                         <i class="bi bi-trash"></i>
                                                     </button>
                                                 </form>
+                                                @endcanDo
                                             </div>
                                         </div>
                                     </td>
@@ -446,15 +452,17 @@ Here's the Action Plan index blade based on your Activities index, but adapted f
                                                             <dd class="col-sm-8">{{ number_format($actionPlan->excel_metadata['size'] / 1024, 2) }} KB</dd>
                                                             @endif
                                                             
-                                                          @if($actionPlan->excel_filename)
+                                                          @canDo('ActionPlans', 'download')
+                                          @if($actionPlan->excel_filename)
 <dt class="col-sm-4">Download:</dt>
 <dd class="col-sm-8">
-    <a href="{{ route('action-plans.download', $actionPlan->action_plan_id) }}" 
+    <a href="{{ route('action-plans.download', $actionPlan->action_plan_id) }}"
        class="btn btn-sm btn-success">
         <i class="bi bi-download me-1"></i>Download Excel
     </a>
 </dd>
 @endif
+@endcanDo
                                                         </dl>
                                                     </div>
                                                 </div>

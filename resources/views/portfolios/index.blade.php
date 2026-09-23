@@ -459,9 +459,11 @@
 
       <i class="fas fa-building"></i> COPs
                 </a>
+                @canDo('Portfolios', 'create')
                 <a href="{{ route('portfolios.create') }}" class="btn-primary">
                     <i class="fas fa-plus"></i> Add Portfolio
                 </a>
+                @endcanDo
             </div>
         </div>
 
@@ -566,14 +568,17 @@
                                 <td>{{ $portfolio->created_at->format('Y-m-d') }}</td>
                                 <td>
                                     <div class="d-flex gap-2">
-                                    
+
+                                        @canDo('Portfolios', 'edit')
                                         <button class="btn btn-sm btn-outline-secondary"
                                                 onclick="editPortfolio('{{ $portfolio->portfolio_id }}')"
                                                 title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <form action="{{ route('portfolios.destroy', $portfolio->portfolio_id) }}" 
-                                              method="POST" 
+                                        @endcanDo
+                                        @canDo('Portfolios', 'delete')
+                                        <form action="{{ route('portfolios.destroy', $portfolio->portfolio_id) }}"
+                                              method="POST"
                                               class="d-inline"
                                               onsubmit="return confirm('Are you sure you want to delete this portfolio?');">
                                             @csrf
@@ -582,6 +587,7 @@
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
+                                        @endcanDo
                                     </div>
                                 </td>
                             </tr>
@@ -593,9 +599,11 @@
                         <i class="fas fa-folder-open empty-state-icon"></i>
                         <h5 class="mb-2">No portfolios found</h5>
                         <p class="text-muted">Add your first portfolio to get started</p>
+                        @canDo('Portfolios', 'create')
                         <a href="{{ route('portfolios.create') }}" class="btn-primary mt-3">
                             <i class="fas fa-plus"></i> Add Portfolio
                         </a>
+                        @endcanDo
                     </div>
                 @endif
             </div>

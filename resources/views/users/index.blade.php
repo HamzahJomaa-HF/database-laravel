@@ -13,9 +13,11 @@
                     <p class="text-muted mb-0">Manage and organize your user directory efficiently</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <a href="{{ route('users.create') }}" class="btn btn-primary">
-                        <i class="bi bi-person-plus me-1"></i>Add User
-                    </a>
+                    @canDo('Users', 'create')
+                        <a href="{{ route('users.create') }}" class="btn btn-primary">
+                            <i class="bi bi-person-plus me-1"></i>Add User
+                        </a>
+                    @endcanDo
                 </div>
             </div>
         </div>
@@ -42,16 +44,18 @@
             </div> {{-- Close card-header --}}
             
             <div class="card-body p-3">
-                <form method="POST" 
-                      action="{{ route('users.bulk.destroy') }}" 
-                      id="bulkDeleteForm" 
-                      class="d-inline">
-                    @csrf
-                    <input type="hidden" name="user_ids" id="selectedUserIds">
-                    <button type="submit" class="btn btn-danger">
-                        <i class="bi bi-trash me-1"></i>Delete Selected
-                    </button>
-                </form>
+                @canDo('Users', 'bulk_delete')
+                    <form method="POST"
+                          action="{{ route('users.bulk.destroy') }}"
+                          id="bulkDeleteForm"
+                          class="d-inline">
+                        @csrf
+                        <input type="hidden" name="user_ids" id="selectedUserIds">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash me-1"></i>Delete Selected
+                        </button>
+                    </form>
+                @endcanDo
                 <small class="text-muted ms-3">
                     <i class="bi bi-exclamation-triangle me-1"></i>
                     This action cannot be undone
@@ -131,9 +135,11 @@
                                         <a href="{{ route('users.index') }}" class="btn btn-outline-secondary">
                                             <i class="bi bi-arrow-clockwise me-1"></i>Reset
                                         </a>
-                                        <a href="{{ route('users.export.excel', request()->query()) }}" class="btn btn-success ms-auto">
-                                            <i class="bi bi-download me-1"></i>Export {{ $hasSearch ? 'Filtered Results' : 'All Users' }}
-                                        </a>
+                                        @canDo('Users', 'export')
+                                            <a href="{{ route('users.export.excel', request()->query()) }}" class="btn btn-success ms-auto">
+                                                <i class="bi bi-download me-1"></i>Export {{ $hasSearch ? 'Filtered Results' : 'All Users' }}
+                                            </a>
+                                        @endcanDo
                                     </div>
                                 </div>
                             </div>
@@ -261,22 +267,26 @@
                                     <td>
                                         <div class="text-center">
                                             <div class="btn-group" role="group">
-                                                <a href="{{ route('users.edit', $user->user_id) }}" 
-                                                   class="btn btn-sm btn-outline-primary"
-                                                   title="Edit">
-                                                    <i class="bi bi-pencil"></i>
-                                                </a>
-                                                <form method="POST" 
-                                                      action="{{ route('users.destroy', $user->user_id) }}" 
-                                                      class="d-inline"
-                                                      onsubmit="return confirm('Are you sure you want to delete {{ $user->first_name }} {{ $user->last_name }}?');">
-                                                    @csrf @method('DELETE')
-                                                    <button type="submit" 
-                                                            class="btn btn-sm btn-outline-danger"
-                                                            title="Delete">
-                                                        <i class="bi bi-trash"></i>
-                                                    </button>
-                                                </form>
+                                                @canDo('Users', 'edit')
+                                                    <a href="{{ route('users.edit', $user->user_id) }}"
+                                                       class="btn btn-sm btn-outline-primary"
+                                                       title="Edit">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                @endcanDo
+                                                @canDo('Users', 'delete')
+                                                    <form method="POST"
+                                                          action="{{ route('users.destroy', $user->user_id) }}"
+                                                          class="d-inline"
+                                                          onsubmit="return confirm('Are you sure you want to delete {{ $user->first_name }} {{ $user->last_name }}?');">
+                                                        @csrf @method('DELETE')
+                                                        <button type="submit"
+                                                                class="btn btn-sm btn-outline-danger"
+                                                                title="Delete">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                @endcanDo
                                             </div>
                                         </div>
                                     </td>
@@ -294,9 +304,11 @@
                                                 </a>
                                             @else
                                                 <p class="text-muted mb-3">Get started by adding your first user</p>
-                                                <a href="{{ route('users.create') }}" class="btn btn-primary d-flex align-items-center justify-content-center mx-auto" style="width: 200px;">
-                                                    <i class="bi bi-person-plus me-2"></i>Add First User
-                                                </a>
+                                                @canDo('Users', 'create')
+                                                    <a href="{{ route('users.create') }}" class="btn btn-primary d-flex align-items-center justify-content-center mx-auto" style="width: 200px;">
+                                                        <i class="bi bi-person-plus me-2"></i>Add First User
+                                                    </a>
+                                                @endcanDo
                                             @endif
                                         </div>
                                     </td>
@@ -426,11 +438,13 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form method="POST"  id="bulkDeleteForm">
-                    @csrf
-                    <input type="hidden" name="user_ids" id="selectedUserIds">
-                    <button type="submit" class="btn btn-danger">Delete Selected</button>
-                </form>
+                @canDo('Users', 'bulk_delete')
+                    <form method="POST"  id="bulkDeleteForm">
+                        @csrf
+                        <input type="hidden" name="user_ids" id="selectedUserIds">
+                        <button type="submit" class="btn btn-danger">Delete Selected</button>
+                    </form>
+                @endcanDo
             </div>
         </div>
     </div>

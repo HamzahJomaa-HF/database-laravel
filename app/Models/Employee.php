@@ -141,10 +141,22 @@ class Employee extends Authenticatable
     // ✅ Check if employee should see ALL records of a module, bypassing any
     // record-level (e.g. focal-point) scoping — either because they're a
     // super admin / broad full-access employee, or because their role was
-    // explicitly granted 'full' access to this specific module.
+    // explicitly granted 'full' access to this specific module. This also
+    // implies write access (edit/delete) on every record, not just viewing.
     public function canSeeAllFor(string $module): bool
     {
         return $this->hasFullAccess() || $this->hasPermission($module, 'full');
+    }
+
+    // ✅ Read-only counterpart of canSeeAllFor(): true for everything above,
+    // PLUS a role granted the module's 'view_all' checkbox — which lets a
+    // focal point (or anyone else scoped down to "their own" records) browse
+    // every record read-only, without gaining edit/delete rights on records
+    // outside their normal scope. Used only for view/listing checks, never
+    // for authorizing a write.
+    public function canViewAllFor(string $module): bool
+    {
+        return $this->canSeeAllFor($module) || $this->hasPermission($module, 'view_all');
     }
 
     protected static function boot()

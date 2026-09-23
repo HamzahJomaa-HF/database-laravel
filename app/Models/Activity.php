@@ -203,14 +203,15 @@ class Activity extends Model
     }
 
     /**
-     * Scopes the query to the activities visible to the given employee:
-     * everything for an employee who can see all Activities records
-     * (super admin, or a role granted 'full' access to Activities),
-     * otherwise only activities they're a focal point on.
+     * Scopes the query to the activities visible (read-only) to the given
+     * employee: everything for an employee who can view all Activities
+     * records (super admin, a role granted 'full' access to Activities, or
+     * a role granted the 'view_all' read-only override), otherwise only
+     * activities they're a focal point on.
      */
     public function scopeVisibleTo($query, ?Employee $employee)
     {
-        if ($employee && !$employee->canSeeAllFor('Activities')) {
+        if ($employee && !$employee->canViewAllFor('Activities')) {
             $query->whereHas('focalPoints', function ($q) use ($employee) {
                 $q->where('employee_id', $employee->employee_id);
             });
@@ -220,10 +221,26 @@ class Activity extends Model
     }
 
     /**
-     * Whether the given employee may access this specific activity
-     * (used for single-record actions like show/edit/update/destroy).
+     * Whether the given employee may view this specific activity (used for
+     * the show action). Includes the 'view_all' read-only override.
      */
     public function isVisibleTo(Employee $employee): bool
+    {
+        if ($employee->canViewAllFor('Activities')) {
+            return true;
+        }
+
+        return $this->focalPoints()->where('employee_id', $employee->employee_id)->exists();
+    }
+
+    /**
+     * Whether the given employee may modify (edit/delete) this specific
+     * activity. Deliberately narrower than isVisibleTo() — holding the
+     * read-only 'view_all' override does NOT grant write access outside an
+     * employee's own focal-point assignments; only 'full' (or super admin)
+     * does.
+     */
+    public function isEditableBy(Employee $employee): bool
     {
         if ($employee->canSeeAllFor('Activities')) {
             return true;

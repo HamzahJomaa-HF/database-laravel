@@ -13,13 +13,17 @@
                     <p class="text-muted mb-0">Manage and organize your activities efficiently</p>
                 </div>
                 <div class="d-flex gap-2">
+                    @canDo('Activities', 'export')
                     <a href="{{ route('activities.export', request()->query()) }}" class="btn btn-outline-primary" style="background-color: white; border-color: #0a58ca; color: #0a58ca;">
                         <i class="fas fa-file-excel me-1"></i> Export to Excel
                     </a>
+                    @endcanDo
                 <div class="d-flex gap-2">
+                    @canDo('Activities', 'create')
                     <a href="{{ route('activities.create') }}" class="btn btn-primary">
                         <i class="bi bi-calendar-plus me-1"></i>Add Activity
                     </a>
+                    @endcanDo
                 </div>
             </div>
         </div>
@@ -46,9 +50,10 @@
                 </div>
                 
                 <div class="card-body p-3">
-                    <form method="POST" 
-                          action="{{ route('activities.bulk.destroy') }}" 
-                          id="bulkDeleteForm" 
+                    @canDo('Activities', 'bulk_delete')
+                    <form method="POST"
+                          action="{{ route('activities.bulk.destroy') }}"
+                          id="bulkDeleteForm"
                           class="d-inline">
                         @csrf
                         @method('DELETE')
@@ -57,6 +62,7 @@
                             <i class="bi bi-trash me-1"></i>Delete Selected
                         </button>
                     </form>
+                    @endcanDo
                     <small class="text-muted ms-3">
                         <i class="bi bi-exclamation-triangle me-1"></i>
                         This action cannot be undone
@@ -296,24 +302,28 @@
                                     <td>
                                         <div class="text-center">
                                             <div class="btn-group" role="group">
-                                                <a href="{{ route('activities.edit', $activity->activity_id) }}" 
+                                                @canDo('Activities', 'edit')
+                                                <a href="{{ route('activities.edit', $activity->activity_id) }}"
                                                    class="btn btn-sm btn-outline-primary"
                                                    title="Edit">
                                                     <i class="bi bi-pencil"></i>
                                                 </a>
-                                               
-                                                <form method="POST" 
-                                                      action="{{ route('activities.destroy', $activity->activity_id) }}" 
+                                                @endcanDo
+
+                                                @canDo('Activities', 'delete')
+                                                <form method="POST"
+                                                      action="{{ route('activities.destroy', $activity->activity_id) }}"
                                                       class="d-inline"
                                                       onsubmit="return confirm('Are you sure you want to delete {{ $activity->activity_title_en }}?');">
-                                                    @csrf 
+                                                    @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" 
+                                                    <button type="submit"
                                                             class="btn btn-sm btn-outline-danger"
                                                             title="Delete">
                                                         <i class="bi bi-trash"></i>
                                                     </button>
                                                 </form>
+                                                @endcanDo
                                             </div>
                                         </div>
                                     </td>
@@ -331,9 +341,11 @@
                                                 </a>
                                             @else
                                                 <p class="text-muted mb-3">Get started by adding your first activity</p>
+                                                @canDo('Activities', 'create')
                                                 <a href="{{ route('activities.create') }}" class="btn btn-primary d-flex align-items-center justify-content-center mx-auto" style="width: 200px;">
                                                     <i class="bi bi-calendar-plus me-2"></i>Add First Activity
                                                 </a>
+                                                @endcanDo
                                             @endif
                                         </div>
                                     </td>
@@ -466,12 +478,14 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                @canDo('Activities', 'bulk_delete')
                 <form method="POST" id="bulkDeleteModalForm">
                     @csrf
                     @method('DELETE')
                     <input type="hidden" name="activity_ids" id="modalSelectedActivityIds">
                     <button type="submit" class="btn btn-danger">Delete Selected</button>
                 </form>
+                @endcanDo
             </div>
         </div>
     </div>

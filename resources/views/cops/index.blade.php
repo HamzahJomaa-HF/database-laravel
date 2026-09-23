@@ -457,9 +457,11 @@
                 <a href="{{ route('portfolios.index') }}" class="btn-outline">
                     <i class="fas fa-folder-open"></i> Portfolios
                 </a>
+                @canDo('COPs', 'create')
                 <a href="{{ route('cops.create') }}" class="btn-primary">
                     <i class="fas fa-plus"></i> Add COP
                 </a>
+                @endcanDo
             </div>
         </div>
 
@@ -532,13 +534,16 @@
                                 <td>{{ $cop->created_at->format('Y-m-d') }}</td>
                                 <td>
                                     <div class="d-flex gap-2">
+                                        @canDo('COPs', 'edit')
                                         <button class="btn btn-sm btn-outline-secondary"
                                                 onclick="editCop('{{ $cop->cop_id }}')"
                                                 title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <form action="{{ route('cops.destroy', $cop->cop_id) }}" 
-                                              method="POST" 
+                                        @endcanDo
+                                        @canDo('COPs', 'delete')
+                                        <form action="{{ route('cops.destroy', $cop->cop_id) }}"
+                                              method="POST"
                                               class="d-inline"
                                               onsubmit="return confirm('Are you sure you want to delete this Community of Practice?');">
                                             @csrf
@@ -547,6 +552,7 @@
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
+                                        @endcanDo
                                     </div>
                                 </td>
                             </tr>
@@ -558,9 +564,11 @@
                         <i class="fas fa-users empty-state-icon"></i>
                         <h5 class="mb-2">No Communities of Practice found</h5>
                         <p class="text-muted">Add your first Community of Practice to get started</p>
+                        @canDo('COPs', 'create')
                         <a href="{{ route('cops.create') }}" class="btn-primary mt-3">
                             <i class="fas fa-plus"></i> Add COP
                         </a>
+                        @endcanDo
                     </div>
                 @endif
             </div>
