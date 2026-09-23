@@ -1370,22 +1370,6 @@
             });
         }
         
-        // Date of birth validation (minimum 18 years old)
-        const dobInput = document.getElementById('dob');
-        if (dobInput) {
-            dobInput.addEventListener('change', function(e) {
-                const selectedDate = new Date(e.target.value);
-                const today = new Date();
-                const minAgeDate = new Date();
-                minAgeDate.setFullYear(today.getFullYear() - 18);
-                
-                if (selectedDate > minAgeDate) {
-                    alert('User must be at least 18 years old.');
-                    e.target.value = '';
-                }
-            });
-        }
-        
         // Real-time validation for required fields
         if (form) {
             const requiredFields = form.querySelectorAll('[required]');
