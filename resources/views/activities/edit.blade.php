@@ -602,13 +602,17 @@
 
                     @php
                         // Allowed keys
-                        $allowedSupports = [
+                        $labels = [
                             'logistics' => 'Logistics',
-                            'media' => 'Media',
+                            'data' => 'Data',
                             'public_relations' => 'Public Relations',
+                            'media' => 'Media',
                             'field_support' => 'Facilitation & Field Support',
                             'none' => 'None',
                         ];
+                        $allowedSupports = collect(config('operational_support', []))
+                            ->mapWithKeys(fn ($key) => [$key => $labels[$key] ?? ucfirst(str_replace('_', ' ', $key))])
+                            ->all();
 
                         // CORRECT TRANSFORMATION: Convert indexed array to associative array
                         $operationalSupport = [];

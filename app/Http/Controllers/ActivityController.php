@@ -22,6 +22,9 @@ use App\Exports\ActivitiesExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ActivityFocalPointAssigned;
+use App\Mail\ActivitySupportRequested;
 
 class ActivityController extends Controller
 {
@@ -276,6 +279,10 @@ class ActivityController extends Controller
 
             DB::commit();
 
+            $this->notifyFocalPoints($focalPoints, $activity);
+            $this->notifyFixedRecipients($activity);
+            $this->notifyOperationalSupport($this->selectedSupportKeys($operationalSupport), $activity);
+
             return redirect()->route('activities.index')
                 ->with('success', 'Activity created successfully.');
 
@@ -289,6 +296,100 @@ class ActivityController extends Controller
             return back()
                 ->withInput()
                 ->with('error', 'Error creating activity: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Email the given employee IDs (focal points) to let them know they were
+     * assigned to an activity. Failures are logged, never thrown, so a mail
+     * outage can't block activity creation/updates.
+     */
+    private function notifyFocalPoints(array $employeeIds, Activity $activity): void
+    {
+        $employeeIds = array_values(array_unique(array_filter($employeeIds)));
+
+        if (empty($employeeIds)) {
+            return;
+        }
+
+        $emails = DB::table('employees')
+            ->whereIn('employee_id', $employeeIds)
+            ->whereNotNull('email')
+            ->pluck('email')
+            ->unique();
+
+        $this->sendActivityEmails($emails, $activity);
+    }
+
+    /**
+     * Email a fixed, always-on set of recipients (configured via the
+     * ACTIVITY_ALWAYS_NOTIFY_EMAILS env var) whenever an activity is created,
+     * regardless of which focal points were selected.
+     */
+    private function notifyFixedRecipients(Activity $activity): void
+    {
+        $this->sendActivityEmails(config('activities.always_notify_emails', []), $activity);
+    }
+
+    /**
+     * Keys of the operational support checkboxes that are ticked.
+     */
+    private function selectedSupportKeys($operationalSupport): array
+    {
+        return array_keys(array_filter((array) $operationalSupport));
+    }
+
+    /**
+     * Email the recipient(s) configured for each given operational support
+     * key (activities.operational_support_emails).
+     */
+    private function notifyOperationalSupport(array $keys, Activity $activity): void
+    {
+        $map = config('activities.operational_support_emails', []);
+
+        foreach ($keys as $key) {
+            $emails = array_filter(array_map('trim', explode(',', (string) ($map[$key] ?? ''))));
+            $this->sendActivityEmails(
+                $emails,
+                $activity,
+                fn (string $submittedBy) => new ActivitySupportRequested($activity, $submittedBy, $key)
+            );
+        }
+    }
+
+    /**
+     * Send the activity-submitted email to each address. Failures are
+     * logged, never thrown, so a mail outage can't block activity
+     * creation/updates.
+     *
+     * @param  iterable<string>  $emails
+     */
+    private function sendActivityEmails(iterable $emails, Activity $activity, ?\Closure $mailableFactory = null): void
+    {
+        $emails = collect($emails)->filter()->unique();
+
+        if ($emails->isEmpty()) {
+            return;
+        }
+
+        $submitter = Auth::guard('employee')->user();
+        $submittedBy = $submitter
+            ? trim($submitter->first_name . ' ' . $submitter->last_name)
+            : '';
+
+        foreach ($emails as $email) {
+            try {
+                Mail::to($email)->send(
+                    $mailableFactory
+                        ? $mailableFactory($submittedBy)
+                        : new ActivityFocalPointAssigned($activity, $submittedBy)
+                );
+            } catch (\Exception $e) {
+                Log::error('Failed to send activity notification email: ' . $e->getMessage(), [
+                    'activity_id' => $activity->activity_id,
+                    'email' => $email,
+                ]);
+            }
         }
     }
 
@@ -420,6 +521,8 @@ class ActivityController extends Controller
         $activity = Activity::findOrFail($id);
         $this->authorize('update', $activity);
 
+        $previousOperationalSupport = $activity->operational_support ?? [];
+
         $validated = $request->validate([
             'activity_title_en' => 'required|string|max:255',
             'activity_title_ar' => 'nullable|string|max:255',
@@ -522,6 +625,14 @@ class ActivityController extends Controller
         }
 
         // Update focal points
+        $existingFocalPointEmployeeIds = DB::table('activity_focal_points')
+            ->join('rp_focalpoints', 'rp_focalpoints.rp_focalpoints_id', '=', 'activity_focal_points.rp_focalpoints_id')
+            ->where('activity_focal_points.activity_id', $activity->activity_id)
+            ->whereNull('activity_focal_points.deleted_at')
+            ->whereNotNull('rp_focalpoints.employee_id')
+            ->pluck('rp_focalpoints.employee_id')
+            ->toArray();
+
         DB::table('activity_focal_points')->where('activity_id', $activity->activity_id)->delete();
         if (!empty($focalPoints)) {
             foreach ($focalPoints as $employeeId) {
@@ -563,6 +674,15 @@ class ActivityController extends Controller
                 ]);
             }
         }
+
+        $newlyAddedFocalPoints = array_diff($focalPoints, $existingFocalPointEmployeeIds);
+        $this->notifyFocalPoints($newlyAddedFocalPoints, $activity);
+
+        $newSupport = array_diff(
+            $this->selectedSupportKeys($request->input('operational_support', [])),
+            $this->selectedSupportKeys($previousOperationalSupport)
+        );
+        $this->notifyOperationalSupport($newSupport, $activity);
 
         return redirect()->route('activities.index')
             ->with('success', 'Activity updated successfully.');

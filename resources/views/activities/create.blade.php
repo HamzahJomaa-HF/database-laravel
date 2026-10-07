@@ -592,6 +592,7 @@
                                                 // Labels for display
                                                 $labels = [
                                                     'logistics' => 'Logistics',
+                                                    'data' => 'Data',
                                                     'media' => 'Media',
                                                     'public_relations' => 'Public Relations',
                                                     'field_support' => 'Facilitation & Field Support',

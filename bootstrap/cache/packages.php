@@ -28,6 +28,13 @@
       0 => 'DrPshtiwan\\LivewireAsyncSelect\\AsyncSelectServiceProvider',
     ),
   ),
+  'innoge/laravel-msgraph-mail' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'InnoGE\\LaravelMsGraphMail\\LaravelMsGraphMailServiceProvider',
+    ),
+  ),
   'laravel/pail' => 
   array (
     'providers' => 
