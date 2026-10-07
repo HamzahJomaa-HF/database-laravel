@@ -38,8 +38,8 @@ class ActivitiesExport implements FromQuery, WithHeadings, WithMapping, WithStyl
         // Apply filters
         if (isset($this->filters['title']) && !empty($this->filters['title'])) {
             $query->where(function ($q) {
-                $q->where('activity_title_en', 'like', '%' . $this->filters['title'] . '%')
-                    ->orWhere('activity_title_ar', 'like', '%' . $this->filters['title'] . '%');
+                $q->where('activity_title_en', 'ilike', '%' . $this->filters['title'] . '%')
+                    ->orWhere('activity_title_ar', 'ilike', '%' . $this->filters['title'] . '%');
             });
         }
 
@@ -48,7 +48,7 @@ class ActivitiesExport implements FromQuery, WithHeadings, WithMapping, WithStyl
         }
 
         if (isset($this->filters['venue']) && !empty($this->filters['venue'])) {
-            $query->where('venue', 'like', '%' . $this->filters['venue'] . '%');
+            $query->where('venue', 'ilike', '%' . $this->filters['venue'] . '%');
         }
 
         if (isset($this->filters['status']) && !empty($this->filters['status'])) {
@@ -60,15 +60,17 @@ class ActivitiesExport implements FromQuery, WithHeadings, WithMapping, WithStyl
                     ->where('end_date', '>=', $now);
             } elseif ($this->filters['status'] == 'completed') {
                 $query->where('end_date', '<', $now);
+            } elseif ($this->filters['status'] == 'cancelled') {
+                $query->where('is_cancelled', true);
             }
         }
 
         if (isset($this->filters['start_date_from']) && !empty($this->filters['start_date_from'])) {
-            $query->where('start_date', '>=', $this->filters['start_date_from']);
+            $query->whereDate('start_date', '>=', $this->filters['start_date_from']);
         }
 
         if (isset($this->filters['end_date_to']) && !empty($this->filters['end_date_to'])) {
-            $query->where('end_date', '<=', $this->filters['end_date_to']);
+            $query->whereDate(DB::raw('COALESCE(end_date, start_date)'), '<=', $this->filters['end_date_to']);
         }
 
         return $query->orderBy('start_date', 'desc');

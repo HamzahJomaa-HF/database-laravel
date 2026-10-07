@@ -118,12 +118,12 @@
                                     </select>
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-semibold">Start Date From</label>
+                                    <label class="form-label fw-semibold">From Date (activity starts on/after)</label>
                                     <input type="date" name="start_date_from" value="{{ request('start_date_from') }}"
                                            class="form-control">
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-semibold">End Date To</label>
+                                    <label class="form-label fw-semibold">To Date (activity ends on/before)</label>
                                     <input type="date" name="end_date_to" value="{{ request('end_date_to') }}"
                                            class="form-control">
                                 </div>
@@ -140,6 +140,11 @@
                                         <a href="{{ route('activities.index') }}" class="btn btn-outline-secondary">
                                             <i class="bi bi-arrow-clockwise me-1"></i>Reset
                                         </a>
+                                        @canDo('Activities', 'export')
+                                        <button type="submit" formaction="{{ route('activities.export') }}" class="btn btn-outline-success">
+                                            <i class="fas fa-file-excel me-1"></i>Export Filtered Results
+                                        </button>
+                                        @endcanDo
                                     </div>
                                 </div>
                             </div>

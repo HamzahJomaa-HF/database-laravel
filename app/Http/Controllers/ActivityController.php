@@ -33,6 +33,11 @@ class ActivityController extends Controller
      */
     public function index(Request $request)
     {
+        $request->validate([
+            'start_date_from' => 'nullable|date',
+            'end_date_to' => 'nullable|date|after_or_equal:start_date_from',
+        ]);
+
         // Start query
         $query = Activity::query();
 
@@ -93,7 +98,7 @@ class ActivityController extends Controller
         }
 
         if ($request->filled('end_date_to')) {
-            $query->whereDate('end_date', '<=', $request->end_date_to);
+            $query->whereDate(DB::raw('COALESCE(end_date, start_date)'), '<=', $request->end_date_to);
         }
 
         // Get paginated results
@@ -1070,6 +1075,11 @@ class ActivityController extends Controller
      */
     public function export(Request $request)
     {
+        $request->validate([
+            'start_date_from' => 'nullable|date',
+            'end_date_to' => 'nullable|date|after_or_equal:start_date_from',
+        ]);
+
         try {
             $filters = [
                 'title' => $request->title,

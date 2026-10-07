@@ -26,6 +26,11 @@ class ActivityUserController extends Controller
      */
     public function index(Request $request)
     {
+        $request->validate([
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+        ]);
+
         // ... (keep your existing index method exactly as is)
         $query = ActivityUser::with(['user', 'activity', 'cop'])
             ->orderBy('created_at', 'desc');
@@ -72,12 +77,7 @@ class ActivityUserController extends Controller
         }
         
         // Filter by activity start date
-        if ($request->filled('start_date')) {
-            $startDate = $request->start_date;
-            $query->whereHas('activity', function ($activityQuery) use ($startDate) {
-                $activityQuery->whereDate('start_date', $startDate);
-            });
-        }
+        $this->applyActivityDateRange($query, $request);
 
         // Global search by user or activity names
         if ($request->filled('search')) {
@@ -446,10 +446,36 @@ class ActivityUserController extends Controller
     }
 
     /**
+     * Limit records to activities whose start date falls between the
+     * start_date (from) and end_date (to) request filters, inclusive.
+     * Either bound may be given on its own.
+     */
+    private function applyActivityDateRange($query, Request $request): void
+    {
+        if (!$request->filled('start_date') && !$request->filled('end_date')) {
+            return;
+        }
+
+        $query->whereHas('activity', function ($q) use ($request) {
+            if ($request->filled('start_date')) {
+                $q->whereDate('start_date', '>=', $request->start_date);
+            }
+            if ($request->filled('end_date')) {
+                $q->whereDate('start_date', '<=', $request->end_date);
+            }
+        });
+    }
+
+    /**
      * Export activity users to CSV.
      */
     public function export(Request $request)
     {
+        $request->validate([
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+        ]);
+
         $query = ActivityUser::with(['user', 'activity', 'cop'])
             ->orderBy('created_at', 'desc');
 
@@ -489,12 +515,7 @@ class ActivityUserController extends Controller
             });
         }
 
-        if ($request->filled('start_date')) {
-            $startDate = $request->start_date;
-            $query->whereHas('activity', function ($q) use ($startDate) {
-                $q->whereDate('start_date', $startDate);
-            });
-        }
+        $this->applyActivityDateRange($query, $request);
 
         if ($request->filled('user_search')) {
             $userSearch = $request->user_search;

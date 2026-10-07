@@ -1274,6 +1274,23 @@ const venueFilter = document.getElementById('venueFilter');
 if (venueFilter) {
     venueFilter.addEventListener('change', applyFilters);
 }
+
+            // Date range filter: apply once both dates are chosen (or both cleared)
+            ['startDateFilter', 'endDateFilter'].forEach(function (id) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.addEventListener('change', function () {
+                    const from = document.getElementById('startDateFilter').value;
+                    const to = document.getElementById('endDateFilter').value;
+                    if (from && to && to < from) {
+                        alert('The "to" date must be on or after the "from" date.');
+                        return;
+                    }
+                    if ((from && to) || (!from && !to)) {
+                        applyFilters();
+                    }
+                });
+            });
             
             // Auto-initialize toasts
             var toastElList = [].slice.call(document.querySelectorAll('.toast'));
