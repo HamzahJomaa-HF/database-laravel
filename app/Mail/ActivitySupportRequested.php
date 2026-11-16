@@ -12,25 +12,29 @@ class ActivitySupportRequested extends Mailable
     use Queueable, SerializesModels;
 
     public const SUPPORT = [
-        'logistics' => [
-            'label' => 'Logistics',
-            'action' => 'Kindly proceed with the necessary logistics arrangements related to this activity, including venue setup, equipment, transportation, and coordination as applicable.',
+        'dmesc' => [
+            'label' => 'Data, Monitoring & Evaluation & Stakeholder-Communications',
+            'action' => 'Kindly proceed with the requested items listed below for this activity.',
         ],
-        'data' => [
-            'label' => 'Data',
-            'action' => 'Kindly proceed with the necessary data support related to this activity, including registration, data collection, reporting, and coordination as applicable.',
+        'logproc' => [
+            'label' => 'Logistics & Procurement',
+            'action' => 'Kindly proceed with the requested items listed below for this activity.',
         ],
-        'public_relations' => [
-            'label' => 'Public Relations',
-            'action' => 'Kindly proceed with the necessary public relations preparations related to this activity, including stakeholder communication, invitations, and coordination as applicable.',
+        'comms' => [
+            'label' => 'Communications',
+            'action' => 'Kindly review the requested items listed below and assess the services and needs accordingly, based on the requirements of the event.',
         ],
-        'media' => [
-            'label' => 'Media and Communications',
-            'action' => 'Kindly proceed with the necessary media and communications preparations related to this activity, including coverage, content development, and coordination as applicable.',
+        'president' => [
+            'label' => 'President Involvement',
+            'action' => 'Kindly note that the President is involved in the activity below. Please take the necessary preparations and coordination into consideration.',
         ],
-        'field_support' => [
-            'label' => 'Facilitation & Field Support',
-            'action' => 'Kindly proceed with the necessary facilitation and field support preparations related to this activity, including on-site assistance and coordination as applicable.',
+        'venue' => [
+            'label' => 'Venue',
+            'action' => 'Kindly note that the venue listed below has been requested for this activity. Please proceed with the necessary arrangements and confirm availability.',
+        ],
+        'technical' => [
+            'label' => 'Technical Support (Live Streaming, Hardware, WiFi)',
+            'action' => 'Kindly proceed with the requested technical items listed below for this activity.',
         ],
     ];
 
@@ -38,6 +42,8 @@ class ActivitySupportRequested extends Mailable
         public Activity $activity,
         public string $submittedBy,
         public string $supportKey,
+        public array $details = [],
+        public ?string $recipientName = null,
     ) {
     }
 
@@ -51,12 +57,18 @@ class ActivitySupportRequested extends Mailable
 
         return $this
             ->subject($support['label'] . ' Support Required: ' . $title)
-            ->view('emails.activity-support-requested')
+            ->view(match ($this->supportKey) {
+                'venue' => 'emails.activity-venue-requested',
+                'president' => 'emails.activity-president-involved',
+                default => 'emails.activity-support-requested',
+            })
             ->with([
                 'activity' => $this->activity,
                 'submittedBy' => $this->submittedBy,
                 'supportLabel' => $support['label'],
                 'supportAction' => $support['action'],
+                'details' => $this->details,
+                'recipientName' => $this->recipientName,
             ]);
     }
 }

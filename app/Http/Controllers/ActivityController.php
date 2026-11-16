@@ -286,7 +286,11 @@ class ActivityController extends Controller
 
             $this->notifyFocalPoints($focalPoints, $activity);
             $this->notifyFixedRecipients($activity);
-            $this->notifyOperationalSupport($this->selectedSupportKeys($operationalSupport), $activity);
+            $this->notifyDetailedSupport($this->selectedSupportKeys($operationalSupport), $operationalSupport, $activity);
+            $this->notifyVenue($activity->venue, $activity);
+            if (!empty($operationalSupport['president_involved'])) {
+                $this->notifyPresidentInvolved($activity);
+            }
 
             return redirect()->route('activities.index')
                 ->with('success', 'Activity created successfully.');
@@ -345,19 +349,119 @@ class ActivityController extends Controller
     }
 
     /**
-     * Email the recipient(s) configured for each given operational support
-     * key (activities.operational_support_emails).
+     * Greeting name for an email address: the matching employee's name, otherwise
+     * a readable name built from the address (e.g. jane.doe@x.org -> "Jane Doe").
      */
-    private function notifyOperationalSupport(array $keys, Activity $activity): void
+    private function recipientNameFromEmail(string $email): string
     {
-        $map = config('activities.operational_support_emails', []);
+        $employee = DB::table('employees')->whereRaw('lower(email) = ?', [strtolower($email)])->first();
+        if ($employee) {
+            $name = trim($employee->first_name . ' ' . $employee->last_name);
+            if ($name !== '') {
+                return $name;
+            }
+        }
 
-        foreach ($keys as $key) {
-            $emails = array_filter(array_map('trim', explode(',', (string) ($map[$key] ?? ''))));
+        $local = Str::before($email, '@');
+        return trim(ucwords(preg_replace('/[._\-]+/', ' ', $local))) ?: 'Team';
+    }
+
+    /**
+     * Email the configured recipients when "President Involved" is ticked.
+     */
+    private function notifyPresidentInvolved(Activity $activity): void
+    {
+        $emails = array_filter(array_map('trim', explode(',', (string) config('activities.president_involved_emails', ''))));
+        $this->sendActivityEmails(
+            $emails,
+            $activity,
+            fn (string $submittedBy, string $email) => new ActivitySupportRequested($activity, $submittedBy, 'president', [], $this->recipientNameFromEmail($email))
+        );
+    }
+
+    /**
+     * Email the person responsible for the selected venue
+     * (activities.venue_emails: first entry whose 'match' text is found in the venue name).
+     */
+    private function notifyVenue(?string $venue, Activity $activity): void
+    {
+        $venue = trim((string) $venue);
+        if ($venue === '') {
+            return;
+        }
+
+        foreach (config('activities.venue_emails', []) as $rule) {
+            if (stripos($venue, $rule['match']) === false) {
+                continue;
+            }
+
+            $emails = array_filter(array_map('trim', explode(',', (string) $rule['emails'])));
             $this->sendActivityEmails(
                 $emails,
                 $activity,
-                fn (string $submittedBy) => new ActivitySupportRequested($activity, $submittedBy, $key)
+                fn (string $submittedBy) => new ActivitySupportRequested($activity, $submittedBy, 'venue', ['Venue: ' . $venue])
+            );
+            return;
+        }
+    }
+
+    /**
+     * Email the recipients of each detailed support group (config/support_options.php)
+     * that has a ticked option, plus the dedicated recipient(s) for the special options.
+     *
+     * @param  array<int,string>  $keys  Keys to notify about (newly ticked ones)
+     * @param  mixed  $operationalSupport  Full submitted operational_support input
+     */
+    private function notifyDetailedSupport(array $keys, $operationalSupport, Activity $activity): void
+    {
+        $groups = config('support_options', []);
+        $groupEmails = config('activities.support_group_emails', []);
+        $specialEmails = config('activities.support_special_emails', []);
+        $other = trim((string) data_get($operationalSupport, 'comms__other_text', ''));
+
+        $label = function (string $key) use ($groups, $other) {
+            [$group, $option] = array_pad(explode('__', $key, 2), 2, null);
+            $text = $groups[$group]['options'][$option] ?? null;
+            if ($text === null) {
+                return null;
+            }
+            $text = trim(preg_replace('/\s*\(select all that applies\)/i', '', $text));
+            if ($key === 'comms__other') {
+                $text = rtrim($text, ': ') . ($other !== '' ? ': ' . $other : '');
+            }
+            return $text;
+        };
+
+        $split = fn ($v) => array_filter(array_map('trim', explode(',', (string) $v)));
+
+        foreach (array_keys($groups) as $groupKey) {
+            $groupItems = array_values(array_filter($keys, fn ($k) => str_starts_with($k, $groupKey . '__')));
+            if (!$groupItems) {
+                continue;
+            }
+
+            $details = array_values(array_filter(array_map($label, $groupItems)));
+            if (!$details) {
+                continue;
+            }
+            $this->sendActivityEmails(
+                $split($groupEmails[$groupKey] ?? ''),
+                $activity,
+                fn (string $submittedBy) => new ActivitySupportRequested($activity, $submittedBy, $groupKey, $details)
+            );
+        }
+
+        $specialItems = array_values(array_filter($keys, fn ($k) => isset($specialEmails[$k])));
+        if ($specialItems) {
+            $recipients = [];
+            foreach ($specialItems as $k) {
+                $recipients = array_merge($recipients, $split($specialEmails[$k]));
+            }
+            $details = array_values(array_filter(array_map($label, $specialItems)));
+            $this->sendActivityEmails(
+                array_unique($recipients),
+                $activity,
+                fn (string $submittedBy) => new ActivitySupportRequested($activity, $submittedBy, 'technical', $details)
             );
         }
     }
@@ -386,7 +490,7 @@ class ActivityController extends Controller
             try {
                 Mail::to($email)->send(
                     $mailableFactory
-                        ? $mailableFactory($submittedBy)
+                        ? $mailableFactory($submittedBy, $email)
                         : new ActivityFocalPointAssigned($activity, $submittedBy)
                 );
             } catch (\Exception $e) {
@@ -527,6 +631,7 @@ class ActivityController extends Controller
         $this->authorize('update', $activity);
 
         $previousOperationalSupport = $activity->operational_support ?? [];
+        $previousVenue = $activity->venue;
 
         $validated = $request->validate([
             'activity_title_en' => 'required|string|max:255',
@@ -687,7 +792,16 @@ class ActivityController extends Controller
             $this->selectedSupportKeys($request->input('operational_support', [])),
             $this->selectedSupportKeys($previousOperationalSupport)
         );
-        $this->notifyOperationalSupport($newSupport, $activity);
+        $this->notifyDetailedSupport($newSupport, $request->input('operational_support', []), $activity);
+
+        if (in_array('president_involved', $newSupport, true)) {
+            $this->notifyPresidentInvolved($activity);
+        }
+
+        $currentVenue = $activity->fresh()->venue;
+        if ($currentVenue !== $previousVenue) {
+            $this->notifyVenue($currentVenue, $activity);
+        }
 
         return redirect()->route('activities.index')
             ->with('success', 'Activity updated successfully.');

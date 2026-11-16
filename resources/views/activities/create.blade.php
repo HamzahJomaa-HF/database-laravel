@@ -390,6 +390,12 @@
                     <i class="bi bi-info-circle me-1"></i>
                     List names, titles, or any relevant information about experts participating in this activity
                 </div>
+
+                <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" name="operational_support[president_involved]"
+                           id="president_involved" value="1" {{ old('operational_support.president_involved') ? 'checked' : '' }}>
+                    <label class="form-check-label fw-semibold" for="president_involved">President Involved</label>
+                </div>
             </div>
         </div>
     </div>
@@ -578,47 +584,13 @@
                                             <label class="form-label fw-semibold mb-2 d-block">Select Required Support</label>
 
                                             @php
-                                                // Allowed keys
-                                                $allowedSupports = config('operational_support', [
-                                                    'logistics',
-                                                    'media',
-                                                    'public_relations',
-                                                    'none',
-                                                ]);
-
                                                 // Get old operational support
                                                 $operationalSupport = old('operational_support', []);
-
-                                                // Labels for display
-                                                $labels = [
-                                                    'logistics' => 'Logistics',
-                                                    'data' => 'Data',
-                                                    'media' => 'Media',
-                                                    'public_relations' => 'Public Relations',
-                                                    'field_support' => 'Facilitation & Field Support',
-                                                    'none' => 'None',
-                                                ];
                                             @endphp
 
-                                            <div class="row">
-                                                @foreach($allowedSupports as $key)
-                                                    <div class="col-md-6 col-lg-3 mb-2">
-                                                        <div class="form-check">
-                                                            <input
-                                                                class="form-check-input @error('operational_support') is-invalid @enderror @error("operational_support.$key") is-invalid @enderror"
-                                                                type="checkbox"
-                                                                name="operational_support[{{ $key }}]"
-                                                                id="support_{{ $key }}"
-                                                                value="1"
-                                                                {{ !empty($operationalSupport[$key]) ? 'checked' : '' }}
-                                                            >
-                                                            <label class="form-check-label" for="support_{{ $key }}">
-                                                                {{ $labels[$key] ?? ucfirst(str_replace('_', ' ', $key)) }}
-                                                            </label>
-                                                        </div>
-                                                    </div>
-                                                @endforeach
-                                            </div>
+                                            
+
+                                            @include('activities.partials.operational-support-details', ['operationalSupport' => $operationalSupport])
 
                                             @error('operational_support')
                                                 <div class="invalid-feedback d-block">{{ $message }}</div>

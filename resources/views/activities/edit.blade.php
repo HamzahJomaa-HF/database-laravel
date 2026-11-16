@@ -411,6 +411,17 @@
                     <i class="bi bi-info-circle me-1"></i>
                     List names, titles, or any relevant information about experts participating in this activity
                 </div>
+                @php
+                    $__os = $activity->operational_support;
+                    if (is_string($__os)) { $__os = json_decode($__os, true); }
+                    $presidentInvolved = old('operational_support.president_involved', is_array($__os) ? ($__os['president_involved'] ?? false) : false);
+                @endphp
+
+                <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" name="operational_support[president_involved]"
+                           id="president_involved" value="1" {{ $presidentInvolved ? 'checked' : '' }}>
+                    <label class="form-check-label fw-semibold" for="president_involved">President Involved</label>
+                </div>
             </div>
         </div>
     </div>
@@ -601,19 +612,6 @@
                     <label class="form-label fw-semibold mb-2 d-block">Select Required Support</label>
 
                     @php
-                        // Allowed keys
-                        $labels = [
-                            'logistics' => 'Logistics',
-                            'data' => 'Data',
-                            'public_relations' => 'Public Relations',
-                            'media' => 'Media',
-                            'field_support' => 'Facilitation & Field Support',
-                            'none' => 'None',
-                        ];
-                        $allowedSupports = collect(config('operational_support', []))
-                            ->mapWithKeys(fn ($key) => [$key => $labels[$key] ?? ucfirst(str_replace('_', ' ', $key))])
-                            ->all();
-
                         // CORRECT TRANSFORMATION: Convert indexed array to associative array
                         $operationalSupport = [];
 
@@ -645,25 +643,9 @@
                         }
                     @endphp
 
-                    <div class="row">
-                        @foreach($allowedSupports as $key => $label)
-                            <div class="col-md-6 col-lg-3 mb-2">
-                                <div class="form-check">
-                                    <input
-                                        class="form-check-input @error('operational_support') is-invalid @enderror @error("operational_support.$key") is-invalid @enderror"
-                                        type="checkbox"
-                                        name="operational_support[{{ $key }}]"
-                                        id="support_{{ $key }}"
-                                        value="1"
-                                        {{ isset($operationalSupport[$key]) && $operationalSupport[$key] ? 'checked' : '' }}
-                                    >
-                                    <label class="form-check-label" for="support_{{ $key }}">
-                                        {{ $label }}
-                                    </label>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
+                    
+
+                    @include('activities.partials.operational-support-details', ['operationalSupport' => $operationalSupport])
 
                     @error('operational_support')
                         <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -671,6 +653,7 @@
                 </div>
             </div>
         </div>
+    
     </div>
 </div>
                         {{-- ======================== --}}

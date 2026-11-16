@@ -31,6 +31,14 @@
                             <p style="margin:0 0 4px;"><strong>Requested Support</strong></p>
                             <p style="margin:0 0 8px;">{{ $supportLabel }}</p>
                             <p style="margin:0 0 16px;">{{ $supportAction }}</p>
+                            @if(!empty($details))
+                                <p style="margin:0 0 4px;"><strong>Selected Items</strong></p>
+                                <ul style="margin:0 0 16px; padding-left:20px;">
+                                    @foreach($details as $detail)
+                                        <li>{{ $detail }}</li>
+                                    @endforeach
+                                </ul>
+                            @endif
 
                             <p style="margin:0;">Thank you.</p>
                         </td>

@@ -116,7 +116,7 @@ class ActivityController extends Controller
 
 
             $validated['operational_support'] = collect($request->input('operational_support', []))
-                ->only(config('operational_support'))
+                ->only(collect(config('support_options'))->flatMap(fn ($g, $k) => collect($g['options'])->keys()->map(fn ($o) => $k . '__' . $o))->all())
                 ->map(fn ($v) => filter_var($v, FILTER_VALIDATE_BOOLEAN))
                 ->toArray();
 
